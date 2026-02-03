@@ -1,6 +1,24 @@
 import Cocoa
 import AVKit
 
+class KeyHandlingView: NSView {
+    var onLeftArrow: (() -> Void)?
+    var onRightArrow: (() -> Void)?
+
+    override var acceptsFirstResponder: Bool { true }
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case 123: // Left arrow
+            onLeftArrow?()
+        case 124: // Right arrow
+            onRightArrow?()
+        default:
+            super.keyDown(with: event)
+        }
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     var window: NSWindow?
@@ -20,6 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var prevButton: NSButton?
     var nextButton: NSButton?
     var currentPlayer: AVPlayer?
+    var setWallpaperButton: NSButton?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create assets folder
@@ -120,16 +139,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         window = NSWindow(
             contentRect: contentRect,
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
 
         window?.title = "WallpicsMac"
         window?.center()
-
-        // Set minimum size to 90% of screen (prevent resizing smaller)
-        window?.minSize = NSSize(width: windowWidth, height: windowHeight)
 
         // Make title bar transparent, keep buttons visible
         window?.titlebarAppearsTransparent = true
@@ -168,15 +184,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Setup the window content
         setupWindowContent(frame: contentRect)
+
+        // Enable key events for arrow navigation
+        window?.makeFirstResponder(window?.contentView)
     }
 
     func setupWindowContent(frame: NSRect) {
         guard let window = window else { return }
 
-        // Main container view
-        let mainView = NSView(frame: frame)
+        // Main container view with keyboard handling
+        let mainView = KeyHandlingView(frame: frame)
         mainView.wantsLayer = true
         mainView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+
+        // Set up keyboard shortcuts
+        mainView.onLeftArrow = { [weak self] in
+            self?.previousAsset()
+        }
+        mainView.onRightArrow = { [weak self] in
+            self?.nextAsset()
+        }
+
         window.contentView = mainView
 
         // Create segmented control for navigation
@@ -302,8 +330,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             homeView.addSubview(nextButton, positioned: .above, relativeTo: mediaContainerView)
         }
 
+        // Set as wallpaper button (above dots, centered)
+        let wallpaperButtonWidth: CGFloat = 160
+        let wallpaperButtonHeight: CGFloat = 28
+        setWallpaperButton = NSButton(frame: NSRect(
+            x: (frame.width - wallpaperButtonWidth) / 2,
+            y: 60,
+            width: wallpaperButtonWidth,
+            height: wallpaperButtonHeight
+        ))
+        setWallpaperButton?.title = "Set as a wallpaper"
+        setWallpaperButton?.bezelStyle = .rounded
+        setWallpaperButton?.font = NSFont.systemFont(ofSize: 13)
+        setWallpaperButton?.target = self
+        setWallpaperButton?.action = #selector(setAsWallpaper)
+        setWallpaperButton?.autoresizingMask = [.minXMargin, .maxXMargin, .maxYMargin]
+        if let setWallpaperButton = setWallpaperButton {
+            homeView.addSubview(setWallpaperButton, positioned: .above, relativeTo: mediaContainerView)
+        }
+
         // Dots container (bottom, centered)
-        let dotsWidth = CGFloat(homeAssets.count * 12)
+        let dotSpacing: CGFloat = 25
+        let dotsWidth = CGFloat(homeAssets.count) * dotSpacing
         let dotsHeight: CGFloat = 30
         dotsContainer = NSView(frame: NSRect(
             x: (frame.width - dotsWidth) / 2,
@@ -330,14 +378,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         dotsContainer.subviews.forEach { $0.removeFromSuperview() }
 
         // Create dot buttons
+        let dotSize: CGFloat = 8
+        let dotSpacing: CGFloat = 25
+
         for i in 0..<homeAssets.count {
-            let dotButton = NSButton(frame: NSRect(x: CGFloat(i * 12), y: 11, width: 8, height: 8))
-            dotButton.bezelStyle = .circular
-            dotButton.title = ""
-            dotButton.tag = i
-            dotButton.target = self
-            dotButton.action = #selector(dotClicked(_:))
-            dotsContainer.addSubview(dotButton)
+            let dotView = NSView(frame: NSRect(
+                x: CGFloat(i) * dotSpacing + (dotSpacing - dotSize) / 2,
+                y: (30 - dotSize) / 2,
+                width: dotSize,
+                height: dotSize
+            ))
+            dotView.wantsLayer = true
+            dotView.layer?.cornerRadius = dotSize / 2
+            dotView.layer?.backgroundColor = NSColor.gray.cgColor
+
+            // Add click gesture
+            let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(dotClicked(_:)))
+            dotView.addGestureRecognizer(clickGesture)
+
+            dotsContainer.addSubview(dotView)
         }
 
         updateDots()
@@ -347,15 +406,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let dotsContainer = dotsContainer else { return }
 
         for (index, subview) in dotsContainer.subviews.enumerated() {
-            if let button = subview as? NSButton {
-                if index == currentAssetIndex {
-                    button.state = .on
-                    button.contentTintColor = .white
-                } else {
-                    button.state = .off
-                    button.contentTintColor = .gray
-                }
+            if index == currentAssetIndex {
+                subview.layer?.backgroundColor = NSColor.white.cgColor
+            } else {
+                subview.layer?.backgroundColor = NSColor.gray.cgColor
             }
+        }
+    }
+
+    @objc func setAsWallpaper() {
+        guard currentAssetIndex >= 0 && currentAssetIndex < homeAssets.count else { return }
+
+        let assetURL = homeAssets[currentAssetIndex]
+        let ext = assetURL.pathExtension.lowercased()
+        let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
+
+        // Only set wallpaper for images
+        guard imageExtensions.contains(ext) else { return }
+
+        do {
+            let workspace = NSWorkspace.shared
+            if let screen = NSScreen.main {
+                try workspace.setDesktopImageURL(assetURL, for: screen, options: [:])
+                print("Wallpaper set successfully")
+            }
+        } catch {
+            print("Failed to set wallpaper: \(error)")
         }
     }
 
@@ -423,6 +499,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // Enable/disable wallpaper button based on asset type
+        setWallpaperButton?.isEnabled = imageExtensions.contains(ext)
+
         updateDots()
     }
 
@@ -438,8 +517,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         loadAssetAtIndex(currentAssetIndex)
     }
 
-    @objc func dotClicked(_ sender: NSButton) {
-        currentAssetIndex = sender.tag
+    @objc func dotClicked(_ sender: NSClickGestureRecognizer) {
+        guard let dotView = sender.view,
+              let dotsContainer = dotsContainer,
+              let index = dotsContainer.subviews.firstIndex(of: dotView) else {
+            return
+        }
+
+        currentAssetIndex = index
         loadAssetAtIndex(currentAssetIndex)
     }
 
