@@ -1,6 +1,72 @@
 import Cocoa
 import AVKit
 
+class VideoWallpaperWindow: NSWindow {
+    var player: AVPlayer?
+    var loopObserver: NSObjectProtocol?
+
+    init(screen: NSScreen, videoURL: URL) {
+        let frame = screen.frame
+
+        super.init(
+            contentRect: frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+
+        // Configure window to be at desktop level
+        self.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
+        self.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        self.ignoresMouseEvents = true
+        self.backgroundColor = .black
+        self.isReleasedWhenClosed = false
+
+        // Setup video player
+        setupVideoPlayer(videoURL: videoURL, frame: frame)
+    }
+
+    func setupVideoPlayer(videoURL: URL, frame: NSRect) {
+        let playerLayer = AVPlayerLayer()
+        playerLayer.frame = frame
+        playerLayer.videoGravity = .resizeAspectFill
+        playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+
+        let player = AVPlayer(url: videoURL)
+        player.isMuted = true
+        playerLayer.player = player
+        self.player = player
+
+        let containerView = NSView(frame: frame)
+        containerView.wantsLayer = true
+        containerView.autoresizingMask = [.width, .height]
+        containerView.layer?.addSublayer(playerLayer)
+
+        self.contentView = containerView
+
+        // Auto-play and loop
+        player.play()
+
+        loopObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem,
+            queue: .main
+        ) { [weak player] _ in
+            player?.seek(to: .zero)
+            player?.play()
+        }
+    }
+
+    func stop() {
+        if let observer = loopObserver {
+            NotificationCenter.default.removeObserver(observer)
+            loopObserver = nil
+        }
+        player?.pause()
+        player = nil
+    }
+}
+
 class KeyHandlingView: NSView {
     var onLeftArrow: (() -> Void)?
     var onRightArrow: (() -> Void)?
@@ -39,6 +105,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var nextButton: NSButton?
     var currentPlayer: AVPlayer?
     var setWallpaperButton: NSButton?
+    var videoWallpaperWindows: [VideoWallpaperWindow] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create assets folder
@@ -72,7 +139,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ensureFolderExists(at: folderURL)
 
         // Create required subfolders
-        let subfolders = ["Videos", "Images", "Shaders", "Animations"]
+        let subfolders = ["Videos", "Images", "Shaders", "Animations", "FirstFrames"]
         for subfolder in subfolders {
             let subfolderURL = folderURL.appendingPathComponent(subfolder)
             ensureFolderExists(at: subfolderURL)
@@ -420,18 +487,121 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let assetURL = homeAssets[currentAssetIndex]
         let ext = assetURL.pathExtension.lowercased()
         let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
+        let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
 
-        // Only set wallpaper for images
-        guard imageExtensions.contains(ext) else { return }
+        var wallpaperURL = assetURL
+        let isVideo = videoExtensions.contains(ext)
 
+        // For videos, extract first frame
+        if isVideo {
+            guard let firstFrameURL = extractFirstFrame(from: assetURL) else {
+                print("Failed to extract first frame")
+                return
+            }
+            wallpaperURL = firstFrameURL
+        } else if !imageExtensions.contains(ext) {
+            // Not an image or video
+            return
+        }
+
+        // Set static wallpaper (first frame for videos, actual image for images)
         do {
             let workspace = NSWorkspace.shared
             if let screen = NSScreen.main {
-                try workspace.setDesktopImageURL(assetURL, for: screen, options: [:])
+                try workspace.setDesktopImageURL(wallpaperURL, for: screen, options: [:])
                 print("Wallpaper set successfully")
+
+                // Save wallpaper path to settings.txt
+                saveWallpaperPath(wallpaperURL)
+
+                // For videos, create animated wallpaper windows
+                if isVideo {
+                    createVideoWallpapers(videoURL: assetURL)
+                } else {
+                    // Stop any existing video wallpapers when setting an image
+                    stopVideoWallpapers()
+                }
             }
         } catch {
             print("Failed to set wallpaper: \(error)")
+        }
+    }
+
+    func saveWallpaperPath(_ url: URL) {
+        guard let assetsFolderURL = assetsFolderURL else { return }
+
+        let settingsURL = assetsFolderURL.appendingPathComponent("settings.txt")
+        let path = url.path
+
+        do {
+            // Overwrite file content (not append)
+            try path.write(to: settingsURL, atomically: true, encoding: .utf8)
+            print("Wallpaper path saved to settings.txt: \(path)")
+        } catch {
+            print("Failed to save wallpaper path: \(error)")
+        }
+    }
+
+    func stopVideoWallpapers() {
+        for window in videoWallpaperWindows {
+            window.stop()
+            window.close()
+        }
+        videoWallpaperWindows.removeAll()
+        print("Stopped all video wallpapers")
+    }
+
+    func createVideoWallpapers(videoURL: URL) {
+        // Stop any existing video wallpapers first
+        stopVideoWallpapers()
+
+        // Create video wallpaper window for each screen
+        for screen in NSScreen.screens {
+            let wallpaperWindow = VideoWallpaperWindow(screen: screen, videoURL: videoURL)
+            wallpaperWindow.orderBack(nil)
+            videoWallpaperWindows.append(wallpaperWindow)
+        }
+
+        print("Created video wallpaper windows for \(NSScreen.screens.count) screen(s)")
+    }
+
+    func extractFirstFrame(from videoURL: URL) -> URL? {
+        guard let assetsFolderURL = assetsFolderURL else { return nil }
+
+        let firstFramesFolder = assetsFolderURL.appendingPathComponent("FirstFrames")
+        let videoName = videoURL.deletingPathExtension().lastPathComponent
+        let imageURL = firstFramesFolder.appendingPathComponent("\(videoName).jpg")
+
+        // Check if already extracted
+        if FileManager.default.fileExists(atPath: imageURL.path) {
+            print("First frame already exists: \(imageURL.path)")
+            return imageURL
+        }
+
+        // Extract first frame
+        let asset = AVAsset(url: videoURL)
+        let imageGenerator = AVAssetImageGenerator(asset: asset)
+        imageGenerator.appliesPreferredTrackTransform = true
+
+        do {
+            let cgImage = try imageGenerator.copyCGImage(at: .zero, actualTime: nil)
+            let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+
+            // Save as JPEG
+            guard let tiffData = nsImage.tiffRepresentation,
+                  let bitmapRep = NSBitmapImageRep(data: tiffData),
+                  let jpegData = bitmapRep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
+                print("Failed to convert image to JPEG")
+                return nil
+            }
+
+            try jpegData.write(to: imageURL)
+            print("First frame saved to: \(imageURL.path)")
+            return imageURL
+
+        } catch {
+            print("Failed to extract first frame: \(error)")
+            return nil
         }
     }
 
@@ -499,8 +669,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Enable/disable wallpaper button based on asset type
-        setWallpaperButton?.isEnabled = imageExtensions.contains(ext)
+        // Enable/disable wallpaper button based on asset type (works for both images and videos)
+        setWallpaperButton?.isEnabled = imageExtensions.contains(ext) || videoExtensions.contains(ext)
 
         updateDots()
     }
