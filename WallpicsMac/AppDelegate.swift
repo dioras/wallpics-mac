@@ -111,6 +111,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create assets folder
         createAssetsFolder()
 
+        // Restore video wallpaper if needed
+        restoreVideoWallpaper()
+
         // Create the main window
         createMainWindow()
 
@@ -159,6 +162,51 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             print("Folder already exists at: \(url.path)")
         }
+    }
+
+    func restoreVideoWallpaper() {
+        guard let assetsFolderURL = assetsFolderURL else { return }
+
+        let settingsURL = assetsFolderURL.appendingPathComponent("settings.txt")
+
+        // Read settings.txt
+        guard let wallpaperPath = try? String(contentsOf: settingsURL, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) else {
+            print("No settings.txt found or failed to read")
+            return
+        }
+
+        // Check if wallpaper is from FirstFrames folder
+        guard wallpaperPath.contains("/FirstFrames/") else {
+            print("Wallpaper is not from FirstFrames folder, no video to restore")
+            return
+        }
+
+        // Extract filename without extension
+        let wallpaperURL = URL(fileURLWithPath: wallpaperPath)
+        let filename = wallpaperURL.deletingPathExtension().lastPathComponent
+
+        // Search for video with same name in Videos folder
+        let videosFolder = assetsFolderURL.appendingPathComponent("Videos")
+        let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
+
+        guard let files = try? FileManager.default.contentsOfDirectory(at: videosFolder, includingPropertiesForKeys: nil) else {
+            print("Failed to read Videos folder")
+            return
+        }
+
+        for file in files {
+            let fileNameWithoutExt = file.deletingPathExtension().lastPathComponent
+            let ext = file.pathExtension.lowercased()
+
+            if fileNameWithoutExt == filename && videoExtensions.contains(ext) {
+                print("Found matching video: \(file.path)")
+                // Restore video wallpaper
+                createVideoWallpapers(videoURL: file)
+                return
+            }
+        }
+
+        print("No matching video found for: \(filename)")
     }
 
     func loadRandomAssets() {
