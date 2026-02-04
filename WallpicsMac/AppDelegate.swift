@@ -5,6 +5,81 @@ import Metal
 import MetalKit
 import RiveRuntime
 
+class GIFWallpaperWindow: NSWindow {
+    var imageView: NSImageView?
+
+    init(screen: NSScreen, gifURL: URL) {
+        let frame = screen.frame
+
+        super.init(
+            contentRect: frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+
+        // Configure window to be at desktop level
+        self.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
+        self.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        self.ignoresMouseEvents = true
+        self.backgroundColor = .black
+        self.isReleasedWhenClosed = false
+
+        // Setup GIF animation
+        setupGIFAnimation(gifURL: gifURL, frame: frame)
+    }
+
+    func setupGIFAnimation(gifURL: URL, frame: NSRect) {
+        guard let image = NSImage(contentsOf: gifURL) else { return }
+
+        // Calculate aspect fill frame
+        let imageSize = image.size
+        let viewSize = frame.size
+        let imageAspect = imageSize.width / imageSize.height
+        let viewAspect = viewSize.width / viewSize.height
+
+        var scaledFrame = frame
+        if imageAspect > viewAspect {
+            // Image is wider - fit height and crop width
+            let scaledWidth = viewSize.height * imageAspect
+            scaledFrame = NSRect(
+                x: (viewSize.width - scaledWidth) / 2,
+                y: 0,
+                width: scaledWidth,
+                height: viewSize.height
+            )
+        } else {
+            // Image is taller - fit width and crop height
+            let scaledHeight = viewSize.width / imageAspect
+            scaledFrame = NSRect(
+                x: 0,
+                y: (viewSize.height - scaledHeight) / 2,
+                width: viewSize.width,
+                height: scaledHeight
+            )
+        }
+
+        let imageView = NSImageView(frame: scaledFrame)
+        imageView.imageScaling = .scaleAxesIndependently
+        imageView.animates = true
+        imageView.image = image
+
+        // Container to clip overflow
+        let containerView = NSView(frame: frame)
+        containerView.wantsLayer = true
+        containerView.layer?.masksToBounds = true
+        containerView.addSubview(imageView)
+
+        self.imageView = imageView
+        self.contentView = containerView
+    }
+
+    func stop() {
+        imageView?.image = nil
+        imageView = nil
+    }
+}
+
 class VideoWallpaperWindow: NSWindow {
     var player: AVPlayer?
     var loopObserver: NSObjectProtocol?
@@ -271,9 +346,8 @@ class AnimationWallpaperWindow: NSWindow {
         )
         riveViewModel = viewModel
 
-        // Enable looping and mute audio
+        // Enable looping
         viewModel.play(loop: RiveLoop.loop)
-        viewModel.riveModel?.volume = 0.0
 
         let riveView = viewModel.createRiveView()
         riveView.frame = frame
@@ -281,6 +355,11 @@ class AnimationWallpaperWindow: NSWindow {
         riveView.wantsLayer = true // Essential for layer-based capture
 
         self.contentView = riveView
+
+        // Mute audio after a short delay to ensure model is loaded
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak viewModel] in
+            viewModel?.riveModel?.volume = 0.0
+        }
     }
 
     func stop() {
@@ -332,6 +411,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var videoWallpaperWindows: [VideoWallpaperWindow] = []
     var shaderWallpaperWindows: [ShaderWallpaperWindow] = []
     var animationWallpaperWindows: [AnimationWallpaperWindow] = []
+    var gifWallpaperWindows: [GIFWallpaperWindow] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create assets folder
@@ -465,7 +545,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        print("No matching video, shader, or animation found for: \(filename)")
+        // Search for GIF with same name in Images folder
+        let imagesFolder = assetsFolderURL.appendingPathComponent("Images")
+        let gifExtensions = ["gif"]
+
+        if let files = try? FileManager.default.contentsOfDirectory(at: imagesFolder, includingPropertiesForKeys: nil) {
+            for file in files {
+                let fileNameWithoutExt = file.deletingPathExtension().lastPathComponent
+                let ext = file.pathExtension.lowercased()
+
+                if fileNameWithoutExt == filename && gifExtensions.contains(ext) {
+                    print("Found matching GIF: \(file.path)")
+                    // Restore GIF wallpaper
+                    createGIFWallpapers(gifURL: file)
+                    return
+                }
+            }
+        }
+
+        print("No matching video, shader, animation, or GIF found for: \(filename)")
     }
 
     func loadRandomAssets() {
@@ -795,7 +893,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let assetURL = homeAssets[currentAssetIndex]
         let ext = assetURL.pathExtension.lowercased()
-        let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
+        let imageExtensions = ["jpg", "jpeg", "png", "bmp", "tiff", "heic"]
+        let gifExtensions = ["gif"]
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
         let shaderExtensions = ["msl"]
         let animationExtensions = ["riv"]
@@ -804,6 +903,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let isVideo = videoExtensions.contains(ext)
         let isShader = shaderExtensions.contains(ext)
         let isAnimation = animationExtensions.contains(ext)
+        let isGIF = gifExtensions.contains(ext)
 
         // For videos, extract first frame
         if isVideo {
@@ -827,8 +927,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // No first frame yet, skip static wallpaper setting
                 wallpaperURL = nil
             }
+        } else if isGIF {
+            // For GIFs, render first frame
+            if let firstFrameURL = renderFirstFrameGIF(from: assetURL) {
+                wallpaperURL = firstFrameURL
+            } else {
+                wallpaperURL = nil
+            }
         } else if !imageExtensions.contains(ext) {
-            // Not an image, video, shader, or animation
+            // Not an image, video, shader, animation, or GIF
             return
         }
 
@@ -850,19 +957,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     createVideoWallpapers(videoURL: assetURL)
                     stopShaderWallpapers()
                     stopAnimationWallpapers()
+                    stopGIFWallpapers()
                 } else if isShader {
                     createShaderWallpapers(shaderURL: assetURL)
                     stopVideoWallpapers()
                     stopAnimationWallpapers()
+                    stopGIFWallpapers()
                 } else if isAnimation {
                     createAnimationWallpapers(animationURL: assetURL)
                     stopVideoWallpapers()
                     stopShaderWallpapers()
-                } else {
-                    // Stop any existing video, shader, or animation wallpapers when setting a static image
+                    stopGIFWallpapers()
+                } else if isGIF {
+                    createGIFWallpapers(gifURL: assetURL)
                     stopVideoWallpapers()
                     stopShaderWallpapers()
                     stopAnimationWallpapers()
+                } else {
+                    // Stop any existing wallpapers when setting a static image
+                    stopVideoWallpapers()
+                    stopShaderWallpapers()
+                    stopAnimationWallpapers()
+                    stopGIFWallpapers()
                 }
             }
         } catch {
@@ -1025,6 +1141,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func stopGIFWallpapers() {
+        for window in gifWallpaperWindows {
+            window.stop()
+            window.close()
+        }
+        gifWallpaperWindows.removeAll()
+        print("Stopped all GIF wallpapers")
+    }
+
+    func createGIFWallpapers(gifURL: URL) {
+        // Stop any existing GIF wallpapers first
+        stopGIFWallpapers()
+
+        // Create GIF wallpaper window for each screen
+        for screen in NSScreen.screens {
+            let wallpaperWindow = GIFWallpaperWindow(screen: screen, gifURL: gifURL)
+            wallpaperWindow.orderBack(nil)
+            gifWallpaperWindows.append(wallpaperWindow)
+        }
+
+        print("Created GIF wallpaper windows for \(NSScreen.screens.count) screen(s)")
+    }
+
     func renderFirstFrame(from shaderURL: URL) -> URL? {
         guard let assetsFolderURL = assetsFolderURL else { return nil }
         guard let device = MTLCreateSystemDefaultDevice() else { return nil }
@@ -1167,6 +1306,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func renderFirstFrameGIF(from gifURL: URL) -> URL? {
+        guard let assetsFolderURL = assetsFolderURL else { return nil }
+
+        let firstFramesFolder = assetsFolderURL.appendingPathComponent("FirstFrames")
+        let gifName = gifURL.deletingPathExtension().lastPathComponent
+        let imageURL = firstFramesFolder.appendingPathComponent("\(gifName).jpg")
+
+        // Check if already rendered
+        if FileManager.default.fileExists(atPath: imageURL.path) {
+            print("First frame already exists: \(imageURL.path)")
+            return imageURL
+        }
+
+        // Extract first frame from GIF using CGImageSource
+        guard let source = CGImageSourceCreateWithURL(gifURL as CFURL, nil),
+              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            print("Failed to load GIF")
+            return nil
+        }
+
+        let nsImage = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+
+        // Convert to JPEG and save
+        guard let tiffData = nsImage.tiffRepresentation,
+              let bitmapRep = NSBitmapImageRep(data: tiffData),
+              let jpegData = bitmapRep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
+            print("Failed to convert to JPEG")
+            return nil
+        }
+
+        do {
+            try jpegData.write(to: imageURL)
+            print("GIF first frame saved to: \(imageURL.path)")
+            return imageURL
+        } catch {
+            print("Failed to save GIF first frame: \(error)")
+            return nil
+        }
+    }
+
     func renderFirstFrameAnimation(from animationURL: URL) -> URL? {
         guard let assetsFolderURL = assetsFolderURL else { return nil }
 
@@ -1203,7 +1382,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let ext = assetURL.pathExtension.lowercased()
 
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
-        let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
+        let imageExtensions = ["jpg", "jpeg", "png", "bmp", "tiff", "heic"]
+        let gifExtensions = ["gif"]
         let shaderExtensions = ["msl"]
         let animationExtensions = ["riv"]
 
@@ -1238,6 +1418,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 player.play()
             }
 
+        } else if gifExtensions.contains(ext) {
+            // Load GIF with animation - fill entire view properly
+            if let image = NSImage(contentsOf: assetURL) {
+                // Calculate aspect fill frame
+                let imageSize = image.size
+                let viewSize = mediaContainerView.bounds.size
+                let imageAspect = imageSize.width / imageSize.height
+                let viewAspect = viewSize.width / viewSize.height
+
+                var scaledFrame = mediaContainerView.bounds
+                if imageAspect > viewAspect {
+                    // Image is wider - fit height and crop width
+                    let scaledWidth = viewSize.height * imageAspect
+                    scaledFrame = NSRect(
+                        x: (viewSize.width - scaledWidth) / 2,
+                        y: 0,
+                        width: scaledWidth,
+                        height: viewSize.height
+                    )
+                } else {
+                    // Image is taller - fit width and crop height
+                    let scaledHeight = viewSize.width / imageAspect
+                    scaledFrame = NSRect(
+                        x: 0,
+                        y: (viewSize.height - scaledHeight) / 2,
+                        width: viewSize.width,
+                        height: scaledHeight
+                    )
+                }
+
+                let imageView = NSImageView(frame: scaledFrame)
+                imageView.imageScaling = .scaleAxesIndependently
+                imageView.animates = true
+                imageView.image = image
+
+                // Container to clip overflow
+                let containerView = NSView(frame: mediaContainerView.bounds)
+                containerView.wantsLayer = true
+                containerView.layer?.masksToBounds = true
+                containerView.autoresizingMask = [.width, .height]
+                containerView.addSubview(imageView)
+
+                mediaContainerView.addSubview(containerView)
+            }
         } else if imageExtensions.contains(ext) {
             // Load image - fill entire view properly
             if let image = NSImage(contentsOf: assetURL) {
@@ -1276,9 +1500,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             )
             currentRiveViewModel = viewModel
 
-            // Enable looping and mute audio
+            // Enable looping
             viewModel.play(loop: RiveLoop.loop)
-            viewModel.riveModel?.volume = 0.0
 
             let riveView = viewModel.createRiveView()
             riveView.frame = mediaContainerView.bounds
@@ -1286,10 +1509,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             riveView.wantsLayer = true // Essential for layer-based capture
 
             mediaContainerView.addSubview(riveView)
+
+            // Mute audio after a short delay to ensure model is loaded
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak viewModel] in
+                viewModel?.riveModel?.volume = 0.0
+            }
         }
 
-        // Enable/disable wallpaper button based on asset type (works for images, videos, shaders, and animations)
-        setWallpaperButton?.isEnabled = imageExtensions.contains(ext) || videoExtensions.contains(ext) || shaderExtensions.contains(ext) || animationExtensions.contains(ext)
+        // Enable/disable wallpaper button based on asset type (works for images, videos, shaders, animations, and GIFs)
+        setWallpaperButton?.isEnabled = imageExtensions.contains(ext) || gifExtensions.contains(ext) || videoExtensions.contains(ext) || shaderExtensions.contains(ext) || animationExtensions.contains(ext)
 
         updateDots()
     }
