@@ -1,0 +1,102 @@
+fragment float4 fragmentShader(
+    VertexOut in [[stage_in]],
+    constant Uniforms& uniforms [[buffer(0)]]
+) {
+    float2 fragCoord = in.uv * uniforms.iResolution;
+
+    float3 col = float3(0);
+
+    for(int j=0; j<1; j++){
+        for(int i=0; i<1; i++){
+
+            float2 p = (fragCoord + float2(i, j) - uniforms.iResolution.xy * 0.5) / uniforms.iResolution.y;
+
+            float ttm = cos(sin(uniforms.iTime / 8.0)) * 6.2831;
+
+            float2x2 rotMat = float2x2(cos(ttm), sin(ttm), -sin(ttm), cos(ttm));
+            p = rotMat * p;
+            p -= float2(cos(uniforms.iTime / 2.0) / 2.0, sin(uniforms.iTime / 3.0) / 5.0);
+
+            float zm = (200.0 + sin(uniforms.iTime / 7.0) * 50.0);
+            float2 cc = float2(-0.57735 + 0.004, 0.57735) + p / zm;
+
+            float2 z = float2(0), dz = float2(0);
+
+            const int iter = 128;
+            int ik = 128;
+            float3 fog = float3(0);
+
+            for(int k=0; k<iter; k++){
+
+                float2x2 zMat = float2x2(z, float2(-z.y, z.x));
+                dz = zMat * dz * 2.0 + float2(1, 0);
+
+                z = zMat * z + cc;
+
+                if(dot(z, z) > 1.0 / 0.005){
+                    ik = k;
+                    break;
+                }
+
+            }
+
+            float ln = step(0.0, length(z) / 15.5 - 1.0);
+
+            float d = sqrt(1.0 / max(length(dz), 0.0001)) * log(dot(z, z));
+            d = clamp(d * 50.0, 0.0, 1.0);
+
+            float dir = fmod(float(ik), 2.0) < 0.5 ? -1.0 : 1.0;
+
+            float sh = (float(iter - ik)) / float(iter);
+            float2 tuv = z / 320.0;
+
+            float tm = (-ttm * sh * sh * 16.0);
+            float2x2 tmMat = float2x2(cos(tm), sin(tm), -sin(tm), cos(tm));
+            tuv = tmMat * tuv;
+            tuv = abs(fmod(tuv, 1.0 / 8.0) - 1.0 / 16.0);
+
+            float pat = smoothstep(0.0, 1.0 / length(dz), length(tuv) - 1.0 / 32.0);
+            pat = min(pat, smoothstep(0.0, 1.0 / length(dz), abs(max(tuv.x, tuv.y) - 1.0 / 16.0) - 0.04 / 16.0));
+
+            float3 lCol = pow(min(float3(1.5, 1, 1) * min(d * 0.85, 0.96), 1.0), float3(1, 3, 16)) * 1.15;
+
+            if (dir < 0.0) {
+                lCol = lCol * min(pat, ln);
+            } else {
+                lCol = (sqrt(lCol) * 0.5 + 0.7) * max(1.0 - pat, 1.0 - ln);
+            }
+
+            float3 rd = normalize(float3(p, 1.0));
+            rd = reflect(rd, float3(0, 0, -1));
+            float diff = clamp(dot(z * 0.5 + 0.5, rd.xy), 0.0, 1.0) * d;
+
+            tuv = z / 200.0;
+            tm = -tm / 1.5 + 0.5;
+            float2x2 tm2Mat = float2x2(cos(tm), sin(tm), -sin(tm), cos(tm));
+            tuv = tm2Mat * tuv;
+            tuv = abs(fmod(tuv, 1.0 / 8.0) - 1.0 / 16.0);
+            pat = smoothstep(0.0, 1.0 / length(dz), length(tuv) - 1.0 / 32.0);
+            pat = min(pat, smoothstep(0.0, 1.0 / length(dz), abs(max(tuv.x, tuv.y) - 1.0 / 16.0) - 0.04 / 16.0));
+
+            lCol += mix(lCol, float3(1) * ln, 0.5) * diff * diff * 0.5 * (pat * 0.6 + 0.6);
+
+            if (fmod(float(ik), 6.0) < 0.5) {
+                lCol = lCol.yxz;
+            }
+            lCol = mix(lCol.xzy, lCol, d / 1.2);
+
+            lCol = mix(lCol, float3(0), (1.0 - step(0.0, -(length(z) * 0.05 * float(ik) / float(iter) - 1.0))) * 0.95);
+
+            lCol = mix(fog, lCol, sh * d);
+
+            col += min(lCol, 1.0);
+        }
+    }
+
+    col /= 1.0;
+
+    float2 uv = fragCoord / uniforms.iResolution.xy;
+    col *= pow(16.0 * (1.0 - uv.x) * (1.0 - uv.y) * uv.x * uv.y, 1.0 / 8.0) * 1.15;
+
+    return float4(sqrt(max(col, 0.0)), 1.0);
+}

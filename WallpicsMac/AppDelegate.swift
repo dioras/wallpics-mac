@@ -182,8 +182,11 @@ class ShaderRenderer: NSObject, MTKViewDelegate {
         // Combine vertex and fragment shaders
         let combinedSource = vertexShaderSource + "\n" + shaderSource
 
-        guard let library = try? device.makeLibrary(source: combinedSource, options: nil) else {
-            print("Failed to compile shader")
+        let library: MTLLibrary
+        do {
+            library = try device.makeLibrary(source: combinedSource, options: nil)
+        } catch let error {
+            print("Failed to compile shader: \(error)")
             return
         }
 
