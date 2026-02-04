@@ -2,6 +2,7 @@ import Cocoa
 import AVKit
 import Metal
 import MetalKit
+import RiveRuntime
 
 class VideoWallpaperWindow: NSWindow {
     var player: AVPlayer?
@@ -238,6 +239,45 @@ class ShaderRenderer: NSObject, MTKViewDelegate {
     }
 }
 
+class AnimationWallpaperWindow: NSWindow {
+    var riveViewModel: RiveViewModel?
+
+    init(screen: NSScreen, animationURL: URL) {
+        let frame = screen.frame
+
+        super.init(
+            contentRect: frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+
+        self.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
+        self.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        self.ignoresMouseEvents = true
+        self.backgroundColor = .black
+        self.isReleasedWhenClosed = false
+
+        setupRiveAnimation(animationURL: animationURL, frame: frame)
+    }
+
+    func setupRiveAnimation(animationURL: URL, frame: NSRect) {
+        let viewModel = RiveViewModel(webURL: animationURL.absoluteString)
+        riveViewModel = viewModel
+
+        let riveView = viewModel.createRiveView()
+        riveView.frame = frame
+        riveView.autoresizingMask = [.width, .height]
+
+        self.contentView = riveView
+    }
+
+    func stop() {
+        riveViewModel?.stop()
+        riveViewModel = nil
+    }
+}
+
 class KeyHandlingView: NSView {
     var onLeftArrow: (() -> Void)?
     var onRightArrow: (() -> Void)?
@@ -276,9 +316,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var nextButton: NSButton?
     var currentPlayer: AVPlayer?
     var currentRenderer: ShaderRenderer?
+    var currentRiveViewModel: RiveViewModel?
     var setWallpaperButton: NSButton?
     var videoWallpaperWindows: [VideoWallpaperWindow] = []
     var shaderWallpaperWindows: [ShaderWallpaperWindow] = []
+    var animationWallpaperWindows: [AnimationWallpaperWindow] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create assets folder
@@ -394,7 +436,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        print("No matching video or shader found for: \(filename)")
+        // Search for animation with same name in Animations folder
+        let animationsFolder = assetsFolderURL.appendingPathComponent("Animations")
+        let animationExtensions = ["riv"]
+
+        if let files = try? FileManager.default.contentsOfDirectory(at: animationsFolder, includingPropertiesForKeys: nil) {
+            for file in files {
+                let fileNameWithoutExt = file.deletingPathExtension().lastPathComponent
+                let ext = file.pathExtension.lowercased()
+
+                if fileNameWithoutExt == filename && animationExtensions.contains(ext) {
+                    print("Found matching animation: \(file.path)")
+                    // Restore animation wallpaper
+                    createAnimationWallpapers(animationURL: file)
+                    return
+                }
+            }
+        }
+
+        print("No matching video, shader, or animation found for: \(filename)")
     }
 
     func loadRandomAssets() {
@@ -407,6 +467,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
         let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
         let shaderExtensions = ["msl"]
+        let animationExtensions = ["riv"]
 
         for subfolder in subfolders {
             let folderURL = assetsFolderURL.appendingPathComponent(subfolder)
@@ -417,7 +478,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             for file in files {
                 let ext = file.pathExtension.lowercased()
-                if videoExtensions.contains(ext) || imageExtensions.contains(ext) || shaderExtensions.contains(ext) {
+                if videoExtensions.contains(ext) || imageExtensions.contains(ext) || shaderExtensions.contains(ext) || animationExtensions.contains(ext) {
                     allAssets.append(file)
                 }
             }
@@ -726,10 +787,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
         let shaderExtensions = ["msl"]
+        let animationExtensions = ["riv"]
 
         var wallpaperURL = assetURL
         let isVideo = videoExtensions.contains(ext)
         let isShader = shaderExtensions.contains(ext)
+        let isAnimation = animationExtensions.contains(ext)
 
         // For videos, extract first frame
         if isVideo {
@@ -745,12 +808,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
             wallpaperURL = firstFrameURL
+        } else if isAnimation {
+            // For animations, render first frame
+            guard let firstFrameURL = renderFirstFrameAnimation(from: assetURL) else {
+                print("Failed to render animation first frame")
+                return
+            }
+            wallpaperURL = firstFrameURL
         } else if !imageExtensions.contains(ext) {
-            // Not an image, video, or shader
+            // Not an image, video, shader, or animation
             return
         }
 
-        // Set static wallpaper (first frame for videos/shaders, actual image for images)
+        // Set static wallpaper (first frame for videos/shaders/animations, actual image for images)
         do {
             let workspace = NSWorkspace.shared
             if let screen = NSScreen.main {
@@ -764,13 +834,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if isVideo {
                     createVideoWallpapers(videoURL: assetURL)
                     stopShaderWallpapers()
+                    stopAnimationWallpapers()
                 } else if isShader {
                     createShaderWallpapers(shaderURL: assetURL)
                     stopVideoWallpapers()
-                } else {
-                    // Stop any existing video or shader wallpapers when setting a static image
+                    stopAnimationWallpapers()
+                } else if isAnimation {
+                    createAnimationWallpapers(animationURL: assetURL)
                     stopVideoWallpapers()
                     stopShaderWallpapers()
+                } else {
+                    // Stop any existing video, shader, or animation wallpapers when setting a static image
+                    stopVideoWallpapers()
+                    stopShaderWallpapers()
+                    stopAnimationWallpapers()
                 }
             }
         } catch {
@@ -837,6 +914,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         print("Created shader wallpaper windows for \(NSScreen.screens.count) screen(s)")
+    }
+
+    func stopAnimationWallpapers() {
+        for window in animationWallpaperWindows {
+            window.stop()
+            window.close()
+        }
+        animationWallpaperWindows.removeAll()
+        print("Stopped all animation wallpapers")
+    }
+
+    func createAnimationWallpapers(animationURL: URL) {
+        // Stop any existing animation wallpapers first
+        stopAnimationWallpapers()
+
+        // Create animation wallpaper window for each screen
+        for screen in NSScreen.screens {
+            let wallpaperWindow = AnimationWallpaperWindow(screen: screen, animationURL: animationURL)
+            wallpaperWindow.orderBack(nil)
+            animationWallpaperWindows.append(wallpaperWindow)
+        }
+
+        print("Created animation wallpaper windows for \(NSScreen.screens.count) screen(s)")
     }
 
     func renderFirstFrame(from shaderURL: URL) -> URL? {
@@ -981,6 +1081,52 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func renderFirstFrameAnimation(from animationURL: URL) -> URL? {
+        guard let assetsFolderURL = assetsFolderURL else { return nil }
+
+        let firstFramesFolder = assetsFolderURL.appendingPathComponent("FirstFrames")
+        let animationName = animationURL.deletingPathExtension().lastPathComponent
+        let imageURL = firstFramesFolder.appendingPathComponent("\(animationName).jpg")
+
+        // Check if already rendered
+        if FileManager.default.fileExists(atPath: imageURL.path) {
+            print("First frame already exists: \(imageURL.path)")
+            return imageURL
+        }
+
+        // Create RiveViewModel
+        let viewModel = RiveViewModel(webURL: animationURL.absoluteString)
+
+        // Create RiveView at 1920x1080
+        let width: CGFloat = 1920
+        let height: CGFloat = 1080
+        let frame = NSRect(x: 0, y: 0, width: width, height: height)
+        let riveView = viewModel.createRiveView()
+        riveView.frame = frame
+
+        // Capture view as image
+        guard let bitmapRep = riveView.bitmapImageRepForCachingDisplay(in: riveView.bounds) else {
+            print("Failed to create bitmap representation")
+            return nil
+        }
+
+        riveView.cacheDisplay(in: riveView.bounds, to: bitmapRep)
+
+        guard let jpegData = bitmapRep.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [NSBitmapImageRep.PropertyKey.compressionFactor: 0.9]) else {
+            print("Failed to convert to JPEG")
+            return nil
+        }
+
+        do {
+            try jpegData.write(to: imageURL)
+            print("Rendered animation first frame: \(imageURL.path)")
+            return imageURL
+        } catch {
+            print("Failed to save rendered frame: \(error)")
+            return nil
+        }
+    }
+
     func loadAssetAtIndex(_ index: Int) {
         guard index >= 0 && index < homeAssets.count else { return }
         guard let mediaContainerView = mediaContainerView else { return }
@@ -989,6 +1135,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         currentPlayer?.pause()
         currentPlayer = nil
         currentRenderer = nil
+        currentRiveViewModel?.stop()
+        currentRiveViewModel = nil
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
 
         // Remove existing media views
@@ -1000,6 +1148,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
         let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
         let shaderExtensions = ["msl"]
+        let animationExtensions = ["riv"]
 
         if videoExtensions.contains(ext) {
             // Load video - create layer to properly fill view
@@ -1060,10 +1209,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             metalView.delegate = renderer
 
             mediaContainerView.addSubview(metalView)
+        } else if animationExtensions.contains(ext) {
+            // Load animation
+            let viewModel = RiveViewModel(webURL: assetURL.absoluteString)
+            currentRiveViewModel = viewModel
+
+            let riveView = viewModel.createRiveView()
+            riveView.frame = mediaContainerView.bounds
+            riveView.autoresizingMask = [.width, .height]
+
+            mediaContainerView.addSubview(riveView)
         }
 
-        // Enable/disable wallpaper button based on asset type (works for images, videos, and shaders)
-        setWallpaperButton?.isEnabled = imageExtensions.contains(ext) || videoExtensions.contains(ext) || shaderExtensions.contains(ext)
+        // Enable/disable wallpaper button based on asset type (works for images, videos, shaders, and animations)
+        setWallpaperButton?.isEnabled = imageExtensions.contains(ext) || videoExtensions.contains(ext) || shaderExtensions.contains(ext) || animationExtensions.contains(ext)
 
         updateDots()
     }
