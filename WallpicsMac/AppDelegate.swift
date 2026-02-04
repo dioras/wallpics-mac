@@ -5,6 +5,10 @@ import Metal
 import MetalKit
 import RiveRuntime
 
+// Configuration
+private let maxHomeScreenAssets = 10
+private let audioMuteRetryCount = 5
+
 class GIFWallpaperWindow: NSWindow {
     var imageView: NSImageView?
 
@@ -74,6 +78,14 @@ class GIFWallpaperWindow: NSWindow {
         self.contentView = containerView
     }
 
+    func pause() {
+        imageView?.animates = false
+    }
+
+    func resume() {
+        imageView?.animates = true
+    }
+
     func stop() {
         imageView?.image = nil
         imageView = nil
@@ -136,6 +148,14 @@ class VideoWallpaperWindow: NSWindow {
         }
     }
 
+    func pause() {
+        player?.pause()
+    }
+
+    func resume() {
+        player?.play()
+    }
+
     func stop() {
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -187,6 +207,14 @@ class ShaderWallpaperWindow: NSWindow {
         self.contentView = metalView
     }
 
+    func pause() {
+        renderer?.pause()
+    }
+
+    func resume() {
+        renderer?.resume()
+    }
+
     func stop() {
         renderer = nil
     }
@@ -197,6 +225,8 @@ class ShaderRenderer: NSObject, MTKViewDelegate {
     var commandQueue: MTLCommandQueue!
     var pipelineState: MTLRenderPipelineState?
     var startTime: Date = Date()
+    var isPaused: Bool = false
+    var pausedTime: Float = 0.0
 
     struct Uniforms {
         var iResolution: SIMD2<Float>
@@ -285,6 +315,19 @@ class ShaderRenderer: NSObject, MTKViewDelegate {
         // Handle resize if needed
     }
 
+    func pause() {
+        // Save current time and pause
+        let elapsed = Date().timeIntervalSince(startTime)
+        pausedTime = Float(elapsed.truncatingRemainder(dividingBy: 300.0))
+        isPaused = true
+    }
+
+    func resume() {
+        // Resume from paused time
+        isPaused = false
+        startTime = Date().addingTimeInterval(-Double(pausedTime))
+    }
+
     func draw(in view: MTKView) {
         guard let pipelineState = pipelineState,
               let drawable = view.currentDrawable,
@@ -294,9 +337,14 @@ class ShaderRenderer: NSObject, MTKViewDelegate {
             return
         }
 
-        // Calculate iTime (0-300 seconds, looping)
-        let elapsed = Date().timeIntervalSince(startTime)
-        let iTime = Float(elapsed.truncatingRemainder(dividingBy: 300.0))
+        // Calculate iTime - use frozen time if paused
+        let iTime: Float
+        if isPaused {
+            iTime = pausedTime
+        } else {
+            let elapsed = Date().timeIntervalSince(startTime)
+            iTime = Float(elapsed.truncatingRemainder(dividingBy: 300.0))
+        }
 
         // Setup uniforms
         var uniforms = Uniforms(
@@ -357,11 +405,19 @@ class AnimationWallpaperWindow: NSWindow {
         viewModel.play(loop: RiveLoop.loop)
 
         // Set volume to 0 multiple times with delays
-        for i in 0...10 {
+        for i in 0...audioMuteRetryCount {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) { [weak viewModel] in
                 viewModel?.riveModel?.volume = 0.0
             }
         }
+    }
+
+    func pause() {
+        riveViewModel?.pause()
+    }
+
+    func resume() {
+        riveViewModel?.play(loop: RiveLoop.loop)
     }
 
     func stop() {
@@ -414,6 +470,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var shaderWallpaperWindows: [ShaderWallpaperWindow] = []
     var animationWallpaperWindows: [AnimationWallpaperWindow] = []
     var gifWallpaperWindows: [GIFWallpaperWindow] = []
+
+    var screensaverIsPlaying: Bool = true
+    var playPauseMenuItem: NSMenuItem?
+
+    enum WallpaperType {
+        case none
+        case image
+        case video
+        case shader
+        case animation
+        case gif
+    }
+    var currentWallpaperType: WallpaperType = .none
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Disable audio for the entire app
@@ -519,6 +588,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     print("Found matching video: \(file.path)")
                     // Restore video wallpaper
                     createVideoWallpapers(videoURL: file)
+                    currentWallpaperType = .video
+                    screensaverIsPlaying = true
+                    updatePlayPauseMenu()
                     return
                 }
             }
@@ -537,6 +609,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     print("Found matching shader: \(file.path)")
                     // Restore shader wallpaper
                     createShaderWallpapers(shaderURL: file)
+                    currentWallpaperType = .shader
+                    screensaverIsPlaying = true
+                    updatePlayPauseMenu()
                     return
                 }
             }
@@ -555,6 +630,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     print("Found matching animation: \(file.path)")
                     // Restore animation wallpaper
                     createAnimationWallpapers(animationURL: file)
+                    currentWallpaperType = .animation
+                    screensaverIsPlaying = true
+                    updatePlayPauseMenu()
                     return
                 }
             }
@@ -573,6 +651,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     print("Found matching GIF: \(file.path)")
                     // Restore GIF wallpaper
                     createGIFWallpapers(gifURL: file)
+                    currentWallpaperType = .gif
+                    screensaverIsPlaying = true
+                    updatePlayPauseMenu()
                     return
                 }
             }
@@ -608,8 +689,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Shuffle and take up to 10
-        homeAssets = Array(allAssets.shuffled().prefix(10))
+        // Shuffle and take up to maxHomeScreenAssets
+        homeAssets = Array(allAssets.shuffled().prefix(maxHomeScreenAssets))
         currentAssetIndex = 0
 
         print("Loaded \(homeAssets.count) random assets")
@@ -973,28 +1054,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     stopShaderWallpapers()
                     stopAnimationWallpapers()
                     stopGIFWallpapers()
+                    currentWallpaperType = .video
                 } else if isShader {
                     createShaderWallpapers(shaderURL: assetURL)
                     stopVideoWallpapers()
                     stopAnimationWallpapers()
                     stopGIFWallpapers()
+                    currentWallpaperType = .shader
                 } else if isAnimation {
                     createAnimationWallpapers(animationURL: assetURL)
                     stopVideoWallpapers()
                     stopShaderWallpapers()
                     stopGIFWallpapers()
+                    currentWallpaperType = .animation
                 } else if isGIF {
                     createGIFWallpapers(gifURL: assetURL)
                     stopVideoWallpapers()
                     stopShaderWallpapers()
                     stopAnimationWallpapers()
+                    currentWallpaperType = .gif
                 } else {
                     // Stop any existing wallpapers when setting a static image
                     stopVideoWallpapers()
                     stopShaderWallpapers()
                     stopAnimationWallpapers()
                     stopGIFWallpapers()
+                    currentWallpaperType = .image
                 }
+
+                // Reset to playing state when new wallpaper is set
+                screensaverIsPlaying = true
+                updatePlayPauseMenu()
             }
         } catch {
             print("Failed to set wallpaper: \(error)")
@@ -1386,8 +1476,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         currentPlayer?.pause()
         currentPlayer = nil
         currentRenderer = nil
-        currentRiveViewModel?.stop()
-        currentRiveViewModel = nil
+
+        // Stop Rive animation safely
+        if let riveVM = currentRiveViewModel {
+            riveVM.pause()
+            currentRiveViewModel = nil
+        }
+
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
 
         // Remove existing media views
@@ -1526,7 +1621,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             viewModel.play(loop: RiveLoop.loop)
 
             // Set volume to 0 multiple times with delays
-            for i in 0...10 {
+            for i in 0...audioMuteRetryCount {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) { [weak viewModel] in
                     viewModel?.riveModel?.volume = 0.0
                 }
@@ -1636,6 +1731,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openFolderItem.target = self
         menu.addItem(openFolderItem)
 
+        // Play/Pause menu item (hidden by default)
+        playPauseMenuItem = NSMenuItem(title: "Stop", action: #selector(togglePlayPause), keyEquivalent: "")
+        playPauseMenuItem?.target = self
+        playPauseMenuItem?.isHidden = true
+        if let playPauseItem = playPauseMenuItem {
+            menu.addItem(playPauseItem)
+        }
+
         menu.addItem(NSMenuItem.separator())
 
         let exitItem = NSMenuItem(title: "Exit", action: #selector(exitApp), keyEquivalent: "")
@@ -1643,6 +1746,73 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(exitItem)
 
         statusItem?.menu = menu
+    }
+
+    func updatePlayPauseMenu() {
+        // Hide menu item for static images or no wallpaper
+        if currentWallpaperType == .none || currentWallpaperType == .image {
+            playPauseMenuItem?.isHidden = true
+            return
+        }
+
+        // Show menu item and update title
+        playPauseMenuItem?.isHidden = false
+        playPauseMenuItem?.title = screensaverIsPlaying ? "Stop" : "Play"
+    }
+
+    @objc func togglePlayPause() {
+        screensaverIsPlaying.toggle()
+        updatePlayPauseMenu()
+
+        if screensaverIsPlaying {
+            resumeWallpapers()
+        } else {
+            pauseWallpapers()
+        }
+    }
+
+    func pauseWallpapers() {
+        // Pause videos
+        for window in videoWallpaperWindows {
+            window.pause()
+        }
+
+        // Pause shaders
+        for window in shaderWallpaperWindows {
+            window.pause()
+        }
+
+        // Pause animations
+        for window in animationWallpaperWindows {
+            window.pause()
+        }
+
+        // Pause GIFs
+        for window in gifWallpaperWindows {
+            window.pause()
+        }
+    }
+
+    func resumeWallpapers() {
+        // Resume videos
+        for window in videoWallpaperWindows {
+            window.resume()
+        }
+
+        // Resume shaders
+        for window in shaderWallpaperWindows {
+            window.resume()
+        }
+
+        // Resume animations
+        for window in animationWallpaperWindows {
+            window.resume()
+        }
+
+        // Resume GIFs
+        for window in gifWallpaperWindows {
+            window.resume()
+        }
     }
 
     @objc func openWindow() {
