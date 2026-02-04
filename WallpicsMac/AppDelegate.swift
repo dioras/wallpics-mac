@@ -1,5 +1,7 @@
 import Cocoa
 import AVKit
+import Metal
+import MetalKit
 
 class VideoWallpaperWindow: NSWindow {
     var player: AVPlayer?
@@ -67,6 +69,172 @@ class VideoWallpaperWindow: NSWindow {
     }
 }
 
+class ShaderWallpaperWindow: NSWindow {
+    var renderer: ShaderRenderer?
+
+    init(screen: NSScreen, shaderURL: URL) {
+        let frame = screen.frame
+
+        super.init(
+            contentRect: frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+
+        // Configure window to be at desktop level
+        self.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
+        self.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        self.ignoresMouseEvents = true
+        self.backgroundColor = .black
+        self.isReleasedWhenClosed = false
+
+        // Setup Metal shader rendering
+        setupShaderRenderer(shaderURL: shaderURL, frame: frame)
+    }
+
+    func setupShaderRenderer(shaderURL: URL, frame: NSRect) {
+        guard let device = MTLCreateSystemDefaultDevice(),
+              let shaderSource = try? String(contentsOf: shaderURL, encoding: .utf8) else {
+            print("Failed to load shader or create Metal device")
+            return
+        }
+
+        let metalView = MTKView(frame: frame, device: device)
+        metalView.autoresizingMask = [.width, .height]
+
+        let renderer = ShaderRenderer(device: device, shaderSource: shaderSource)
+        self.renderer = renderer
+        metalView.delegate = renderer
+
+        self.contentView = metalView
+    }
+
+    func stop() {
+        renderer = nil
+    }
+}
+
+class ShaderRenderer: NSObject, MTKViewDelegate {
+    var device: MTLDevice!
+    var commandQueue: MTLCommandQueue!
+    var pipelineState: MTLRenderPipelineState?
+    var startTime: Date = Date()
+
+    struct Uniforms {
+        var iResolution: SIMD2<Float>
+        var iTime: Float
+        var padding: Float // Padding to align to 16 bytes
+    }
+
+    init(device: MTLDevice, shaderSource: String) {
+        self.device = device
+        self.commandQueue = device.makeCommandQueue()!
+        super.init()
+
+        setupPipeline(shaderSource: shaderSource)
+    }
+
+    func setupPipeline(shaderSource: String) {
+        // Hardcoded vertex shader - fullscreen quad
+        let vertexShaderSource = """
+        #include <metal_stdlib>
+        using namespace metal;
+
+        struct VertexOut {
+            float4 position [[position]];
+            float2 uv;
+        };
+
+        struct Uniforms {
+            float2 iResolution;
+            float iTime;
+        };
+
+        vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {
+            VertexOut out;
+
+            // Fullscreen quad vertices
+            float2 positions[6] = {
+                float2(-1.0, -1.0),
+                float2( 1.0, -1.0),
+                float2(-1.0,  1.0),
+                float2(-1.0,  1.0),
+                float2( 1.0, -1.0),
+                float2( 1.0,  1.0)
+            };
+
+            float2 uvs[6] = {
+                float2(0.0, 1.0),
+                float2(1.0, 1.0),
+                float2(0.0, 0.0),
+                float2(0.0, 0.0),
+                float2(1.0, 1.0),
+                float2(1.0, 0.0)
+            };
+
+            out.position = float4(positions[vertexID], 0.0, 1.0);
+            out.uv = uvs[vertexID];
+            return out;
+        }
+        """
+
+        // Combine vertex and fragment shaders
+        let combinedSource = vertexShaderSource + "\n" + shaderSource
+
+        guard let library = try? device.makeLibrary(source: combinedSource, options: nil) else {
+            print("Failed to compile shader")
+            return
+        }
+
+        guard let vertexFunction = library.makeFunction(name: "vertexShader"),
+              let fragmentFunction = library.makeFunction(name: "fragmentShader") else {
+            print("Failed to find shader functions")
+            return
+        }
+
+        let pipelineDescriptor = MTLRenderPipelineDescriptor()
+        pipelineDescriptor.vertexFunction = vertexFunction
+        pipelineDescriptor.fragmentFunction = fragmentFunction
+        pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+
+        pipelineState = try? device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+    }
+
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+        // Handle resize if needed
+    }
+
+    func draw(in view: MTKView) {
+        guard let pipelineState = pipelineState,
+              let drawable = view.currentDrawable,
+              let renderPassDescriptor = view.currentRenderPassDescriptor,
+              let commandBuffer = commandQueue.makeCommandBuffer(),
+              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            return
+        }
+
+        // Calculate iTime (0-300 seconds, looping)
+        let elapsed = Date().timeIntervalSince(startTime)
+        let iTime = Float(elapsed.truncatingRemainder(dividingBy: 300.0))
+
+        // Setup uniforms
+        var uniforms = Uniforms(
+            iResolution: SIMD2<Float>(Float(view.drawableSize.width), Float(view.drawableSize.height)),
+            iTime: iTime,
+            padding: 0.0
+        )
+
+        renderEncoder.setRenderPipelineState(pipelineState)
+        renderEncoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.size, index: 0)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+        renderEncoder.endEncoding()
+
+        commandBuffer.present(drawable)
+        commandBuffer.commit()
+    }
+}
+
 class KeyHandlingView: NSView {
     var onLeftArrow: (() -> Void)?
     var onRightArrow: (() -> Void)?
@@ -104,8 +272,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var prevButton: NSButton?
     var nextButton: NSButton?
     var currentPlayer: AVPlayer?
+    var currentRenderer: ShaderRenderer?
     var setWallpaperButton: NSButton?
     var videoWallpaperWindows: [VideoWallpaperWindow] = []
+    var shaderWallpaperWindows: [ShaderWallpaperWindow] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create assets folder
@@ -177,7 +347,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Check if wallpaper is from FirstFrames folder
         guard wallpaperPath.contains("/FirstFrames/") else {
-            print("Wallpaper is not from FirstFrames folder, no video to restore")
+            print("Wallpaper is not from FirstFrames folder, no video/shader to restore")
             return
         }
 
@@ -189,24 +359,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let videosFolder = assetsFolderURL.appendingPathComponent("Videos")
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
 
-        guard let files = try? FileManager.default.contentsOfDirectory(at: videosFolder, includingPropertiesForKeys: nil) else {
-            print("Failed to read Videos folder")
-            return
-        }
+        if let files = try? FileManager.default.contentsOfDirectory(at: videosFolder, includingPropertiesForKeys: nil) {
+            for file in files {
+                let fileNameWithoutExt = file.deletingPathExtension().lastPathComponent
+                let ext = file.pathExtension.lowercased()
 
-        for file in files {
-            let fileNameWithoutExt = file.deletingPathExtension().lastPathComponent
-            let ext = file.pathExtension.lowercased()
-
-            if fileNameWithoutExt == filename && videoExtensions.contains(ext) {
-                print("Found matching video: \(file.path)")
-                // Restore video wallpaper
-                createVideoWallpapers(videoURL: file)
-                return
+                if fileNameWithoutExt == filename && videoExtensions.contains(ext) {
+                    print("Found matching video: \(file.path)")
+                    // Restore video wallpaper
+                    createVideoWallpapers(videoURL: file)
+                    return
+                }
             }
         }
 
-        print("No matching video found for: \(filename)")
+        // Search for shader with same name in Shaders folder
+        let shadersFolder = assetsFolderURL.appendingPathComponent("Shaders")
+        let shaderExtensions = ["msl"]
+
+        if let files = try? FileManager.default.contentsOfDirectory(at: shadersFolder, includingPropertiesForKeys: nil) {
+            for file in files {
+                let fileNameWithoutExt = file.deletingPathExtension().lastPathComponent
+                let ext = file.pathExtension.lowercased()
+
+                if fileNameWithoutExt == filename && shaderExtensions.contains(ext) {
+                    print("Found matching shader: \(file.path)")
+                    // Restore shader wallpaper
+                    createShaderWallpapers(shaderURL: file)
+                    return
+                }
+            }
+        }
+
+        print("No matching video or shader found for: \(filename)")
     }
 
     func loadRandomAssets() {
@@ -218,6 +403,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let subfolders = ["Videos", "Images", "Shaders", "Animations"]
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
         let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
+        let shaderExtensions = ["msl"]
 
         for subfolder in subfolders {
             let folderURL = assetsFolderURL.appendingPathComponent(subfolder)
@@ -228,7 +414,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             for file in files {
                 let ext = file.pathExtension.lowercased()
-                if videoExtensions.contains(ext) || imageExtensions.contains(ext) {
+                if videoExtensions.contains(ext) || imageExtensions.contains(ext) || shaderExtensions.contains(ext) {
                     allAssets.append(file)
                 }
             }
@@ -536,9 +722,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let ext = assetURL.pathExtension.lowercased()
         let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
+        let shaderExtensions = ["msl"]
 
         var wallpaperURL = assetURL
         let isVideo = videoExtensions.contains(ext)
+        let isShader = shaderExtensions.contains(ext)
 
         // For videos, extract first frame
         if isVideo {
@@ -547,12 +735,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
             wallpaperURL = firstFrameURL
+        } else if isShader {
+            // For shaders, render first frame
+            guard let firstFrameURL = renderFirstFrame(from: assetURL) else {
+                print("Failed to render first frame")
+                return
+            }
+            wallpaperURL = firstFrameURL
         } else if !imageExtensions.contains(ext) {
-            // Not an image or video
+            // Not an image, video, or shader
             return
         }
 
-        // Set static wallpaper (first frame for videos, actual image for images)
+        // Set static wallpaper (first frame for videos/shaders, actual image for images)
         do {
             let workspace = NSWorkspace.shared
             if let screen = NSScreen.main {
@@ -562,12 +757,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // Save wallpaper path to settings.txt
                 saveWallpaperPath(wallpaperURL)
 
-                // For videos, create animated wallpaper windows
+                // Create animated wallpaper windows based on type
                 if isVideo {
                     createVideoWallpapers(videoURL: assetURL)
-                } else {
-                    // Stop any existing video wallpapers when setting an image
+                    stopShaderWallpapers()
+                } else if isShader {
+                    createShaderWallpapers(shaderURL: assetURL)
                     stopVideoWallpapers()
+                } else {
+                    // Stop any existing video or shader wallpapers when setting a static image
+                    stopVideoWallpapers()
+                    stopShaderWallpapers()
                 }
             }
         } catch {
@@ -611,6 +811,131 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         print("Created video wallpaper windows for \(NSScreen.screens.count) screen(s)")
+    }
+
+    func stopShaderWallpapers() {
+        for window in shaderWallpaperWindows {
+            window.stop()
+            window.close()
+        }
+        shaderWallpaperWindows.removeAll()
+        print("Stopped all shader wallpapers")
+    }
+
+    func createShaderWallpapers(shaderURL: URL) {
+        // Stop any existing shader wallpapers first
+        stopShaderWallpapers()
+
+        // Create shader wallpaper window for each screen
+        for screen in NSScreen.screens {
+            let wallpaperWindow = ShaderWallpaperWindow(screen: screen, shaderURL: shaderURL)
+            wallpaperWindow.orderBack(nil)
+            shaderWallpaperWindows.append(wallpaperWindow)
+        }
+
+        print("Created shader wallpaper windows for \(NSScreen.screens.count) screen(s)")
+    }
+
+    func renderFirstFrame(from shaderURL: URL) -> URL? {
+        guard let assetsFolderURL = assetsFolderURL else { return nil }
+        guard let device = MTLCreateSystemDefaultDevice() else { return nil }
+        guard let shaderSource = try? String(contentsOf: shaderURL, encoding: .utf8) else { return nil }
+
+        let firstFramesFolder = assetsFolderURL.appendingPathComponent("FirstFrames")
+        let shaderName = shaderURL.deletingPathExtension().lastPathComponent
+        let imageURL = firstFramesFolder.appendingPathComponent("\(shaderName).jpg")
+
+        // Check if already rendered
+        if FileManager.default.fileExists(atPath: imageURL.path) {
+            print("First frame already exists: \(imageURL.path)")
+            return imageURL
+        }
+
+        // Render one frame of the shader at 1920x1080
+        let width = 1920
+        let height = 1080
+
+        // Create renderer and MTKView
+        let renderer = ShaderRenderer(device: device, shaderSource: shaderSource)
+        guard renderer.pipelineState != nil else {
+            print("Failed to create shader pipeline")
+            return nil
+        }
+
+        // Create texture to render into
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .bgra8Unorm,
+            width: width,
+            height: height,
+            mipmapped: false
+        )
+        textureDescriptor.usage = [.renderTarget, .shaderRead]
+        guard let texture = device.makeTexture(descriptor: textureDescriptor) else { return nil }
+
+        // Render to texture
+        let renderPassDescriptor = MTLRenderPassDescriptor()
+        renderPassDescriptor.colorAttachments[0].texture = texture
+        renderPassDescriptor.colorAttachments[0].loadAction = .clear
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+
+        guard let commandQueue = device.makeCommandQueue(),
+              let commandBuffer = commandQueue.makeCommandBuffer(),
+              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            return nil
+        }
+
+        // Setup uniforms for time 0
+        var uniforms = ShaderRenderer.Uniforms(
+            iResolution: SIMD2<Float>(Float(width), Float(height)),
+            iTime: 0.0,
+            padding: 0.0
+        )
+
+        renderEncoder.setRenderPipelineState(renderer.pipelineState!)
+        renderEncoder.setFragmentBytes(&uniforms, length: MemoryLayout<ShaderRenderer.Uniforms>.size, index: 0)
+        renderEncoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+        renderEncoder.endEncoding()
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        // Convert texture to image
+        guard let image = textureToNSImage(texture: texture, width: width, height: height) else {
+            return nil
+        }
+
+        // Save as JPEG
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
+            return nil
+        }
+
+        do {
+            try jpegData.write(to: imageURL)
+            print("Rendered first frame: \(imageURL.path)")
+            return imageURL
+        } catch {
+            print("Failed to save rendered frame: \(error)")
+            return nil
+        }
+    }
+
+    func textureToNSImage(texture: MTLTexture, width: Int, height: Int) -> NSImage? {
+        let rowBytes = width * 4
+        let imageBytes = UnsafeMutableRawPointer.allocate(byteCount: rowBytes * height, alignment: 1)
+        defer { imageBytes.deallocate() }
+
+        texture.getBytes(imageBytes, bytesPerRow: rowBytes, from: MTLRegion(origin: MTLOrigin(x: 0, y: 0, z: 0), size: MTLSize(width: width, height: height, depth: 1)), mipmapLevel: 0)
+
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue).union(.byteOrder32Little)
+
+        guard let context = CGContext(data: imageBytes, width: width, height: height, bitsPerComponent: 8, bytesPerRow: rowBytes, space: colorSpace, bitmapInfo: bitmapInfo.rawValue) else {
+            return nil
+        }
+
+        guard let cgImage = context.makeImage() else { return nil }
+        return NSImage(cgImage: cgImage, size: NSSize(width: width, height: height))
     }
 
     func extractFirstFrame(from videoURL: URL) -> URL? {
@@ -660,6 +985,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Stop and remove current player
         currentPlayer?.pause()
         currentPlayer = nil
+        currentRenderer = nil
         NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: nil)
 
         // Remove existing media views
@@ -670,6 +996,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
         let imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "tiff", "heic"]
+        let shaderExtensions = ["msl"]
 
         if videoExtensions.contains(ext) {
             // Load video - create layer to properly fill view
@@ -715,10 +1042,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
                 mediaContainerView.addSubview(containerView)
             }
+        } else if shaderExtensions.contains(ext) {
+            // Load shader
+            guard let device = MTLCreateSystemDefaultDevice(),
+                  let shaderSource = try? String(contentsOf: assetURL, encoding: .utf8) else {
+                return
+            }
+
+            let metalView = MTKView(frame: mediaContainerView.bounds, device: device)
+            metalView.autoresizingMask = [.width, .height]
+
+            let renderer = ShaderRenderer(device: device, shaderSource: shaderSource)
+            currentRenderer = renderer
+            metalView.delegate = renderer
+
+            mediaContainerView.addSubview(metalView)
         }
 
-        // Enable/disable wallpaper button based on asset type (works for both images and videos)
-        setWallpaperButton?.isEnabled = imageExtensions.contains(ext) || videoExtensions.contains(ext)
+        // Enable/disable wallpaper button based on asset type (works for images, videos, and shaders)
+        setWallpaperButton?.isEnabled = imageExtensions.contains(ext) || videoExtensions.contains(ext) || shaderExtensions.contains(ext)
 
         updateDots()
     }
