@@ -1842,7 +1842,81 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSWorkspace.shared.open(folderURL)
     }
 
+    func validateShader(shaderSource: String) -> Bool {
+        // Hardcoded vertex shader - same as used in ShaderRenderer
+        let vertexShaderSource = """
+        #include <metal_stdlib>
+        using namespace metal;
+
+        struct VertexOut {
+            float4 position [[position]];
+            float2 uv;
+        };
+
+        struct Uniforms {
+            float2 iResolution;
+            float iTime;
+            float padding;
+        };
+
+        vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {
+            VertexOut out;
+
+            // Fullscreen quad vertices
+            float2 positions[6] = {
+                float2(-1.0, -1.0),
+                float2( 1.0, -1.0),
+                float2(-1.0,  1.0),
+                float2(-1.0,  1.0),
+                float2( 1.0, -1.0),
+                float2( 1.0,  1.0)
+            };
+
+            float2 pos = positions[vertexID];
+            out.position = float4(pos, 0.0, 1.0);
+            out.uv = pos * 0.5 + 0.5;
+            out.uv.y = 1.0 - out.uv.y;
+
+            return out;
+        }
+        """
+
+        // Combine vertex and fragment shaders
+        let combinedSource = vertexShaderSource + "\n" + shaderSource
+
+        // Try to compile
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            return false
+        }
+
+        do {
+            let library = try device.makeLibrary(source: combinedSource, options: nil)
+            // Check that both functions exist
+            guard library.makeFunction(name: "vertexShader") != nil,
+                  library.makeFunction(name: "fragmentShader") != nil else {
+                return false
+            }
+            return true
+        } catch {
+            print("Shader validation failed: \(error)")
+            return false
+        }
+    }
+
     @objc func importAsset() {
+        // Show main window and select home screen
+        if window == nil {
+            createMainWindow()
+        }
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Switch to home screen tab
+        if let segmentedControl = window?.contentView?.subviews.first(where: { $0 is NSSegmentedControl }) as? NSSegmentedControl {
+            segmentedControl.selectedSegment = 0
+            showView(homeView)
+        }
+
         guard let assetsFolderURL = assetsFolderURL else { return }
 
         // Collect all supported extensions
@@ -1893,6 +1967,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             let destinationFolderURL = assetsFolderURL.appendingPathComponent(destinationFolder)
             let destinationURL = destinationFolderURL.appendingPathComponent(selectedURL.lastPathComponent)
+
+            // Validate .msl shader before copying
+            if shaderExtensions.contains(ext) {
+                guard let shaderSource = try? String(contentsOf: selectedURL, encoding: .utf8) else {
+                    let alert = NSAlert()
+                    alert.messageText = "Invalid .msl shader"
+                    alert.informativeText = "Could not read shader file."
+                    alert.addButton(withTitle: "OK")
+                    alert.alertStyle = .critical
+                    alert.runModal()
+                    return
+                }
+
+                if !self.validateShader(shaderSource: shaderSource) {
+                    let alert = NSAlert()
+                    alert.messageText = "Invalid .msl shader"
+                    alert.informativeText = "Shader failed to compile."
+                    alert.addButton(withTitle: "OK")
+                    alert.alertStyle = .critical
+                    alert.runModal()
+                    return
+                }
+            }
 
             // Check if file already exists
             if FileManager.default.fileExists(atPath: destinationURL.path) {
