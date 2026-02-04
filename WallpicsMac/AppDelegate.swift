@@ -4,6 +4,7 @@ import AVFoundation
 import Metal
 import MetalKit
 import RiveRuntime
+import UniformTypeIdentifiers
 
 // Configuration
 private let maxHomeScreenAssets = 10
@@ -1731,6 +1732,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openFolderItem.target = self
         menu.addItem(openFolderItem)
 
+        let importItem = NSMenuItem(title: "Import", action: #selector(importAsset), keyEquivalent: "")
+        importItem.target = self
+        menu.addItem(importItem)
+
         // Play/Pause menu item (hidden by default)
         playPauseMenuItem = NSMenuItem(title: "Stop", action: #selector(togglePlayPause), keyEquivalent: "")
         playPauseMenuItem?.target = self
@@ -1835,6 +1840,176 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Open folder in Finder
         NSWorkspace.shared.open(folderURL)
+    }
+
+    @objc func importAsset() {
+        guard let assetsFolderURL = assetsFolderURL else { return }
+
+        // Collect all supported extensions
+        let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
+        let imageExtensions = ["jpg", "jpeg", "png", "bmp", "tiff", "heic"]
+        let gifExtensions = ["gif"]
+        let shaderExtensions = ["msl"]
+        let animationExtensions = ["riv"]
+        let allExtensions = videoExtensions + imageExtensions + gifExtensions + shaderExtensions + animationExtensions
+
+        // Create file dialog
+        let openPanel = NSOpenPanel()
+        openPanel.allowedContentTypes = allExtensions.map { UTType(filenameExtension: $0) }.compactMap { $0 }
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+        openPanel.canChooseFiles = true
+
+        // Load last directory from imports.txt
+        let importsSettingsURL = assetsFolderURL.appendingPathComponent("imports.txt")
+        if let lastDirectory = try? String(contentsOf: importsSettingsURL, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+           !lastDirectory.isEmpty {
+            openPanel.directoryURL = URL(fileURLWithPath: lastDirectory)
+        }
+
+        openPanel.begin { [weak self] response in
+            guard let self = self, response == .OK, let selectedURL = openPanel.url else { return }
+
+            // Save last directory to imports.txt
+            let directoryPath = selectedURL.deletingLastPathComponent().path
+            try? directoryPath.write(to: importsSettingsURL, atomically: true, encoding: .utf8)
+
+            // Determine destination folder based on extension
+            let ext = selectedURL.pathExtension.lowercased()
+            let destinationFolder: String
+            if videoExtensions.contains(ext) {
+                destinationFolder = "Videos"
+            } else if gifExtensions.contains(ext) {
+                destinationFolder = "Images"
+            } else if shaderExtensions.contains(ext) {
+                destinationFolder = "Shaders"
+            } else if animationExtensions.contains(ext) {
+                destinationFolder = "Animations"
+            } else if imageExtensions.contains(ext) {
+                destinationFolder = "Images"
+            } else {
+                return
+            }
+
+            let destinationFolderURL = assetsFolderURL.appendingPathComponent(destinationFolder)
+            let destinationURL = destinationFolderURL.appendingPathComponent(selectedURL.lastPathComponent)
+
+            // Check if file already exists
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                let alert = NSAlert()
+                alert.messageText = "File already exists"
+                alert.informativeText = "A file with the name \"\(selectedURL.lastPathComponent)\" already exists. Do you want to overwrite it?"
+                alert.addButton(withTitle: "Overwrite")
+                alert.addButton(withTitle: "Cancel")
+                alert.alertStyle = .warning
+
+                let response = alert.runModal()
+                if response != .alertFirstButtonReturn {
+                    return
+                }
+
+                // Remove existing file
+                try? FileManager.default.removeItem(at: destinationURL)
+            }
+
+            // Copy file to destination
+            do {
+                try FileManager.default.copyItem(at: selectedURL, to: destinationURL)
+                print("Imported file to: \(destinationURL.path)")
+
+                // Reload home screen with newly imported file as last item
+                DispatchQueue.main.async {
+                    self.reloadHomeScreenWithNewAsset(destinationURL)
+                }
+
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "Import Failed"
+                alert.informativeText = "Could not import file: \(error.localizedDescription)"
+                alert.addButton(withTitle: "OK")
+                alert.alertStyle = .critical
+                alert.runModal()
+            }
+        }
+    }
+
+    func reloadHomeScreenWithNewAsset(_ newAssetURL: URL) {
+        guard let assetsFolderURL = assetsFolderURL, let contentContainer = contentContainer else { return }
+
+        // Collect all assets from all folders (same as loadHomeAssets)
+        var allAssets: [URL] = []
+
+        let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
+        let imageExtensions = ["jpg", "jpeg", "png", "bmp", "tiff", "heic"]
+        let gifExtensions = ["gif"]
+        let shaderExtensions = ["msl"]
+        let animationExtensions = ["riv"]
+
+        // Videos
+        let videosFolder = assetsFolderURL.appendingPathComponent("Videos")
+        if let files = try? FileManager.default.contentsOfDirectory(at: videosFolder, includingPropertiesForKeys: nil) {
+            for file in files {
+                let ext = file.pathExtension.lowercased()
+                if videoExtensions.contains(ext) && file != newAssetURL {
+                    allAssets.append(file)
+                }
+            }
+        }
+
+        // Images (including GIFs)
+        let imagesFolder = assetsFolderURL.appendingPathComponent("Images")
+        if let files = try? FileManager.default.contentsOfDirectory(at: imagesFolder, includingPropertiesForKeys: nil) {
+            for file in files {
+                let ext = file.pathExtension.lowercased()
+                if (imageExtensions.contains(ext) || gifExtensions.contains(ext)) && file != newAssetURL {
+                    allAssets.append(file)
+                }
+            }
+        }
+
+        // Shaders
+        let shadersFolder = assetsFolderURL.appendingPathComponent("Shaders")
+        if let files = try? FileManager.default.contentsOfDirectory(at: shadersFolder, includingPropertiesForKeys: nil) {
+            for file in files {
+                let ext = file.pathExtension.lowercased()
+                if shaderExtensions.contains(ext) && file != newAssetURL {
+                    allAssets.append(file)
+                }
+            }
+        }
+
+        // Animations
+        let animationsFolder = assetsFolderURL.appendingPathComponent("Animations")
+        if let files = try? FileManager.default.contentsOfDirectory(at: animationsFolder, includingPropertiesForKeys: nil) {
+            for file in files {
+                let ext = file.pathExtension.lowercased()
+                if animationExtensions.contains(ext) && file != newAssetURL {
+                    allAssets.append(file)
+                }
+            }
+        }
+
+        // Shuffle and take up to (maxHomeScreenAssets - 1) to leave room for new asset
+        let shuffled = allAssets.shuffled()
+        let count = min(shuffled.count, maxHomeScreenAssets - 1)
+        homeAssets = Array(shuffled.prefix(count))
+
+        // Add the newly imported asset as the last item
+        homeAssets.append(newAssetURL)
+
+        // Set current index to the newly imported item
+        currentAssetIndex = homeAssets.count - 1
+
+        // Recreate the entire home view from scratch
+        createHomeView(frame: contentContainer.bounds)
+
+        // Show the home view
+        if let segmentedControl = window?.contentView?.subviews.first(where: { $0 is NSSegmentedControl }) as? NSSegmentedControl {
+            segmentedControl.selectedSegment = 0
+            showView(homeView)
+        }
+
+        print("Reloaded home screen with \(homeAssets.count) assets, new asset at index \(currentAssetIndex)")
     }
 
     @objc func exitApp() {
