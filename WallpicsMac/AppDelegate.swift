@@ -1,5 +1,6 @@
 import Cocoa
 import AVKit
+import AVFoundation
 import Metal
 import MetalKit
 import RiveRuntime
@@ -262,12 +263,22 @@ class AnimationWallpaperWindow: NSWindow {
     }
 
     func setupRiveAnimation(animationURL: URL, frame: NSRect) {
-        let viewModel = RiveViewModel(webURL: animationURL.absoluteString)
+        let viewModel = RiveViewModel(
+            webURL: animationURL.absoluteString,
+            fit: .fill,
+            alignment: .center,
+            loadCdn: false
+        )
         riveViewModel = viewModel
+
+        // Enable looping and mute audio
+        viewModel.play(loop: RiveLoop.loop)
+        viewModel.riveModel?.volume = 0.0
 
         let riveView = viewModel.createRiveView()
         riveView.frame = frame
-        riveView.autoresizingMask = [.width, .height]
+        riveView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
+        riveView.wantsLayer = true // Essential for layer-based capture
 
         self.contentView = riveView
     }
@@ -789,7 +800,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let shaderExtensions = ["msl"]
         let animationExtensions = ["riv"]
 
-        var wallpaperURL = assetURL
+        var wallpaperURL: URL? = assetURL
         let isVideo = videoExtensions.contains(ext)
         let isShader = shaderExtensions.contains(ext)
         let isAnimation = animationExtensions.contains(ext)
@@ -809,12 +820,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             wallpaperURL = firstFrameURL
         } else if isAnimation {
-            // For animations, render first frame
-            guard let firstFrameURL = renderFirstFrameAnimation(from: assetURL) else {
-                print("Failed to render animation first frame")
-                return
+            // For animations, try to get existing first frame (no placeholder)
+            if let firstFrameURL = renderFirstFrameAnimation(from: assetURL) {
+                wallpaperURL = firstFrameURL
+            } else {
+                // No first frame yet, skip static wallpaper setting
+                wallpaperURL = nil
             }
-            wallpaperURL = firstFrameURL
         } else if !imageExtensions.contains(ext) {
             // Not an image, video, shader, or animation
             return
@@ -824,11 +836,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             let workspace = NSWorkspace.shared
             if let screen = NSScreen.main {
-                try workspace.setDesktopImageURL(wallpaperURL, for: screen, options: [:])
-                print("Wallpaper set successfully")
+                // Set static wallpaper only if wallpaperURL exists
+                if let wallpaperURL = wallpaperURL {
+                    try workspace.setDesktopImageURL(wallpaperURL, for: screen, options: [:])
+                    print("Wallpaper set successfully")
 
-                // Save wallpaper path to settings.txt
-                saveWallpaperPath(wallpaperURL)
+                    // Save wallpaper path to settings.txt
+                    saveWallpaperPath(wallpaperURL)
+                }
 
                 // Create animated wallpaper windows based on type
                 if isVideo {
@@ -937,6 +952,77 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         print("Created animation wallpaper windows for \(NSScreen.screens.count) screen(s)")
+
+        // After 0.3 seconds, capture the frame from the wallpaper window
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            guard let assetsFolderURL = self.assetsFolderURL,
+                  let firstWallpaperWindow = self.animationWallpaperWindows.first,
+                  let riveView = firstWallpaperWindow.contentView else {
+                print("No window or view for capture")
+                return
+            }
+
+            // Get window number
+            let windowID = CGWindowID(firstWallpaperWindow.windowNumber)
+
+            // Capture the window image
+            let imageRef = CGWindowListCreateImage(
+                .null,
+                .optionIncludingWindow,
+                windowID,
+                [.boundsIgnoreFraming, .bestResolution]
+            )
+
+            guard let cgImage = imageRef else {
+                print("Window capture failed")
+                return
+            }
+
+            // Get scale and crop to RiveView frame
+            let scale = NSScreen.main?.backingScaleFactor ?? 2.0
+
+            let viewFrameInWindow = riveView.convert(riveView.bounds, to: nil)
+
+            let cropRect = CGRect(
+                x: viewFrameInWindow.origin.x * scale,
+                y: (firstWallpaperWindow.frame.height - viewFrameInWindow.maxY) * scale,
+                width: viewFrameInWindow.width * scale,
+                height: viewFrameInWindow.height * scale
+            )
+
+            guard let cropped = cgImage.cropping(to: cropRect) else {
+                print("Crop failed")
+                return
+            }
+
+            let image = NSImage(cgImage: cropped, size: riveView.bounds.size)
+
+            // Convert to JPEG
+            guard let tiffData = image.tiffRepresentation,
+                  let bitmapRep = NSBitmapImageRep(data: tiffData),
+                  let jpegData = bitmapRep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
+                print("Failed to convert captured image to JPEG")
+                return
+            }
+
+            let firstFramesFolder = assetsFolderURL.appendingPathComponent("FirstFrames")
+            let animationName = animationURL.deletingPathExtension().lastPathComponent
+            let imageURL = firstFramesFolder.appendingPathComponent("\(animationName).jpg")
+
+            do {
+                // Delete old file first to avoid macOS caching
+                if FileManager.default.fileExists(atPath: imageURL.path) {
+                    try? FileManager.default.removeItem(at: imageURL)
+                    print("Deleted old thumbnail")
+                }
+
+                // Save new captured frame
+                try jpegData.write(to: imageURL)
+                print("Captured and saved animation thumbnail using window capture: \(imageURL.path)")
+            } catch {
+                print("Failed to save captured frame: \(error)")
+            }
+        }
     }
 
     func renderFirstFrame(from shaderURL: URL) -> URL? {
@@ -1094,37 +1180,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return imageURL
         }
 
-        // Create RiveViewModel
-        let viewModel = RiveViewModel(webURL: animationURL.absoluteString)
-
-        // Create RiveView at 1920x1080
-        let width: CGFloat = 1920
-        let height: CGFloat = 1080
-        let frame = NSRect(x: 0, y: 0, width: width, height: height)
-        let riveView = viewModel.createRiveView()
-        riveView.frame = frame
-
-        // Capture view as image
-        guard let bitmapRep = riveView.bitmapImageRepForCachingDisplay(in: riveView.bounds) else {
-            print("Failed to create bitmap representation")
-            return nil
-        }
-
-        riveView.cacheDisplay(in: riveView.bounds, to: bitmapRep)
-
-        guard let jpegData = bitmapRep.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [NSBitmapImageRep.PropertyKey.compressionFactor: 0.9]) else {
-            print("Failed to convert to JPEG")
-            return nil
-        }
-
-        do {
-            try jpegData.write(to: imageURL)
-            print("Rendered animation first frame: \(imageURL.path)")
-            return imageURL
-        } catch {
-            print("Failed to save rendered frame: \(error)")
-            return nil
-        }
+        // Return nil immediately - no placeholder
+        return nil
     }
 
     func loadAssetAtIndex(_ index: Int) {
@@ -1211,12 +1268,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             mediaContainerView.addSubview(metalView)
         } else if animationExtensions.contains(ext) {
             // Load animation
-            let viewModel = RiveViewModel(webURL: assetURL.absoluteString)
+            let viewModel = RiveViewModel(
+                webURL: assetURL.absoluteString,
+                fit: .fill,
+                alignment: .center,
+                loadCdn: false
+            )
             currentRiveViewModel = viewModel
+
+            // Enable looping and mute audio
+            viewModel.play(loop: RiveLoop.loop)
+            viewModel.riveModel?.volume = 0.0
 
             let riveView = viewModel.createRiveView()
             riveView.frame = mediaContainerView.bounds
-            riveView.autoresizingMask = [.width, .height]
+            riveView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
+            riveView.wantsLayer = true // Essential for layer-based capture
 
             mediaContainerView.addSubview(riveView)
         }
