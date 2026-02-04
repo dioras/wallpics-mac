@@ -4,7 +4,6 @@ import AVFoundation
 import Metal
 import MetalKit
 import RiveRuntime
-import AudioToolbox
 
 class GIFWallpaperWindow: NSWindow {
     var imageView: NSImageView?
@@ -415,7 +414,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var shaderWallpaperWindows: [ShaderWallpaperWindow] = []
     var animationWallpaperWindows: [AnimationWallpaperWindow] = []
     var gifWallpaperWindows: [GIFWallpaperWindow] = []
-    var silentAudioEngine: AVAudioEngine?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Disable audio for the entire app
@@ -438,23 +436,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func disableAppAudio() {
-        // Create a silent audio engine with volume at 0 to suppress all audio
-        let audioEngine = AVAudioEngine()
-        let playerNode = AVAudioPlayerNode()
-        audioEngine.attach(playerNode)
-
-        let mixer = audioEngine.mainMixerNode
-        mixer.outputVolume = 0.0
-        audioEngine.connect(playerNode, to: mixer, format: nil)
-
-        do {
-            try audioEngine.start()
-            playerNode.play()
-            silentAudioEngine = audioEngine // Keep it alive
-        } catch {
-            print("Failed to start silent audio engine: \(error)")
-        }
-
         // Monitor and mute all Rive animations every 50ms
         Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
             self?.currentRiveViewModel?.riveModel?.volume = 0.0
