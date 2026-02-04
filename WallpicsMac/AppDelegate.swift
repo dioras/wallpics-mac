@@ -338,6 +338,12 @@ class AnimationWallpaperWindow: NSWindow {
     }
 
     func setupRiveAnimation(animationURL: URL, frame: NSRect) {
+        // Configure AVAudioSession to disable audio playback
+        #if os(iOS)
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
+        try? AVAudioSession.sharedInstance().setActive(false)
+        #endif
+
         let viewModel = RiveViewModel(
             webURL: animationURL.absoluteString,
             fit: .fill,
@@ -349,17 +355,16 @@ class AnimationWallpaperWindow: NSWindow {
         // Enable looping
         viewModel.play(loop: RiveLoop.loop)
 
+        // Try setting volume to 0
+        viewModel.riveModel?.volume = 0.0
+        
+
         let riveView = viewModel.createRiveView()
         riveView.frame = frame
         riveView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
         riveView.wantsLayer = true // Essential for layer-based capture
 
         self.contentView = riveView
-
-        // Mute audio after a short delay to ensure model is loaded
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak viewModel] in
-            viewModel?.riveModel?.volume = 0.0
-        }
     }
 
     func stop() {
@@ -1503,17 +1508,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Enable looping
             viewModel.play(loop: RiveLoop.loop)
 
+            // Try setting volume to 0
+            viewModel.riveModel?.volume = 0.0
+
             let riveView = viewModel.createRiveView()
             riveView.frame = mediaContainerView.bounds
             riveView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
             riveView.wantsLayer = true // Essential for layer-based capture
 
             mediaContainerView.addSubview(riveView)
-
-            // Mute audio after a short delay to ensure model is loaded
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak viewModel] in
-                viewModel?.riveModel?.volume = 0.0
-            }
         }
 
         // Enable/disable wallpaper button based on asset type (works for images, videos, shaders, animations, and GIFs)
