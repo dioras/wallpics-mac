@@ -10,6 +10,7 @@
 		A1000001000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001000000000000001 /* AppDelegate.swift */; };
 		A1000002000000000000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002000000000000001 /* main.swift */; };
 		A1000003000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000003000000000000001 /* Assets.xcassets */; };
+		A1000004000000000000001 /* RiveRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = A1000005000000000000001 /* RiveRuntime */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +26,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1000004000000000000001 /* RiveRuntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +76,9 @@
 			dependencies = (
 			);
 			name = WallpicsMac;
+			packageProductDependencies = (
+				A1000005000000000000001 /* RiveRuntime */,
+			);
 			productName = WallpicsMac;
 			productReference = A3000001000000000000001 /* WallpicsMac.app */;
 			productType = "com.apple.product-type.application";
@@ -102,6 +107,9 @@
 				Base,
 			);
 			mainGroup = A5000001000000000000001;
+			packageReferences = (
+				AB000001000000000000001 /* XCRemoteSwiftPackageReference "rive-ios" */,
+			);
 			productRefGroup = A5000003000000000000001 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -327,6 +335,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AB000001000000000000001 /* XCRemoteSwiftPackageReference "rive-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/rive-app/rive-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1000005000000000000001 /* RiveRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB000001000000000000001 /* XCRemoteSwiftPackageReference "rive-ios" */;
+			productName = RiveRuntime;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A0000001000000000000001 /* Project object */;
 }
