@@ -4,6 +4,7 @@ import AVFoundation
 import Metal
 import MetalKit
 import RiveRuntime
+import AudioToolbox
 
 class GIFWallpaperWindow: NSWindow {
     var imageView: NSImageView?
@@ -338,12 +339,6 @@ class AnimationWallpaperWindow: NSWindow {
     }
 
     func setupRiveAnimation(animationURL: URL, frame: NSRect) {
-        // Configure AVAudioSession to disable audio playback
-        #if os(iOS)
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
-        try? AVAudioSession.sharedInstance().setActive(false)
-        #endif
-
         let viewModel = RiveViewModel(
             webURL: animationURL.absoluteString,
             fit: .fill,
@@ -352,19 +347,22 @@ class AnimationWallpaperWindow: NSWindow {
         )
         riveViewModel = viewModel
 
-        // Enable looping
-        viewModel.play(loop: RiveLoop.loop)
-
-        // Try setting volume to 0
-        viewModel.riveModel?.volume = 0.0
-        
-
         let riveView = viewModel.createRiveView()
         riveView.frame = frame
         riveView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
         riveView.wantsLayer = true // Essential for layer-based capture
 
         self.contentView = riveView
+
+        // Start playing
+        viewModel.play(loop: RiveLoop.loop)
+
+        // Set volume to 0 multiple times with delays
+        for i in 0...10 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) { [weak viewModel] in
+                viewModel?.riveModel?.volume = 0.0
+            }
+        }
     }
 
     func stop() {
@@ -417,8 +415,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var shaderWallpaperWindows: [ShaderWallpaperWindow] = []
     var animationWallpaperWindows: [AnimationWallpaperWindow] = []
     var gifWallpaperWindows: [GIFWallpaperWindow] = []
+    var silentAudioEngine: AVAudioEngine?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Disable audio for the entire app
+        disableAppAudio()
+
         // Create assets folder
         createAssetsFolder()
 
@@ -433,6 +435,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Show window on launch
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    func disableAppAudio() {
+        // Create a silent audio engine with volume at 0 to suppress all audio
+        let audioEngine = AVAudioEngine()
+        let playerNode = AVAudioPlayerNode()
+        audioEngine.attach(playerNode)
+
+        let mixer = audioEngine.mainMixerNode
+        mixer.outputVolume = 0.0
+        audioEngine.connect(playerNode, to: mixer, format: nil)
+
+        do {
+            try audioEngine.start()
+            playerNode.play()
+            silentAudioEngine = audioEngine // Keep it alive
+        } catch {
+            print("Failed to start silent audio engine: \(error)")
+        }
+
+        // Monitor and mute all Rive animations every 50ms
+        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            self?.currentRiveViewModel?.riveModel?.volume = 0.0
+            for window in self?.animationWallpaperWindows ?? [] {
+                window.riveViewModel?.riveModel?.volume = 0.0
+            }
+        }
     }
 
     func createAssetsFolder() {
@@ -1418,7 +1447,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 forName: .AVPlayerItemDidPlayToEndTime,
                 object: player.currentItem,
                 queue: .main
-            ) { [weak self] _ in
+            ) { _ in
                 player.seek(to: .zero)
                 player.play()
             }
@@ -1505,18 +1534,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             )
             currentRiveViewModel = viewModel
 
-            // Enable looping
-            viewModel.play(loop: RiveLoop.loop)
-
-            // Try setting volume to 0
-            viewModel.riveModel?.volume = 0.0
-
             let riveView = viewModel.createRiveView()
             riveView.frame = mediaContainerView.bounds
             riveView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
             riveView.wantsLayer = true // Essential for layer-based capture
 
             mediaContainerView.addSubview(riveView)
+
+            // Start playing
+            viewModel.play(loop: RiveLoop.loop)
+
+            // Set volume to 0 multiple times with delays
+            for i in 0...10 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) { [weak viewModel] in
+                    viewModel?.riveModel?.volume = 0.0
+                }
+            }
         }
 
         // Enable/disable wallpaper button based on asset type (works for images, videos, shaders, animations, and GIFs)
