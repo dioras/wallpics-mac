@@ -5,6 +5,7 @@ import Metal
 import MetalKit
 import RiveRuntime
 import UniformTypeIdentifiers
+import CommonCrypto
 
 // Configuration
 private let maxHomeScreenAssets = 10
@@ -457,6 +458,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var createView: NSView?
     var segmentedControl: NSSegmentedControl?
 
+    // Browser view data
+    var wallpaperData: [[String: Any]] = []
+    var currentPage: Int = 1
+    var isLoadingWallpapers: Bool = false
+    var browserScrollView: NSScrollView?
+    var browserGridContainer: NSView?
+    var guestId: String?
+
     var homeAssets: [URL] = []
     var currentAssetIndex: Int = 0
     var mediaContainerView: NSView?
@@ -467,6 +476,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var currentRenderer: ShaderRenderer?
     var currentRiveViewModel: RiveViewModel?
     var setWallpaperButton: NSButton?
+    var notificationLabel: NSView?
     var videoWallpaperWindows: [VideoWallpaperWindow] = []
     var shaderWallpaperWindows: [ShaderWallpaperWindow] = []
     var animationWallpaperWindows: [AnimationWallpaperWindow] = []
@@ -503,6 +513,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Show window on launch
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    func showNotification(message: String) {
+        guard let labelView = notificationLabel,
+              let textLayer = labelView.layer?.sublayers?.first as? CATextLayer else { return }
+
+        // Update text
+        textLayer.string = message
+
+        // Fade in
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.15
+            labelView.animator().alphaValue = 1.0
+        })
+
+        // Fade out after 2.5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak labelView] in
+            guard let label = labelView else { return }
+            NSAnimationContext.runAnimationGroup({ context in
+                context.duration = 0.25
+                label.animator().alphaValue = 0
+            })
+        }
     }
 
     func disableAppAudio() {
@@ -820,9 +853,57 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             mainView.addSubview(contentContainer)
         }
 
-        // Add segmented control ABOVE content container
+        // Create notification label (invisible by default)
+        let labelView = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 100))
+
+        let textLayer = CATextLayer()
+        textLayer.frame = labelView.bounds
+        textLayer.string = ""
+        textLayer.fontSize = 32
+        textLayer.font = NSFont.boldSystemFont(ofSize: 32)
+        textLayer.alignmentMode = .center
+        textLayer.foregroundColor = NSColor.white.cgColor
+        textLayer.contentsScale = NSScreen.main?.backingScaleFactor ?? 2.0
+
+        // Add stroke (outline)
+        textLayer.shadowColor = NSColor.black.cgColor
+        textLayer.shadowOffset = CGSize.zero
+        textLayer.shadowOpacity = 1.0
+        textLayer.shadowRadius = 3.0
+
+        labelView.wantsLayer = true
+        labelView.layer?.addSublayer(textLayer)
+
+        // Position in center
+        labelView.frame.origin = NSPoint(
+            x: (frame.width - 400) / 2,
+            y: (frame.height - 100) / 2
+        )
+        labelView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
+        labelView.alphaValue = 0
+
+        notificationLabel = labelView
+        mainView.addSubview(labelView, positioned: .above, relativeTo: contentContainer)
+
+        // Add segmented control background and control ABOVE everything (added last to be on top)
         if let segmentedControl = segmentedControl {
-            mainView.addSubview(segmentedControl, positioned: .above, relativeTo: contentContainer)
+            segmentedControl.wantsLayer = true
+
+            // Create a background container for the segmented control
+            let backgroundPadding: CGFloat = 4
+            let backgroundView = NSView(frame: NSRect(
+                x: segmentedControlX - backgroundPadding,
+                y: segmentedControlY - backgroundPadding / 2,
+                width: segmentedControlWidth + (backgroundPadding * 2),
+                height: segmentedControlHeight + backgroundPadding
+            ))
+            backgroundView.wantsLayer = true
+            backgroundView.layer?.backgroundColor = NSColor.lightGray.withAlphaComponent(0.8).cgColor
+            backgroundView.layer?.cornerRadius = 8
+            backgroundView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
+
+            mainView.addSubview(backgroundView, positioned: .above, relativeTo: nil)
+            mainView.addSubview(segmentedControl, positioned: .above, relativeTo: backgroundView)
         }
 
         // Load random assets for home screen
@@ -1044,6 +1125,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if let wallpaperURL = wallpaperURL {
                     try workspace.setDesktopImageURL(wallpaperURL, for: screen, options: [:])
                     print("Wallpaper set successfully")
+                    showNotification(message: "Wallpaper set successfully")
 
                     // Save wallpaper path to settings.txt
                     saveWallpaperPath(wallpaperURL)
@@ -1663,15 +1745,314 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         browserView?.wantsLayer = true
         browserView?.autoresizingMask = [.width, .height]
 
-        // Add centered text
-        let textField = NSTextField(labelWithString: "Browser")
-        textField.font = NSFont.systemFont(ofSize: 48, weight: .medium)
-        textField.textColor = .labelColor
-        textField.alignment = .center
-        textField.frame = NSRect(x: 0, y: frame.height / 2 - 30, width: frame.width, height: 60)
-        textField.autoresizingMask = [.width, .minYMargin, .maxYMargin]
+        guard let browserView = browserView else { return }
 
-        browserView?.addSubview(textField)
+        // Create scroll view
+        let scrollView = NSScrollView(frame: frame)
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autoresizingMask = [.width, .height]
+        scrollView.backgroundColor = .windowBackgroundColor
+        browserScrollView = scrollView
+
+        // Create grid container
+        let gridContainer = NSView(frame: NSRect(x: 0, y: 0, width: frame.width, height: frame.height))
+        gridContainer.wantsLayer = true
+        browserGridContainer = gridContainer
+
+        scrollView.documentView = gridContainer
+        browserView.addSubview(scrollView)
+
+        // Show loading message
+        let loadingLabel = NSTextField(labelWithString: "Loading wallpapers...")
+        loadingLabel.font = NSFont.systemFont(ofSize: 18)
+        loadingLabel.textColor = .secondaryLabelColor
+        loadingLabel.alignment = .center
+        loadingLabel.frame = NSRect(x: 0, y: frame.height / 2 - 15, width: frame.width, height: 30)
+        gridContainer.addSubview(loadingLabel)
+
+        // Initialize guest ID and fetch wallpapers
+        initializeGuestId { [weak self] in
+            self?.fetchWallpapers(page: 1)
+        }
+    }
+
+    func initializeGuestId(completion: @escaping () -> Void) {
+        // Try to load saved guest ID
+        if let assetsFolderURL = assetsFolderURL {
+            let guestIdURL = assetsFolderURL.appendingPathComponent("guest_id.txt")
+            if let savedGuestId = try? String(contentsOf: guestIdURL, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+               !savedGuestId.isEmpty {
+                self.guestId = savedGuestId
+                print("Loaded guest ID: \(savedGuestId)")
+                completion()
+                return
+            }
+        }
+
+        // No saved guest ID, request new one
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        let token = md5Hash(timestamp + "wall")
+
+        let urlString = "https://backend.wallpics.app/api/init-guest"
+        guard let url = URL(string: urlString) else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(timestamp, forHTTPHeaderField: "x-auth")
+        request.setValue(token, forHTTPHeaderField: "x-token")
+        request.setValue("1", forHTTPHeaderField: "x-get-guest-id")
+
+        print("Requesting new guest ID...")
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+
+            // Debug: Print HTTP status code
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Guest ID HTTP Status Code: \(httpResponse.statusCode)")
+            }
+
+            if let error = error {
+                print("Guest ID request error: \(error.localizedDescription)")
+                return
+            }
+
+            guard let data = data else {
+                print("No guest ID data received")
+                return
+            }
+
+            // Debug: Print raw response
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Guest ID Raw Response: \(responseString.prefix(500))")
+            }
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let dataDict = json["data"] as? [String: Any],
+                   let guestId = dataDict["guestId"] as? String {
+                    self.guestId = guestId
+                    print("Received guest ID: \(guestId)")
+
+                    // Save guest ID
+                    if let assetsFolderURL = self.assetsFolderURL {
+                        let guestIdURL = assetsFolderURL.appendingPathComponent("guest_id.txt")
+                        try? guestId.write(to: guestIdURL, atomically: true, encoding: .utf8)
+                    }
+
+                    completion()
+                } else {
+                    print("ERROR: Failed to extract guest ID from response")
+                }
+            } catch {
+                print("Guest ID parse error: \(error)")
+            }
+        }.resume()
+    }
+
+    func md5Hash(_ string: String) -> String {
+        let data = Data(string.utf8)
+        var digest = [UInt8](repeating: 0, count: Int(CC_MD5_DIGEST_LENGTH))
+        data.withUnsafeBytes { buffer in
+            _ = CC_MD5(buffer.baseAddress, CC_LONG(data.count), &digest)
+        }
+        return digest.map { String(format: "%02hhx", $0) }.joined()
+    }
+
+    func fetchWallpapers(page: Int) {
+        guard !isLoadingWallpapers else { return }
+        guard let guestId = guestId else {
+            print("No guest ID available")
+            return
+        }
+        isLoadingWallpapers = true
+
+        // Generate auth headers
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        let token = md5Hash(timestamp + "wall")
+
+        let urlString = "https://backend.wallpics.app/api/wallpaper-list?categorySlug=all&timestamp=\(timestamp)&page=\(page)&per_page=24&paginated=1&sortOrder=desc&nsfwContent=0"
+        guard let url = URL(string: urlString) else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(timestamp, forHTTPHeaderField: "x-auth")
+        request.setValue(token, forHTTPHeaderField: "x-token")
+        request.setValue(guestId, forHTTPHeaderField: "x-guest-id")
+
+        print("Fetching wallpapers - URL: \(urlString)")
+        print("Headers: x-auth=\(timestamp), x-token=\(token), x-guest-id=\(guestId)")
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                self.isLoadingWallpapers = false
+            }
+
+            // Debug: Print HTTP status code
+            if let httpResponse = response as? HTTPURLResponse {
+                print("HTTP Status Code: \(httpResponse.statusCode)")
+            }
+
+            if let error = error {
+                print("API Error: \(error.localizedDescription)")
+                return
+            }
+
+            guard let data = data else {
+                print("No data received")
+                return
+            }
+
+            // Debug: Print raw response
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("Raw API Response: \(responseString.prefix(500))")
+            }
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let status = json["status"] as? String,
+                   status == "success",
+                   let responseData = json["data"] as? [[String: Any]] {
+
+                    print("Successfully parsed \(responseData.count) wallpapers")
+
+                    DispatchQueue.main.async {
+                        if page == 1 {
+                            self.wallpaperData = responseData
+                        } else {
+                            self.wallpaperData.append(contentsOf: responseData)
+                        }
+                        self.currentPage = page
+                        self.displayWallpapers()
+                    }
+                }
+            } catch {
+                print("JSON Parse Error: \(error)")
+            }
+        }.resume()
+    }
+
+    func displayWallpapers() {
+        guard let gridContainer = browserGridContainer,
+              let scrollView = browserScrollView else { return }
+
+        // Remove all existing subviews
+        gridContainer.subviews.forEach { $0.removeFromSuperview() }
+
+        // Grid configuration
+        let columns = 4
+        let itemSpacing: CGFloat = 20
+        let containerWidth = scrollView.frame.width
+        let itemWidth = (containerWidth - CGFloat(columns + 1) * itemSpacing) / CGFloat(columns)
+        let itemHeight = itemWidth * 1.5 // 3:2 aspect ratio
+
+        // Calculate total rows
+        let totalItems = wallpaperData.count
+        let rows = (totalItems + columns - 1) / columns
+        let totalHeight = CGFloat(rows) * (itemHeight + itemSpacing) + itemSpacing + 60 // +60 for load more button
+
+        // Resize grid container
+        gridContainer.frame = NSRect(x: 0, y: 0, width: containerWidth, height: totalHeight)
+
+        // Create grid items
+        for (index, wallpaper) in wallpaperData.enumerated() {
+            let row = index / columns
+            let col = index % columns
+            let x = itemSpacing + CGFloat(col) * (itemWidth + itemSpacing)
+            let y = totalHeight - (CGFloat(row + 1) * (itemHeight + itemSpacing))
+
+            let itemView = createWallpaperThumbnail(wallpaper: wallpaper, frame: NSRect(x: x, y: y, width: itemWidth, height: itemHeight))
+            gridContainer.addSubview(itemView)
+        }
+
+        // Add "Load More" button at bottom
+        let buttonWidth: CGFloat = 200
+        let buttonHeight: CGFloat = 40
+        let loadMoreButton = NSButton(frame: NSRect(
+            x: (containerWidth - buttonWidth) / 2,
+            y: 10,
+            width: buttonWidth,
+            height: buttonHeight
+        ))
+        loadMoreButton.title = "Load More"
+        loadMoreButton.bezelStyle = .rounded
+        loadMoreButton.target = self
+        loadMoreButton.action = #selector(loadMoreWallpapers)
+        gridContainer.addSubview(loadMoreButton)
+    }
+
+    func createWallpaperThumbnail(wallpaper: [String: Any], frame: NSRect) -> NSView {
+        let itemView = NSView(frame: frame)
+        itemView.wantsLayer = true
+        itemView.layer?.backgroundColor = NSColor.darkGray.cgColor
+        itemView.layer?.cornerRadius = 8
+
+        // Create image view for thumbnail
+        let imageView = NSImageView(frame: NSRect(x: 0, y: 40, width: frame.width, height: frame.height - 40))
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.wantsLayer = true
+        imageView.layer?.cornerRadius = 8
+        imageView.layer?.masksToBounds = true
+        itemView.addSubview(imageView)
+
+        // Create label for name
+        if let name = wallpaper["name"] as? String {
+            let label = NSTextField(labelWithString: name)
+            label.font = NSFont.systemFont(ofSize: 12)
+            label.textColor = .white
+            label.alignment = .center
+            label.lineBreakMode = .byTruncatingTail
+            label.frame = NSRect(x: 5, y: 5, width: frame.width - 10, height: 30)
+            itemView.addSubview(label)
+        }
+
+        // Load thumbnail image asynchronously
+        if let thumbnailURLString = wallpaper["thumbnail"] as? String,
+           let thumbnailURL = URL(string: thumbnailURLString) {
+            URLSession.shared.dataTask(with: thumbnailURL) { data, _, error in
+                guard let data = data, error == nil, let image = NSImage(data: data) else { return }
+                DispatchQueue.main.async {
+                    imageView.image = image
+                }
+            }.resume()
+        }
+
+        // Add click gesture to download
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(wallpaperThumbnailClicked(_:)))
+        itemView.addGestureRecognizer(clickGesture)
+
+        // Store wallpaper data in the view
+        itemView.identifier = NSUserInterfaceItemIdentifier(rawValue: "wallpaper_\(wallpaper["id"] ?? 0)")
+
+        return itemView
+    }
+
+    @objc func loadMoreWallpapers() {
+        fetchWallpapers(page: currentPage + 1)
+    }
+
+    @objc func wallpaperThumbnailClicked(_ sender: NSClickGestureRecognizer) {
+        guard let itemView = sender.view,
+              let identifier = itemView.identifier?.rawValue,
+              let idString = identifier.components(separatedBy: "_").last,
+              let wallpaperID = Int(idString) else { return }
+
+        // Find wallpaper data
+        guard let wallpaper = wallpaperData.first(where: { ($0["id"] as? Int) == wallpaperID }) else { return }
+
+        // Download wallpaper
+        if let urlString = wallpaper["wallpaper"] as? String,
+           let name = wallpaper["name"] as? String,
+           let type = wallpaper["type"] as? String {
+            downloadWallpaperFromAPI(urlString: urlString, name: name, type: type)
+        }
     }
 
     func createCreateView(frame: NSRect) {
@@ -2123,5 +2504,65 @@ extension AppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         // Hide app from Dock when window is closed (keep only in menu bar)
         NSApp.setActivationPolicy(.accessory)
+    }
+}
+
+extension AppDelegate {
+    func downloadWallpaperFromAPI(urlString: String, name: String, type: String) {
+        guard let url = URL(string: urlString),
+              let assetsFolderURL = assetsFolderURL else { return }
+
+        // Determine destination folder based on type
+        let folderName: String
+        let fileExtension: String
+
+        switch type.lowercased() {
+        case "video", "live":
+            folderName = "Videos"
+            fileExtension = "mp4"
+        case "image":
+            folderName = "Images"
+            fileExtension = "jpg"
+        default:
+            folderName = "Images"
+            fileExtension = "jpg"
+        }
+
+        let destinationFolder = assetsFolderURL.appendingPathComponent(folderName)
+        ensureFolderExists(at: destinationFolder)
+
+        // Sanitize filename
+        let sanitizedName = name.replacingOccurrences(of: "[^a-zA-Z0-9_-]", with: "_", options: .regularExpression)
+        let filename = "\(sanitizedName).\(fileExtension)"
+        let destinationURL = destinationFolder.appendingPathComponent(filename)
+
+        // Download file
+        let task = URLSession.shared.downloadTask(with: url) { [weak self] tempURL, response, error in
+            guard let self = self,
+                  let tempURL = tempURL,
+                  error == nil else {
+                print("Download failed: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+
+            do {
+                // Move file to destination
+                if FileManager.default.fileExists(atPath: destinationURL.path) {
+                    try FileManager.default.removeItem(at: destinationURL)
+                }
+                try FileManager.default.moveItem(at: tempURL, to: destinationURL)
+
+                print("Downloaded wallpaper: \(destinationURL.path)")
+
+                // Reload home screen with new asset
+                DispatchQueue.main.async {
+                    self.reloadHomeScreenWithNewAsset(destinationURL)
+                    self.showNotification(message: "Wallpaper downloaded!")
+                }
+            } catch {
+                print("Failed to save wallpaper: \(error.localizedDescription)")
+            }
+        }
+        task.resume()
     }
 }
