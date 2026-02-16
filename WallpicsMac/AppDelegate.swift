@@ -1874,7 +1874,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let timestamp = String(Int(Date().timeIntervalSince1970))
         let token = md5Hash(timestamp + "wall")
 
-        let urlString = "https://backend.wallpics.app/api/wallpaper-list?categorySlug=all&timestamp=\(timestamp)&page=\(page)&per_page=24&paginated=1&sortOrder=desc&nsfwContent=0"
+        let urlString = "https://backend.wallpics.app/api/wallpapers/macos?categorySlug=all&timestamp=\(timestamp)&page=\(page)&per_page=24&paginated=1&sortOrder=desc&nsfwContent=0"
         guard let url = URL(string: urlString) else { return }
 
         var request = URLRequest(url: url)
