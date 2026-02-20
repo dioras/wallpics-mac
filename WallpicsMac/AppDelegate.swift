@@ -515,12 +515,37 @@ class HoverScaleView: NSView {
         addTrackingArea(trackingArea)
     }
 
+    func shouldShowPlayButtonForType() -> Bool {
+        // Check if cell is currently playing
+        if let wallpaperId = wallpaperId,
+           let appDelegate = NSApplication.shared.delegate as? AppDelegate,
+           appDelegate.currentlyPlayingCellId == wallpaperId {
+            return false  // Don't show play button if already playing
+        }
+
+        // Get file extension from ID file
+        guard let wallpaperId = wallpaperId,
+              let appDelegate = NSApplication.shared.delegate as? AppDelegate,
+              let assetURL = appDelegate.findAssetURLByWallpaperId(wallpaperId) else {
+            return true  // If not downloaded yet, show play button
+        }
+
+        let ext = assetURL.pathExtension.lowercased()
+        let imageExtensions = ["jpg", "jpeg", "png", "heic"]
+
+        // Hide play button for regular images, show for everything else
+        return !imageExtensions.contains(ext)
+    }
+
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
         isMouseInside = true
 
-        // Show play button
-        if playButtonView == nil {
+        // Check if play button should be shown
+        let shouldShowPlayButton = shouldShowPlayButtonForType()
+
+        // Show play button only if appropriate
+        if shouldShowPlayButton && playButtonView == nil {
             // Create play button image once
             if HoverScaleView.playButtonImage == nil {
                 HoverScaleView.playButtonImage = HoverScaleView.createPlayButtonImage(size: 80)
@@ -559,8 +584,10 @@ class HoverScaleView: NSView {
             self.layer?.shadowRadius = 10
             self.layer?.zPosition = 100
 
-            // Fade in play button
-            self.playButtonView?.animator().alphaValue = 1.0
+            // Fade in play button only if it should be shown
+            if shouldShowPlayButton {
+                self.playButtonView?.animator().alphaValue = 1.0
+            }
         })
     }
 
@@ -604,7 +631,9 @@ class HoverScaleView: NSView {
         }
 
         print("Play button clicked for wallpaper ID: \(wallpaperId)")
-        appDelegate.downloadWallpaperZip(wallpaperId: wallpaperId)
+
+        // Download and then play the content in this cell
+        appDelegate.downloadAndPlayInCell(wallpaperId: wallpaperId, cellView: self)
     }
 }
 
@@ -631,6 +660,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var browserGridContainer: NSView?
     var guestId: String?
     var useMacOSEndpoint: Bool = true
+    var currentlyPlayingCellId: Int? // Track which cell is currently playing
+
+    // Store playback resources for browser cells to prevent deallocation
+    var cellRenderers: [Int: ShaderRenderer] = [:]  // wallpaperId -> renderer
+    var cellRiveViewModels: [Int: RiveViewModel] = [:]  // wallpaperId -> viewModel
 
     var homeAssets: [URL] = []
     var currentAssetIndex: Int = 0
@@ -2495,6 +2529,181 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.setAsWallpaperWithPath(assetURL: assetURL)
             }
         })
+    }
+
+    func downloadAndPlayInCell(wallpaperId: Int, cellView: HoverScaleView) {
+        // Stop all other cells first
+        stopAllCellPlayback()
+
+        // Mark this cell as currently playing
+        currentlyPlayingCellId = wallpaperId
+
+        downloadWallpaperZip(wallpaperId: wallpaperId, completion: { [weak self] success, assetURL in
+            guard let self = self else { return }
+
+            if success, let assetURL = assetURL {
+                // Play content in this cell
+                self.playContentInCell(assetURL: assetURL, cellView: cellView, wallpaperId: wallpaperId)
+            }
+        })
+    }
+
+    func stopAllCellPlayback() {
+        // Stop playback in all cells and reset to thumbnails
+        guard let gridContainer = browserGridContainer else { return }
+
+        for subview in gridContainer.subviews {
+            if let cellView = subview as? HoverScaleView {
+                stopCellPlayback(cellView: cellView)
+            }
+        }
+
+        // Clear all stored renderers and view models
+        cellRenderers.removeAll()
+        cellRiveViewModels.removeAll()
+
+        currentlyPlayingCellId = nil
+    }
+
+    func stopCellPlayback(cellView: HoverScaleView) {
+        // Find the clipContainer which is the first subview
+        guard let clipContainer = cellView.subviews.first else { return }
+
+        // Find and remove any player/renderer/rive views
+        for subview in clipContainer.subviews {
+            // Remove the playback view
+            if subview.identifier?.rawValue == "playback_view" {
+                // Stop AVPlayer if present
+                if let containerView = subview as? NSView,
+                   let layer = containerView.layer,
+                   let playerLayer = layer.sublayers?.first(where: { $0 is AVPlayerLayer }) as? AVPlayerLayer {
+                    playerLayer.player?.pause()
+                    playerLayer.player = nil
+                }
+
+                // Stop MTKView (shader) if present
+                for sub in subview.subviews {
+                    if let metalView = sub as? MTKView {
+                        metalView.delegate = nil
+                    }
+                }
+
+                subview.removeFromSuperview()
+            }
+        }
+    }
+
+    func playContentInCell(assetURL: URL, cellView: HoverScaleView, wallpaperId: Int) {
+        // Find the clipContainer which is the first subview
+        guard let clipContainer = cellView.subviews.first else {
+            print("playContentInCell: No clipContainer found")
+            return
+        }
+
+        print("playContentInCell: Playing \(assetURL.lastPathComponent) in cell for wallpaper \(wallpaperId)")
+
+        // Stop any existing playback in this cell
+        stopCellPlayback(cellView: cellView)
+
+        let ext = assetURL.pathExtension.lowercased()
+        let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv"]
+        let gifExtensions = ["gif"]
+        let shaderExtensions = ["msl"]
+        let animationExtensions = ["riv"]
+
+        print("playContentInCell: Extension is \(ext), clipContainer bounds: \(clipContainer.bounds)")
+
+        // Create a container view for playback that fills the clipContainer
+        let playbackView = NSView(frame: clipContainer.bounds)
+        playbackView.wantsLayer = true
+        playbackView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
+        playbackView.identifier = NSUserInterfaceItemIdentifier("playback_view")
+
+        if videoExtensions.contains(ext) {
+            // Play video
+            let playerLayer = AVPlayerLayer()
+            playerLayer.frame = playbackView.bounds
+            playerLayer.videoGravity = .resizeAspectFill
+            playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+
+            let player = AVPlayer(url: assetURL)
+            player.isMuted = true
+            playerLayer.player = player
+            playbackView.layer?.addSublayer(playerLayer)
+
+            // Auto-loop video
+            NotificationCenter.default.addObserver(
+                forName: .AVPlayerItemDidPlayToEndTime,
+                object: player.currentItem,
+                queue: .main
+            ) { _ in
+                player.seek(to: .zero)
+                player.play()
+            }
+
+            player.play()
+
+        } else if gifExtensions.contains(ext) {
+            // Play GIF
+            if let gifImage = NSImage(contentsOf: assetURL) {
+                let gifImageView = NSImageView(frame: playbackView.bounds)
+                gifImageView.image = gifImage
+                gifImageView.imageScaling = .scaleAxesIndependently
+                gifImageView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
+                gifImageView.animates = true
+                playbackView.addSubview(gifImageView)
+            }
+
+        } else if shaderExtensions.contains(ext) {
+            // Play shader - exactly like home screen
+            guard let device = MTLCreateSystemDefaultDevice(),
+                  let shaderSource = try? String(contentsOf: assetURL, encoding: .utf8) else {
+                return
+            }
+
+            let metalView = MTKView(frame: playbackView.bounds, device: device)
+            metalView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
+
+            let renderer = ShaderRenderer(device: device, shaderSource: shaderSource)
+            cellRenderers[wallpaperId] = renderer  // Store to prevent deallocation
+            metalView.delegate = renderer
+
+            playbackView.addSubview(metalView)
+
+        } else if animationExtensions.contains(ext) {
+            // Play Rive animation - exactly like home screen
+            let viewModel = RiveViewModel(
+                webURL: assetURL.absoluteString,
+                fit: .fill,
+                alignment: .center,
+                loadCdn: false
+            )
+            cellRiveViewModels[wallpaperId] = viewModel  // Store to prevent deallocation
+
+            let riveView = viewModel.createRiveView()
+            riveView.frame = playbackView.bounds
+            riveView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
+            riveView.wantsLayer = true
+
+            playbackView.addSubview(riveView)
+
+            // Start playing
+            viewModel.play(loop: RiveLoop.loop)
+
+            // Set volume to 0 multiple times with delays
+            for i in 0...10 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) { [weak viewModel] in
+                    viewModel?.riveModel?.volume = 0.0
+                }
+            }
+        }
+
+        // Add playback view on top of thumbnail in clipContainer
+        clipContainer.addSubview(playbackView)
+        print("playContentInCell: Added playback view to clipContainer, subviews count: \(clipContainer.subviews.count)")
+
+        // Hide play button since content is now playing
+        cellView.playButtonView?.alphaValue = 0
     }
 
     func findAssetURLByWallpaperId(_ wallpaperId: Int) -> URL? {
