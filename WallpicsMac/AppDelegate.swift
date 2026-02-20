@@ -613,6 +613,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Browser view data
     var wallpaperData: [[String: Any]] = []
+    var filteredWallpaperData: [[String: Any]] = []
+    var searchField: NSSearchField?
     var currentPage: Int = 1
     var isLoadingWallpapers: Bool = false
     var browserScrollView: NSScrollView?
@@ -1901,8 +1903,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard let browserView = browserView else { return }
 
-        // Create scroll view
-        let scrollView = NSScrollView(frame: frame)
+        // Create search field at top with padding
+        let searchFieldHeight: CGFloat = 30
+        let searchFieldPadding: CGFloat = 20
+        let searchFieldTopOffset: CGFloat = 10 + searchFieldHeight
+        let search = NSSearchField(frame: NSRect(
+            x: searchFieldPadding,
+            y: frame.height - searchFieldHeight - searchFieldTopOffset,
+            width: frame.width - (searchFieldPadding * 2),
+            height: searchFieldHeight
+        ))
+        search.placeholderString = "Search wallpapers..."
+        search.autoresizingMask = [.width, .minYMargin]
+        search.target = self
+        search.action = #selector(searchFieldChanged(_:))
+        searchField = search
+        browserView.addSubview(search)
+
+        // Create scroll view below search field
+        let scrollViewY: CGFloat = 0
+        let scrollViewHeight = frame.height - searchFieldHeight - searchFieldTopOffset - 10
+        let scrollView = NSScrollView(frame: NSRect(
+            x: 0,
+            y: scrollViewY,
+            width: frame.width,
+            height: scrollViewHeight
+        ))
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
         scrollView.autoresizingMask = [.width, .height]
@@ -2093,7 +2119,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                             self.wallpaperData.append(contentsOf: responseData)
                         }
                         self.currentPage = page
-                        self.displayWallpapers()
+                        self.filterWallpapers()
                     }
                 }
             } catch {
@@ -2109,6 +2135,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Remove all existing subviews
         gridContainer.subviews.forEach { $0.removeFromSuperview() }
 
+        // Check if no results
+        if filteredWallpaperData.isEmpty {
+            let noResultsLabel = NSTextField(labelWithString: "Nothing found")
+            noResultsLabel.font = NSFont.systemFont(ofSize: 18)
+            noResultsLabel.textColor = .secondaryLabelColor
+            noResultsLabel.alignment = .center
+            noResultsLabel.frame = NSRect(x: 0, y: scrollView.frame.height / 2 - 15, width: scrollView.frame.width, height: 30)
+            gridContainer.addSubview(noResultsLabel)
+            gridContainer.frame = NSRect(x: 0, y: 0, width: scrollView.frame.width, height: scrollView.frame.height)
+            return
+        }
+
         // Grid configuration
         let columns = 3
         let itemSpacing: CGFloat = 20
@@ -2117,15 +2155,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let itemHeight = itemWidth * 0.75 // 0.75 aspect ratio
 
         // Calculate total rows
-        let totalItems = wallpaperData.count
+        let totalItems = filteredWallpaperData.count
         let rows = (totalItems + columns - 1) / columns
-        let totalHeight = CGFloat(rows) * (itemHeight + itemSpacing) + itemSpacing + 60 // +60 for load more button
+        let searchText = searchField?.stringValue ?? ""
+        let loadMoreButtonHeight: CGFloat = searchText.isEmpty ? 60 : 0
+        let totalHeight = CGFloat(rows) * (itemHeight + itemSpacing) + itemSpacing + loadMoreButtonHeight
 
         // Resize grid container
         gridContainer.frame = NSRect(x: 0, y: 0, width: containerWidth, height: totalHeight)
 
         // Create grid items
-        for (index, wallpaper) in wallpaperData.enumerated() {
+        for (index, wallpaper) in filteredWallpaperData.enumerated() {
             let row = index / columns
             let col = index % columns
             let x = itemSpacing + CGFloat(col) * (itemWidth + itemSpacing)
@@ -2135,20 +2175,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             gridContainer.addSubview(itemView)
         }
 
-        // Add "Load More" button at bottom
-        let buttonWidth: CGFloat = 200
-        let buttonHeight: CGFloat = 40
-        let loadMoreButton = NSButton(frame: NSRect(
-            x: (containerWidth - buttonWidth) / 2,
-            y: 10,
-            width: buttonWidth,
-            height: buttonHeight
-        ))
-        loadMoreButton.title = "Load More"
-        loadMoreButton.bezelStyle = .rounded
-        loadMoreButton.target = self
-        loadMoreButton.action = #selector(loadMoreWallpapers)
-        gridContainer.addSubview(loadMoreButton)
+        // Add "Load More" button at bottom only if not filtering
+        if searchText.isEmpty {
+            let buttonWidth: CGFloat = 200
+            let buttonHeight: CGFloat = 40
+            let loadMoreButton = NSButton(frame: NSRect(
+                x: (containerWidth - buttonWidth) / 2,
+                y: 10,
+                width: buttonWidth,
+                height: buttonHeight
+            ))
+            loadMoreButton.title = "Load More"
+            loadMoreButton.bezelStyle = .rounded
+            loadMoreButton.target = self
+            loadMoreButton.action = #selector(loadMoreWallpapers)
+            gridContainer.addSubview(loadMoreButton)
+        }
     }
 
     func createWallpaperThumbnail(wallpaper: [String: Any], frame: NSRect) -> NSView {
@@ -2320,7 +2362,70 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func tagButtonClicked(_ sender: NSClickGestureRecognizer) {
         guard let tagView = sender.view,
               let label = tagView.subviews.first as? NSTextField else { return }
-        print("Tag button clicked: \(label.stringValue)")
+
+        // Set search field to tag name and perform search
+        searchField?.stringValue = label.stringValue
+        filterWallpapers()
+    }
+
+    @objc func searchFieldChanged(_ sender: NSSearchField) {
+        filterWallpapers()
+    }
+
+    func filterWallpapers() {
+        let searchText = searchField?.stringValue.lowercased() ?? ""
+
+        // Save old results for comparison
+        let oldFilteredData = filteredWallpaperData
+
+        if searchText.isEmpty {
+            // No search text - show all wallpapers
+            filteredWallpaperData = wallpaperData
+        } else {
+            // Filter by name and tags
+            filteredWallpaperData = wallpaperData.filter { wallpaper in
+                // Check name
+                if let name = wallpaper["name"] as? String,
+                   name.lowercased().contains(searchText) {
+                    return true
+                }
+
+                // Check tags
+                if let tags = wallpaper["tags"] as? [[String: Any]] {
+                    for tag in tags {
+                        if let tagName = tag["name"] as? String,
+                           tagName.lowercased().contains(searchText) {
+                            return true
+                        }
+                    }
+                }
+
+                return false
+            }
+        }
+
+        // Compare old and new filtered results
+        let resultsChanged: Bool
+        if oldFilteredData.count != filteredWallpaperData.count {
+            resultsChanged = true
+        } else {
+            // Check if IDs match
+            let oldIds = oldFilteredData.compactMap { $0["id"] as? Int }
+            let newIds = filteredWallpaperData.compactMap { $0["id"] as? Int }
+            resultsChanged = oldIds != newIds
+        }
+
+        // Only refresh if results changed
+        if resultsChanged {
+            displayWallpapers()
+
+            // Scroll to top
+            if let scrollView = browserScrollView, let documentView = scrollView.documentView {
+                let topPoint = NSPoint(x: 0, y: documentView.frame.height - scrollView.contentView.bounds.height)
+                scrollView.contentView.scroll(to: topPoint)
+                scrollView.reflectScrolledClipView(scrollView.contentView)
+            }
+        }
     }
 
     func createCreateView(frame: NSRect) {
