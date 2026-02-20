@@ -1014,6 +1014,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         segmentedControl?.target = self
         segmentedControl?.action = #selector(segmentChanged(_:))
         segmentedControl?.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
+        segmentedControl?.wantsLayer = true
+        segmentedControl?.layer?.borderColor = NSColor.clear.cgColor
+        segmentedControl?.layer?.borderWidth = 0
 
         // Content container (below the segmented control)
         let containerY: CGFloat = 0
@@ -1071,8 +1074,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 height: segmentedControlHeight + backgroundPadding
             ))
             backgroundView.wantsLayer = true
-            backgroundView.layer?.backgroundColor = NSColor.lightGray.withAlphaComponent(0.8).cgColor
+            backgroundView.layer?.backgroundColor = NSColor(red: 50/255.0, green: 50/255.0, blue: 50/255.0, alpha: 0.5).cgColor
             backgroundView.layer?.cornerRadius = 8
+            backgroundView.layer?.borderWidth = 0
             backgroundView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
 
             mainView.addSubview(backgroundView, positioned: .above, relativeTo: nil)
