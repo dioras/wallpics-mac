@@ -447,6 +447,55 @@ class KeyHandlingView: NSView {
 }
 
 class HoverScaleView: NSView {
+    static var playButtonImage: NSImage?
+    var playButtonView: NSImageView?
+    var isMouseInside = false
+
+    static func createPlayButtonImage(size: CGFloat) -> NSImage {
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+
+        // Draw circle background (31, 31, 31) - no transparency
+        // Inset by 1 pixel to keep the 2px stroke within bounds
+        let circlePath = NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: size - 2, height: size - 2))
+        NSColor(red: 31/255.0, green: 31/255.0, blue: 31/255.0, alpha: 1.0).setFill()
+        circlePath.fill()
+
+        // Draw 2 pixel border (45, 45, 45)
+        NSColor(red: 45/255.0, green: 45/255.0, blue: 45/255.0, alpha: 1.0).setStroke()
+        circlePath.lineWidth = 2
+        circlePath.stroke()
+
+        // Draw equilateral white triangle (play icon) with rounded corners, pointing right
+        let triangleSize: CGFloat = size * 0.315 // 10% smaller than 0.35
+        let centerX = size / 2 + size * 0.03 // Slightly offset to right
+        let centerY = size / 2
+        let height = triangleSize * sqrt(3.0) / 2.0
+
+        // Calculate equilateral triangle points (vertical left side, pointing right)
+        let p1 = NSPoint(x: centerX - height / 2, y: centerY + triangleSize / 2)  // Top left
+        let p2 = NSPoint(x: centerX - height / 2, y: centerY - triangleSize / 2)  // Bottom left
+        let p3 = NSPoint(x: centerX + height / 2, y: centerY)                      // Right point
+
+        let trianglePath = NSBezierPath()
+        trianglePath.move(to: p1)
+        trianglePath.line(to: p2)
+        trianglePath.line(to: p3)
+        trianglePath.close()
+        trianglePath.lineJoinStyle = .round
+        trianglePath.lineCapStyle = .round
+
+        // Add stroke to create rounded corners effect
+        NSColor.white.setFill()
+        NSColor.white.setStroke()
+        trianglePath.lineWidth = 6
+        trianglePath.stroke()
+        trianglePath.fill()
+
+        image.unlockFocus()
+        return image
+    }
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
 
@@ -458,7 +507,7 @@ class HoverScaleView: NSView {
         // Add new tracking area
         let trackingArea = NSTrackingArea(
             rect: bounds,
-            options: [.mouseEnteredAndExited, .activeInKeyWindow],
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
             owner: self,
             userInfo: nil
         )
@@ -467,9 +516,37 @@ class HoverScaleView: NSView {
 
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
+        isMouseInside = true
+
+        // Show play button
+        if playButtonView == nil {
+            // Create play button image once
+            if HoverScaleView.playButtonImage == nil {
+                HoverScaleView.playButtonImage = HoverScaleView.createPlayButtonImage(size: 80)
+            }
+
+            let buttonSize: CGFloat = 80
+            let buttonFrame = NSRect(
+                x: (bounds.width - buttonSize) / 2,
+                y: (bounds.height - buttonSize) / 2,
+                width: buttonSize,
+                height: buttonSize
+            )
+            let imageView = NSImageView(frame: buttonFrame)
+            imageView.image = HoverScaleView.playButtonImage
+            imageView.alphaValue = 0
+            imageView.wantsLayer = true
+
+            // Add click gesture
+            let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(playButtonClicked(_:)))
+            imageView.addGestureRecognizer(clickGesture)
+
+            addSubview(imageView)
+            playButtonView = imageView
+        }
 
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2
+            context.duration = 0.5
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             var transform = CGAffineTransform(scaleX: 1.03, y: 1.03)
             let w = 12;
@@ -480,21 +557,45 @@ class HoverScaleView: NSView {
             self.layer?.shadowOffset = CGSize(width: 0, height: 5)
             self.layer?.shadowRadius = 10
             self.layer?.zPosition = 100
+
+            // Fade in play button
+            self.playButtonView?.animator().alphaValue = 1.0
         })
     }
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
+        isMouseInside = false
+        animateOut()
+    }
+
+    func animateOut() {
+        guard isMouseInside == false else { return }
 
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.2
+            context.duration = 0.17 // 3 times faster than 0.5
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             var transform = CGAffineTransform.identity
             transform = transform.translatedBy(x: 0, y: 0) // Adjust these values
             self.layer?.setAffineTransform(transform)
             self.layer?.shadowOpacity = 0
             self.layer?.zPosition = 0
+
+            // Fade out play button
+            self.playButtonView?.animator().alphaValue = 0
         })
+    }
+
+    func resetImmediately() {
+        // No animation - immediate reset
+        self.layer?.setAffineTransform(CGAffineTransform.identity)
+        self.layer?.shadowOpacity = 0
+        self.layer?.zPosition = 0
+        self.playButtonView?.alphaValue = 0
+    }
+
+    @objc func playButtonClicked(_ sender: NSClickGestureRecognizer) {
+        print("Play button clicked!")
     }
 }
 
@@ -1816,6 +1917,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         scrollView.documentView = gridContainer
         browserView.addSubview(scrollView)
 
+        // Listen for scroll end to check mouse position on all cells
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(scrollViewDidEndLiveScroll),
+            name: NSScrollView.didEndLiveScrollNotification,
+            object: scrollView
+        )
+
         // Show loading message
         let loadingLabel = NSTextField(labelWithString: "Loading wallpapers...")
         loadingLabel.font = NSFont.systemFont(ofSize: 18)
@@ -2124,6 +2233,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         itemView.identifier = NSUserInterfaceItemIdentifier(rawValue: "wallpaper_\(wallpaper["id"] ?? 0)")
 
         return itemView
+    }
+
+    @objc func scrollViewDidEndLiveScroll(_ notification: Notification) {
+        // Check all cells to see if mouse is still inside after scroll
+        guard let gridContainer = browserGridContainer,
+              let window = window else { return }
+
+        let mouseLocation = window.mouseLocationOutsideOfEventStream
+        let windowPoint = window.contentView?.convert(mouseLocation, from: nil) ?? .zero
+
+        for subview in gridContainer.subviews {
+            if let hoverView = subview as? HoverScaleView {
+                let localPoint = hoverView.convert(windowPoint, from: window.contentView)
+                if !hoverView.bounds.contains(localPoint) && hoverView.isMouseInside {
+                    hoverView.isMouseInside = false
+                    hoverView.resetImmediately() // Immediate reset, no animation
+                }
+            }
+        }
     }
 
     @objc func loadMoreWallpapers() {
