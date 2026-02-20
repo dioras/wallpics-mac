@@ -682,6 +682,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func showNotification(message: String) {
+        // Only show notification on home screen, not browser screen
+        guard segmentedControl?.selectedSegment == 0 else { return }
+
         guard let labelView = notificationLabel,
               let textLayer = labelView.layer?.sublayers?.first as? CATextLayer else { return }
 
@@ -1047,6 +1050,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         labelView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
         labelView.alphaValue = 0
+        labelView.isHidden = false  // Start visible on home screen, but transparent
 
         notificationLabel = labelView
         mainView.addSubview(labelView, positioned: .above, relativeTo: contentContainer)
@@ -1236,6 +1240,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard currentAssetIndex >= 0 && currentAssetIndex < homeAssets.count else { return }
 
         let assetURL = homeAssets[currentAssetIndex]
+        setAsWallpaperWithPath(assetURL: assetURL)
+    }
+
+    func setAsWallpaperWithPath(assetURL: URL) {
         let ext = assetURL.pathExtension.lowercased()
         let imageExtensions = ["jpg", "jpeg", "png", "bmp", "tiff", "heic"]
         let gifExtensions = ["gif"]
@@ -2426,7 +2434,80 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func setButtonClicked(_ sender: NSClickGestureRecognizer) {
-        print("Set button clicked!")
+        print("setButtonClicked: sender.view = \(String(describing: sender.view))")
+
+        guard let setButton = sender.view else {
+            print("setButtonClicked: No sender.view")
+            return
+        }
+
+        print("setButtonClicked: setButton.superview = \(String(describing: setButton.superview))")
+
+        guard let overlayView = setButton.superview else {
+            print("setButtonClicked: No overlay view")
+            return
+        }
+
+        print("setButtonClicked: overlayView.superview = \(String(describing: overlayView.superview))")
+
+        guard let itemView = overlayView.superview as? HoverScaleView else {
+            print("setButtonClicked: Could not cast to HoverScaleView")
+            return
+        }
+
+        print("setButtonClicked: itemView.wallpaperId = \(String(describing: itemView.wallpaperId))")
+
+        guard let wallpaperId = itemView.wallpaperId else {
+            print("Could not get wallpaper ID from set button")
+            return
+        }
+
+        print("Set button clicked for wallpaper ID: \(wallpaperId)")
+
+        // Check if already downloaded by checking ID file
+        guard let assetsFolderURL = assetsFolderURL else { return }
+        let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+        let idFilePath = idsFolder.appendingPathComponent("\(wallpaperId)")
+
+        if FileManager.default.fileExists(atPath: idFilePath.path) {
+            // Already downloaded, set it immediately
+            print("Wallpaper already downloaded, setting it now")
+            if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
+                setAsWallpaperWithPath(assetURL: assetURL)
+            }
+        } else {
+            // Not downloaded yet, download first then set
+            print("Wallpaper not downloaded, downloading first")
+            downloadAndSetWallpaper(wallpaperId: wallpaperId)
+        }
+    }
+
+    func downloadAndSetWallpaper(wallpaperId: Int) {
+        downloadWallpaperZip(wallpaperId: wallpaperId, completion: { [weak self] success, assetURL in
+            if success, let assetURL = assetURL {
+                self?.setAsWallpaperWithPath(assetURL: assetURL)
+            }
+        })
+    }
+
+    func findAssetURLByWallpaperId(_ wallpaperId: Int) -> URL? {
+        guard let assetsFolderURL = assetsFolderURL else {
+            print("findAssetURLByWallpaperId: No assets folder URL")
+            return nil
+        }
+
+        // Read the path from the ID file
+        let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+        let idFilePath = idsFolder.appendingPathComponent("\(wallpaperId)")
+
+        guard let assetPath = try? String(contentsOf: idFilePath, encoding: .utf8) else {
+            print("findAssetURLByWallpaperId: Could not read ID file for \(wallpaperId)")
+            return nil
+        }
+
+        let assetURL = URL(fileURLWithPath: assetPath)
+        print("findAssetURLByWallpaperId: Found asset at: \(assetPath)")
+        return assetURL
     }
 
     @objc func searchFieldChanged(_ sender: NSSearchField) {
@@ -2557,13 +2638,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func downloadWallpaperZip(wallpaperId: Int) {
+    func downloadWallpaperZip(wallpaperId: Int, completion: ((Bool, URL?) -> Void)? = nil) {
         // Find wallpaper in data to get the zip URL
         print("Looking for wallpaper ID: \(wallpaperId) in \(wallpaperData.count) wallpapers")
 
         guard let wallpaper = wallpaperData.first(where: { ($0["id"] as? Int) == wallpaperId }) else {
             print("Could not find wallpaper for ID: \(wallpaperId)")
             print("Available IDs: \(wallpaperData.compactMap { $0["id"] as? Int })")
+            completion?(false, nil)
             return
         }
 
@@ -2574,6 +2656,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             if FileManager.default.fileExists(atPath: idFilePath.path) {
                 print("Fast check: already there")
+                // Find and return the asset URL
+                let assetURL = findAssetURLByWallpaperId(wallpaperId)
+                completion?(true, assetURL)
                 return
             }
 
@@ -2583,6 +2668,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let zipURL = wallpaper["wallpaper_file"] as? String else {
             print("Wallpaper data doesn't have 'wallpaper_file' field")
             print("Available keys: \(wallpaper.keys)")
+            completion?(false, nil)
             return
         }
 
@@ -2606,32 +2692,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Download the actual zip file
-        downloadZipFromURL(urlString: zipURL, wallpaperId: wallpaperId)
+        downloadZipFromURL(urlString: zipURL, wallpaperId: wallpaperId, completion: completion)
     }
 
-    func downloadZipFromURL(urlString: String, wallpaperId: Int) {
+    func downloadZipFromURL(urlString: String, wallpaperId: Int, completion: ((Bool, URL?) -> Void)? = nil) {
         guard let url = URL(string: urlString) else {
             print("Invalid download URL: \(urlString)")
+            completion?(false, nil)
             return
         }
 
         URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
             if let error = error {
                 print("Zip download error: \(error.localizedDescription)")
+                completion?(false, nil)
                 return
             }
 
             guard let data = data else {
                 print("No zip data received")
+                completion?(false, nil)
                 return
             }
 
             print("Downloaded zip data: \(data.count) bytes")
-            self?.extractAndSaveWallpaperZip(data: data, wallpaperId: wallpaperId)
+            self?.extractAndSaveWallpaperZip(data: data, wallpaperId: wallpaperId, completion: completion)
         }.resume()
     }
 
-    func extractAndSaveWallpaperZip(data: Data, wallpaperId: Int) {
+    func extractAndSaveWallpaperZip(data: Data, wallpaperId: Int, completion: ((Bool, URL?) -> Void)? = nil) {
         // Create temp directory for extraction
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 
@@ -2658,6 +2747,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let firstFile = fileList.first else {
                 print("Error: Could not read zip contents")
                 try? FileManager.default.removeItem(at: tempDir)
+                completion?(false, nil)
                 return
             }
 
@@ -2669,6 +2759,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let assetsFolder = assetsFolderURL else {
                 print("Assets folder not available")
                 try? FileManager.default.removeItem(at: tempDir)
+                completion?(false, nil)
                 return
             }
 
@@ -2689,6 +2780,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 print("Unknown file type: \(ext)")
                 try? FileManager.default.removeItem(at: tempDir)
+                completion?(false, nil)
                 return
             }
 
@@ -2697,6 +2789,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if FileManager.default.fileExists(atPath: destinationPath.path) {
                 print("Already downloaded: \(fileName)")
                 try? FileManager.default.removeItem(at: tempDir)
+                completion?(true, nil)
                 return
             }
 
@@ -2724,6 +2817,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard contents.count == 1 else {
                 print("Error: Expected 1 file in zip after filtering, got \(contents.count)")
                 try? FileManager.default.removeItem(at: tempDir)
+                completion?(false, nil)
                 return
             }
 
@@ -2743,6 +2837,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 guard dirContents.count == 1 else {
                     print("Directory contains \(dirContents.count) files, expected 1")
                     try? FileManager.default.removeItem(at: tempDir)
+                    completion?(false, nil)
                     return
                 }
 
@@ -2753,24 +2848,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("Found actual file in directory: \(actualFileName) with extension: \(actualExt)")
 
                 // Continue with the actual file
-                continueExtraction(file: actualFile, fileName: actualFileName, ext: actualExt, tempDir: tempDir, wallpaperId: wallpaperId)
+                continueExtraction(file: actualFile, fileName: actualFileName, ext: actualExt, tempDir: tempDir, wallpaperId: wallpaperId, completion: completion)
                 return
             }
 
-            continueExtraction(file: extractedFile, fileName: extractedFileName, ext: extractedExt, tempDir: tempDir, wallpaperId: wallpaperId)
+            continueExtraction(file: extractedFile, fileName: extractedFileName, ext: extractedExt, tempDir: tempDir, wallpaperId: wallpaperId, completion: completion)
 
         } catch {
             print("Error extracting zip: \(error.localizedDescription)")
             try? FileManager.default.removeItem(at: tempDir)
+            completion?(false, nil)
         }
     }
 
-    func continueExtraction(file: URL, fileName: String, ext: String, tempDir: URL, wallpaperId: Int) {
+    func continueExtraction(file: URL, fileName: String, ext: String, tempDir: URL, wallpaperId: Int, completion: ((Bool, URL?) -> Void)? = nil) {
         do {
             // Determine destination folder based on extension
             guard let assetsFolder = assetsFolderURL else {
                 print("Assets folder not available")
                 try? FileManager.default.removeItem(at: tempDir)
+                completion?(false, nil)
                 return
             }
 
@@ -2793,6 +2890,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("Unknown file type: \(ext)")
                 print("Full file path: \(file.path)")
                 try? FileManager.default.removeItem(at: tempDir)
+                completion?(false, nil)
                 return
             }
 
@@ -2817,18 +2915,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 downloadAndSaveThumbnail(wallpaperId: wallpaperId, fileName: fileName, assetsFolder: assetsFolder)
             }
 
-            // Create empty ID file to mark as downloaded
+            // Create ID file with the asset filename inside
             let idsFolder = assetsFolder.appendingPathComponent("IDs")
             let idFilePath = idsFolder.appendingPathComponent("\(wallpaperId)")
-            try? Data().write(to: idFilePath)
-            print("Created ID marker: \(wallpaperId)")
+            try? destinationPath.path.write(to: idFilePath, atomically: true, encoding: .utf8)
+            print("Created ID marker: \(wallpaperId) with path: \(destinationPath.path)")
 
             // Cleanup
             try? FileManager.default.removeItem(at: tempDir)
 
+            // Call completion on main thread with the destination path
+            DispatchQueue.main.async {
+                completion?(true, destinationPath)
+            }
+
         } catch {
             print("Error: \(error.localizedDescription)")
             try? FileManager.default.removeItem(at: tempDir)
+            DispatchQueue.main.async {
+                completion?(false, nil)
+            }
         }
     }
 
@@ -2972,10 +3078,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         switch sender.selectedSegment {
         case 0:
             showView(homeView)
+            // Show notification label on home screen
+            notificationLabel?.isHidden = false
         case 1:
             showView(browserView)
+            // Hide notification label on browser screen
+            notificationLabel?.isHidden = true
         case 2:
             showView(createView)
+            // Hide notification label on create screen
+            notificationLabel?.isHidden = true
         default:
             break
         }
