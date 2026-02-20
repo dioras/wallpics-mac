@@ -662,6 +662,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var currentWallpaperType: WallpaperType = .none
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Force dark mode for the app
+        NSApp.appearance = NSAppearance(named: .darkAqua)
+
         // Disable audio for the entire app
         disableAppAudio()
 
