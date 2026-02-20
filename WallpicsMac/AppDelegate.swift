@@ -446,6 +446,58 @@ class KeyHandlingView: NSView {
     }
 }
 
+class HoverScaleView: NSView {
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+
+        // Remove existing tracking areas
+        for trackingArea in trackingAreas {
+            removeTrackingArea(trackingArea)
+        }
+
+        // Add new tracking area
+        let trackingArea = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(trackingArea)
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.2
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            var transform = CGAffineTransform(scaleX: 1.03, y: 1.03)
+            let w = 12;
+            transform = transform.translatedBy(x: CGFloat(-w/2), y: CGFloat(-w/3)) // Adjust these values
+            self.layer?.setAffineTransform(transform)
+            self.layer?.shadowColor = NSColor.black.cgColor
+            self.layer?.shadowOpacity = 0.3
+            self.layer?.shadowOffset = CGSize(width: 0, height: 5)
+            self.layer?.shadowRadius = 10
+            self.layer?.zPosition = 100
+        })
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.2
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            var transform = CGAffineTransform.identity
+            transform = transform.translatedBy(x: 0, y: 0) // Adjust these values
+            self.layer?.setAffineTransform(transform)
+            self.layer?.shadowOpacity = 0
+            self.layer?.zPosition = 0
+        })
+    }
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     var window: NSWindow?
@@ -465,6 +517,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var browserScrollView: NSScrollView?
     var browserGridContainer: NSView?
     var guestId: String?
+    var useMacOSEndpoint: Bool = true
 
     var homeAssets: [URL] = []
     var currentAssetIndex: Int = 0
@@ -1874,7 +1927,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let timestamp = String(Int(Date().timeIntervalSince1970))
         let token = md5Hash(timestamp + "wall")
 
-        let urlString = "https://backend.wallpics.app/api/wallpapers/macos?categorySlug=all&timestamp=\(timestamp)&page=\(page)&per_page=24&paginated=1&sortOrder=desc&nsfwContent=0"
+        let endpoint = useMacOSEndpoint ? "wallpapers/macos" : "wallpaper-list"
+        let urlString = "https://backend.wallpics.app/api/\(endpoint)?categorySlug=all&timestamp=\(timestamp)&page=\(page)&per_page=24&paginated=1&sortOrder=desc&nsfwContent=0"
         guard let url = URL(string: urlString) else { return }
 
         var request = URLRequest(url: url)
@@ -1947,11 +2001,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         gridContainer.subviews.forEach { $0.removeFromSuperview() }
 
         // Grid configuration
-        let columns = 4
+        let columns = 3
         let itemSpacing: CGFloat = 20
         let containerWidth = scrollView.frame.width
         let itemWidth = (containerWidth - CGFloat(columns + 1) * itemSpacing) / CGFloat(columns)
-        let itemHeight = itemWidth * 1.5 // 3:2 aspect ratio
+        let itemHeight = itemWidth * 0.75 // 0.75 aspect ratio
 
         // Calculate total rows
         let totalItems = wallpaperData.count
@@ -1989,29 +2043,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func createWallpaperThumbnail(wallpaper: [String: Any], frame: NSRect) -> NSView {
-        let itemView = NSView(frame: frame)
+        let itemView = HoverScaleView(frame: frame)
         itemView.wantsLayer = true
         itemView.layer?.backgroundColor = NSColor.darkGray.cgColor
         itemView.layer?.cornerRadius = 8
+        // Default anchor point is already (0.5, 0.5) = center
 
-        // Create image view for thumbnail
-        let imageView = NSImageView(frame: NSRect(x: 0, y: 40, width: frame.width, height: frame.height - 40))
-        imageView.imageScaling = .scaleProportionallyUpOrDown
-        imageView.wantsLayer = true
-        imageView.layer?.cornerRadius = 8
-        imageView.layer?.masksToBounds = true
-        itemView.addSubview(imageView)
-
-        // Create label for name
-        if let name = wallpaper["name"] as? String {
-            let label = NSTextField(labelWithString: name)
-            label.font = NSFont.systemFont(ofSize: 12)
-            label.textColor = .white
-            label.alignment = .center
-            label.lineBreakMode = .byTruncatingTail
-            label.frame = NSRect(x: 5, y: 5, width: frame.width - 10, height: 30)
-            itemView.addSubview(label)
-        }
+        // Create clipping container with top-only rounded corners
+        let clipContainer = NSView(frame: NSRect(x: 0, y: 0, width: frame.width, height: frame.height))
+        clipContainer.wantsLayer = true
+        clipContainer.layer?.cornerRadius = 8
+        clipContainer.layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner] // Top corners only
+        clipContainer.layer?.masksToBounds = true
+        itemView.addSubview(clipContainer)
 
         // Load thumbnail image asynchronously
         if let thumbnailURLString = wallpaper["thumbnail"] as? String,
@@ -2019,9 +2063,57 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             URLSession.shared.dataTask(with: thumbnailURL) { data, _, error in
                 guard let data = data, error == nil, let image = NSImage(data: data) else { return }
                 DispatchQueue.main.async {
+                    // Calculate aspect-fill frame from top
+                    let imageSize = image.size
+                    let containerSize = clipContainer.bounds.size
+                    let imageAspect = imageSize.width / imageSize.height
+                    let containerAspect = containerSize.width / containerSize.height
+
+                    var imageFrame = clipContainer.bounds
+                    if imageAspect > containerAspect {
+                        // Image is wider - fit height, center width
+                        let scaledWidth = containerSize.height * imageAspect
+                        imageFrame = NSRect(
+                            x: (containerSize.width - scaledWidth) / 2,
+                            y: 0,
+                            width: scaledWidth,
+                            height: containerSize.height
+                        )
+                    } else {
+                        // Image is taller - fit width, align to top
+                        let scaledHeight = containerSize.width / imageAspect
+                        imageFrame = NSRect(
+                            x: 0,
+                            y: containerSize.height - scaledHeight, // Align to top in macOS coordinates
+                            width: containerSize.width,
+                            height: scaledHeight
+                        )
+                    }
+
+                    let imageView = NSImageView(frame: imageFrame)
                     imageView.image = image
+                    imageView.imageScaling = .scaleAxesIndependently
+                    clipContainer.addSubview(imageView)
                 }
             }.resume()
+        }
+
+        // Add black semi-transparent overlay at bottom 20%
+        let overlayHeight = frame.height * 0.2
+        let overlayView = NSView(frame: NSRect(x: 0, y: 0, width: frame.width, height: overlayHeight))
+        overlayView.wantsLayer = true
+        overlayView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor // 30% transparency = 70% opacity
+        itemView.addSubview(overlayView)
+
+        // Add white text label with wallpaper name
+        if let name = wallpaper["name"] as? String {
+            let label = NSTextField(labelWithString: name)
+            label.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+            label.textColor = .white
+            label.alignment = .left
+            label.lineBreakMode = .byTruncatingTail
+            label.frame = NSRect(x: 10, y: overlayHeight - 25, width: frame.width - 20, height: 20)
+            overlayView.addSubview(label)
         }
 
         // Add click gesture to download
