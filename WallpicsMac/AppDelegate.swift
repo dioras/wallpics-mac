@@ -732,7 +732,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ensureFolderExists(at: folderURL)
 
         // Create required subfolders
-        let subfolders = ["Videos", "Images", "Shaders", "Animations", "FirstFrames"]
+        let subfolders = ["Videos", "Images", "Shaders", "Animations", "FirstFrames", "IDs"]
         for subfolder in subfolders {
             let subfolderURL = folderURL.appendingPathComponent(subfolder)
             ensureFolderExists(at: subfolderURL)
@@ -2567,6 +2567,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // Fast check BEFORE downloading: check if ID file exists
+        if let assetsFolderURL = assetsFolderURL {
+            let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+            let idFilePath = idsFolder.appendingPathComponent("\(wallpaperId)")
+
+            if FileManager.default.fileExists(atPath: idFilePath.path) {
+                print("Fast check: already there")
+                return
+            }
+
+            print("Fast check: not found, proceeding with download")
+        }
+
         guard let zipURL = wallpaper["wallpaper_file"] as? String else {
             print("Wallpaper data doesn't have 'wallpaper_file' field")
             print("Available keys: \(wallpaper.keys)")
@@ -2740,11 +2753,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("Found actual file in directory: \(actualFileName) with extension: \(actualExt)")
 
                 // Continue with the actual file
-                continueExtraction(file: actualFile, fileName: actualFileName, ext: actualExt, tempDir: tempDir)
+                continueExtraction(file: actualFile, fileName: actualFileName, ext: actualExt, tempDir: tempDir, wallpaperId: wallpaperId)
                 return
             }
 
-            continueExtraction(file: extractedFile, fileName: extractedFileName, ext: extractedExt, tempDir: tempDir)
+            continueExtraction(file: extractedFile, fileName: extractedFileName, ext: extractedExt, tempDir: tempDir, wallpaperId: wallpaperId)
 
         } catch {
             print("Error extracting zip: \(error.localizedDescription)")
@@ -2752,7 +2765,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func continueExtraction(file: URL, fileName: String, ext: String, tempDir: URL) {
+    func continueExtraction(file: URL, fileName: String, ext: String, tempDir: URL, wallpaperId: Int) {
         do {
             // Determine destination folder based on extension
             guard let assetsFolder = assetsFolderURL else {
@@ -2762,14 +2775,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             let videoExtensions = ["mp4", "mov", "m4v", "avi"]
-            let imageExtensions = ["jpg", "jpeg", "png", "heic", "gif"]
+            let imageExtensions = ["jpg", "jpeg", "png", "heic"]
+            let gifExtensions = ["gif"]
             let animationExtensions = ["riv"]
             let shaderExtensions = ["msl"]
 
             let destinationFolder: URL
             if videoExtensions.contains(ext) {
                 destinationFolder = assetsFolder.appendingPathComponent("Videos")
-            } else if imageExtensions.contains(ext) {
+            } else if imageExtensions.contains(ext) || gifExtensions.contains(ext) {
                 destinationFolder = assetsFolder.appendingPathComponent("Images")
             } else if animationExtensions.contains(ext) {
                 destinationFolder = assetsFolder.appendingPathComponent("Animations")
@@ -2795,6 +2809,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             print("Successfully saved wallpaper to: \(destinationPath.path)")
 
+            // Download and save thumbnail to FirstFrames folder
+            // Skip for regular images (jpg, jpeg, png, heic), but include GIFs
+            let shouldSaveThumbnail = videoExtensions.contains(ext) || gifExtensions.contains(ext) || animationExtensions.contains(ext) || shaderExtensions.contains(ext)
+
+            if shouldSaveThumbnail {
+                downloadAndSaveThumbnail(wallpaperId: wallpaperId, fileName: fileName, assetsFolder: assetsFolder)
+            }
+
+            // Create empty ID file to mark as downloaded
+            let idsFolder = assetsFolder.appendingPathComponent("IDs")
+            let idFilePath = idsFolder.appendingPathComponent("\(wallpaperId)")
+            try? Data().write(to: idFilePath)
+            print("Created ID marker: \(wallpaperId)")
+
             // Cleanup
             try? FileManager.default.removeItem(at: tempDir)
 
@@ -2802,6 +2830,60 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             print("Error: \(error.localizedDescription)")
             try? FileManager.default.removeItem(at: tempDir)
         }
+    }
+
+    func downloadAndSaveThumbnail(wallpaperId: Int, fileName: String, assetsFolder: URL) {
+        // Find wallpaper data to get thumbnail URL
+        guard let wallpaper = wallpaperData.first(where: { ($0["id"] as? Int) == wallpaperId }),
+              let thumbnailURLString = wallpaper["thumbnail"] as? String,
+              let thumbnailURL = URL(string: thumbnailURLString) else {
+            print("Could not find thumbnail URL for wallpaper ID: \(wallpaperId)")
+            return
+        }
+
+        // Download thumbnail
+        URLSession.shared.dataTask(with: thumbnailURL) { data, response, error in
+            guard let data = data, error == nil else {
+                print("Failed to download thumbnail: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+
+            // Determine thumbnail extension from URL
+            let thumbnailExt = thumbnailURL.pathExtension.lowercased()
+
+            // Only convert heic and webp to jpg, otherwise keep original format
+            let needsConversion = thumbnailExt == "heic" || thumbnailExt == "webp"
+            let finalExt: String
+            let finalData: Data
+
+            if needsConversion {
+                // Convert heic/webp to jpg
+                guard let image = NSImage(data: data),
+                      let tiffData = image.tiffRepresentation,
+                      let bitmapRep = NSBitmapImageRep(data: tiffData),
+                      let jpegData = bitmapRep.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {
+                    print("Failed to convert thumbnail from \(thumbnailExt) to JPEG")
+                    return
+                }
+                finalExt = "jpg"
+                finalData = jpegData
+            } else {
+                // Keep original format
+                finalExt = thumbnailExt.isEmpty ? "jpg" : thumbnailExt
+                finalData = data
+            }
+
+            let firstFramesFolder = assetsFolder.appendingPathComponent("FirstFrames")
+            let fileNameWithoutExt = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
+            let thumbnailPath = firstFramesFolder.appendingPathComponent("\(fileNameWithoutExt).\(finalExt)")
+
+            do {
+                try finalData.write(to: thumbnailPath)
+                print("Saved thumbnail to: \(thumbnailPath.path)")
+            } catch {
+                print("Failed to save thumbnail: \(error.localizedDescription)")
+            }
+        }.resume()
     }
 
     func filterWallpapers() {
