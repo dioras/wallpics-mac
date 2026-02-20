@@ -615,6 +615,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var wallpaperData: [[String: Any]] = []
     var filteredWallpaperData: [[String: Any]] = []
     var searchField: NSSearchField?
+    var globalTagsContainer: NSView?
     var currentPage: Int = 1
     var isLoadingWallpapers: Bool = false
     var browserScrollView: NSScrollView?
@@ -1920,9 +1921,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         searchField = search
         browserView.addSubview(search)
 
-        // Create scroll view below search field
+        // Create global tags container below search field (initially empty, will resize when tags load)
+        let tagsContainerHeight: CGFloat = 0
+        let tagsContainerY = frame.height - searchFieldHeight - searchFieldTopOffset - 10 - tagsContainerHeight
+        let tagsContainer = NSView(frame: NSRect(
+            x: searchFieldPadding,
+            y: tagsContainerY,
+            width: frame.width - (searchFieldPadding * 2),
+            height: tagsContainerHeight
+        ))
+        tagsContainer.wantsLayer = true
+        tagsContainer.autoresizingMask = []
+        globalTagsContainer = tagsContainer
+        browserView.addSubview(tagsContainer)
+
+        // Create scroll view below tags
         let scrollViewY: CGFloat = 0
-        let scrollViewHeight = frame.height - searchFieldHeight - searchFieldTopOffset - 10
+        let scrollViewHeight = tagsContainerY - 10
         let scrollView = NSScrollView(frame: NSRect(
             x: 0,
             y: scrollViewY,
@@ -2115,6 +2130,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     DispatchQueue.main.async {
                         if page == 1 {
                             self.wallpaperData = responseData
+                            self.displayGlobalTags()
                         } else {
                             self.wallpaperData.append(contentsOf: responseData)
                         }
@@ -2267,6 +2283,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             overlayView.addSubview(label)
         }
 
+        // Add "Set" button aligned to the right
+        let buttonHeight: CGFloat = 20
+        let font = NSFont.systemFont(ofSize: 11)
+        let setButtonText = "Set"
+        let setButtonTextSize = (setButtonText as NSString).size(withAttributes: [.font: font])
+        let setButtonWidth = setButtonTextSize.width + 16
+
+        let setButton = NSView(frame: NSRect(x: frame.width - setButtonWidth - 10, y: 5, width: setButtonWidth, height: buttonHeight))
+        setButton.wantsLayer = true
+        setButton.layer?.backgroundColor = NSColor(red: 211/255.0, green: 45/255.0, blue: 74/255.0, alpha: 1.0).cgColor
+        setButton.layer?.cornerRadius = buttonHeight * 0.5
+
+        let setLabel = NSTextField(labelWithString: setButtonText)
+        setLabel.font = font
+        setLabel.textColor = .white
+        setLabel.alignment = .center
+        setLabel.frame = NSRect(x: 0, y: -2, width: setButtonWidth, height: buttonHeight)
+        setButton.addSubview(setLabel)
+
+        let setClickGesture = NSClickGestureRecognizer(target: self, action: #selector(setButtonClicked(_:)))
+        setButton.addGestureRecognizer(setClickGesture)
+        overlayView.addSubview(setButton)
+
         // Add second line for tags as custom views
         if let tags = wallpaper["tags"] as? [[String: Any]] {
             let tagNames = tags.compactMap { $0["name"] as? String }
@@ -2275,14 +2314,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let displayTags = Array(tagNames.prefix(3))
 
                 var xOffset: CGFloat = 10
-                let buttonHeight: CGFloat = 20
                 let buttonSpacing: CGFloat = 6
+                let maxXOffset = frame.width - setButtonWidth - 20 // Leave space for Set button
 
                 for tagName in displayTags {
                     // Calculate button width based on text
-                    let font = NSFont.systemFont(ofSize: 11)
                     let textSize = (tagName as NSString).size(withAttributes: [.font: font])
                     let buttonWidth = textSize.width + 16 // Add padding
+
+                    // Stop if we would overlap with Set button
+                    if xOffset + buttonWidth > maxXOffset {
+                        break
+                    }
 
                     // Create custom view for tag
                     let tagView = NSView(frame: NSRect(x: xOffset, y: 5, width: buttonWidth, height: buttonHeight))
@@ -2368,8 +2411,136 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         filterWallpapers()
     }
 
+    @objc func setButtonClicked(_ sender: NSClickGestureRecognizer) {
+        print("Set button clicked!")
+    }
+
     @objc func searchFieldChanged(_ sender: NSSearchField) {
         filterWallpapers()
+    }
+
+    func displayGlobalTags() {
+        guard let tagsContainer = globalTagsContainer,
+              let browserView = browserView,
+              let scrollView = browserScrollView else { return }
+
+        // Clear existing tags
+        tagsContainer.subviews.forEach { $0.removeFromSuperview() }
+
+        // Collect first 3 tags from each wallpaper
+        var allTags: [String] = []
+        for wallpaper in wallpaperData {
+            if let tags = wallpaper["tags"] as? [[String: Any]] {
+                let tagNames = tags.prefix(3).compactMap { $0["name"] as? String }
+                allTags.append(contentsOf: tagNames)
+            }
+        }
+
+        // Remove duplicates and limit to 100
+        var uniqueTags = Array(Set(allTags)).sorted()
+        uniqueTags = Array(uniqueTags.prefix(100))
+
+        // Add "All" as first tag
+        var displayTags = ["All"] + uniqueTags
+
+        // Create tag buttons
+        let buttonHeight: CGFloat = 20
+        let buttonSpacing: CGFloat = 6
+        let font = NSFont.systemFont(ofSize: 11)
+
+        // First pass: calculate required height
+        let searchFieldPadding: CGFloat = 20
+        let containerWidth = browserView.bounds.width - (searchFieldPadding * 2)
+        var xOffset: CGFloat = 0
+        var lineCount: CGFloat = 1
+
+        for tagName in displayTags {
+            let textSize = (tagName as NSString).size(withAttributes: [.font: font])
+            let buttonWidth = textSize.width + 16
+
+            if xOffset + buttonWidth > containerWidth && xOffset > 0 {
+                lineCount += 1
+                xOffset = 0
+            }
+            xOffset += buttonWidth + buttonSpacing
+        }
+
+        // Calculate actual height needed
+        let actualHeight = lineCount * buttonHeight + (lineCount - 1) * buttonSpacing
+
+        // Resize tags container
+        let searchFieldHeight: CGFloat = 30
+        let searchFieldTopOffset: CGFloat = 10 + searchFieldHeight / 2
+        let newTagsY = browserView.bounds.height - searchFieldHeight - searchFieldTopOffset - 10 - actualHeight - (actualHeight * 0.75)
+        tagsContainer.frame = NSRect(
+            x: searchFieldPadding,
+            y: newTagsY,
+            width: containerWidth,
+            height: actualHeight
+        )
+
+        // Update scroll view frame
+        scrollView.frame = NSRect(
+            x: 0,
+            y: 0,
+            width: browserView.bounds.width,
+            height: newTagsY - 10
+        )
+
+        // Second pass: create and layout tags
+        xOffset = 0
+        var yOffset: CGFloat = actualHeight - buttonHeight
+
+        for tagName in displayTags {
+            // Calculate button width
+            let textSize = (tagName as NSString).size(withAttributes: [.font: font])
+            let buttonWidth = textSize.width + 16
+
+            // Check if we need to wrap to next line
+            if xOffset + buttonWidth > containerWidth && xOffset > 0 {
+                xOffset = 0
+                yOffset -= buttonHeight + buttonSpacing
+            }
+
+            // Create tag view
+            let tagView = NSView(frame: NSRect(x: xOffset, y: yOffset, width: buttonWidth, height: buttonHeight))
+            tagView.wantsLayer = true
+            tagView.layer?.backgroundColor = NSColor(white: 0.3, alpha: 1.0).cgColor
+            tagView.layer?.cornerRadius = buttonHeight * 0.5
+
+            // Add text label
+            let label = NSTextField(labelWithString: tagName)
+            label.font = font
+            label.textColor = .white
+            label.alignment = .center
+            label.frame = NSRect(x: 0, y: -2, width: buttonWidth, height: buttonHeight)
+            tagView.addSubview(label)
+
+            // Add click gesture
+            let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(globalTagClicked(_:)))
+            tagView.addGestureRecognizer(clickGesture)
+
+            tagsContainer.addSubview(tagView)
+
+            xOffset += buttonWidth + buttonSpacing
+        }
+    }
+
+    @objc func globalTagClicked(_ sender: NSClickGestureRecognizer) {
+        guard let tagView = sender.view,
+              let label = tagView.subviews.first as? NSTextField else { return }
+
+        let tagName = label.stringValue
+
+        if tagName == "All" {
+            // Clear search field and filter
+            searchField?.stringValue = ""
+            filterWallpapers()
+        } else {
+            // Set search field to tag name and filter
+            searchField?.stringValue = tagName
+            filterWallpapers()
+        }
     }
 
     func filterWallpapers() {
