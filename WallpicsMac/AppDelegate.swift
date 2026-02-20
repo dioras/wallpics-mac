@@ -2075,7 +2075,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Debug: Print raw response
             if let responseString = String(data: data, encoding: .utf8) {
-                print("Raw API Response: \(responseString.prefix(500))")
+                print("Raw API Response: \(responseString.prefix(2000))")
             }
 
             do {
@@ -2221,8 +2221,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             label.textColor = .white
             label.alignment = .left
             label.lineBreakMode = .byTruncatingTail
-            label.frame = NSRect(x: 10, y: overlayHeight - 25, width: frame.width - 20, height: 20)
+            label.frame = NSRect(x: 10, y: overlayHeight - 22, width: frame.width - 20, height: 18)
             overlayView.addSubview(label)
+        }
+
+        // Add second line for tags as custom views
+        if let tags = wallpaper["tags"] as? [[String: Any]] {
+            let tagNames = tags.compactMap { $0["name"] as? String }
+            if !tagNames.isEmpty {
+                // Take only first 3 tags
+                let displayTags = Array(tagNames.prefix(3))
+
+                var xOffset: CGFloat = 10
+                let buttonHeight: CGFloat = 20
+                let buttonSpacing: CGFloat = 6
+
+                for tagName in displayTags {
+                    // Calculate button width based on text
+                    let font = NSFont.systemFont(ofSize: 11)
+                    let textSize = (tagName as NSString).size(withAttributes: [.font: font])
+                    let buttonWidth = textSize.width + 16 // Add padding
+
+                    // Create custom view for tag
+                    let tagView = NSView(frame: NSRect(x: xOffset, y: 5, width: buttonWidth, height: buttonHeight))
+                    tagView.wantsLayer = true
+                    tagView.layer?.backgroundColor = NSColor(white: 0.3, alpha: 1.0).cgColor
+                    tagView.layer?.cornerRadius = buttonHeight * 0.5
+
+                    // Add text label
+                    let label = NSTextField(labelWithString: tagName)
+                    label.font = font
+                    label.textColor = .white
+                    label.alignment = .center
+                    label.frame = NSRect(x: 0, y: -2, width: buttonWidth, height: buttonHeight)
+                    tagView.addSubview(label)
+
+                    // Add click gesture
+                    let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(tagButtonClicked(_:)))
+                    tagView.addGestureRecognizer(clickGesture)
+
+                    overlayView.addSubview(tagView)
+
+                    xOffset += buttonWidth + buttonSpacing
+                }
+            }
         }
 
         // Add click gesture to download
@@ -2273,6 +2315,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
            let type = wallpaper["type"] as? String {
             downloadWallpaperFromAPI(urlString: urlString, name: name, type: type)
         }
+    }
+
+    @objc func tagButtonClicked(_ sender: NSClickGestureRecognizer) {
+        guard let tagView = sender.view,
+              let label = tagView.subviews.first as? NSTextField else { return }
+        print("Tag button clicked: \(label.stringValue)")
     }
 
     func createCreateView(frame: NSRect) {
