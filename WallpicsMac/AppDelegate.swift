@@ -450,6 +450,7 @@ class HoverScaleView: NSView {
     static var playButtonImage: NSImage?
     var playButtonView: NSImageView?
     var isMouseInside = false
+    var wallpaperId: Int?
 
     static func createPlayButtonImage(size: CGFloat) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size))
@@ -595,7 +596,15 @@ class HoverScaleView: NSView {
     }
 
     @objc func playButtonClicked(_ sender: NSClickGestureRecognizer) {
-        print("Play button clicked!")
+        // self is the HoverScaleView since it's the target
+        guard let wallpaperId = self.wallpaperId,
+              let appDelegate = NSApplication.shared.delegate as? AppDelegate else {
+            print("Could not get wallpaper ID or app delegate")
+            return
+        }
+
+        print("Play button clicked for wallpaper ID: \(wallpaperId)")
+        appDelegate.downloadWallpaperZip(wallpaperId: wallpaperId)
     }
 }
 
@@ -2216,6 +2225,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         itemView.layer?.cornerRadius = 8
         // Default anchor point is already (0.5, 0.5) = center
 
+        // Store wallpaper ID in the view
+        if let wallpaperId = wallpaper["id"] as? Int {
+            itemView.wallpaperId = wallpaperId
+        }
+
         // Create clipping container with top-only rounded corners
         let clipContainer = NSView(frame: NSRect(x: 0, y: 0, width: frame.width, height: frame.height))
         clipContainer.wantsLayer = true
@@ -2540,6 +2554,253 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Set search field to tag name and filter
             searchField?.stringValue = tagName
             filterWallpapers()
+        }
+    }
+
+    func downloadWallpaperZip(wallpaperId: Int) {
+        // Find wallpaper in data to get the zip URL
+        print("Looking for wallpaper ID: \(wallpaperId) in \(wallpaperData.count) wallpapers")
+
+        guard let wallpaper = wallpaperData.first(where: { ($0["id"] as? Int) == wallpaperId }) else {
+            print("Could not find wallpaper for ID: \(wallpaperId)")
+            print("Available IDs: \(wallpaperData.compactMap { $0["id"] as? Int })")
+            return
+        }
+
+        guard let zipURL = wallpaper["wallpaper_file"] as? String else {
+            print("Wallpaper data doesn't have 'wallpaper_file' field")
+            print("Available keys: \(wallpaper.keys)")
+            return
+        }
+
+        print("Downloading wallpaper from: \(zipURL)")
+
+        // First, record the download stat
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        let token = md5Hash(timestamp + "wall")
+
+        if let statsURL = URL(string: "https://backend.wallpics.app/api/wallpapers/\(wallpaperId)/download") {
+            var request = URLRequest(url: statsURL)
+            request.httpMethod = "POST"
+            request.setValue(timestamp, forHTTPHeaderField: "x-auth")
+            request.setValue(token, forHTTPHeaderField: "x-token")
+            if let guestId = guestId {
+                request.setValue(guestId, forHTTPHeaderField: "x-guest-id")
+            }
+
+            // Fire and forget - don't wait for response
+            URLSession.shared.dataTask(with: request).resume()
+        }
+
+        // Download the actual zip file
+        downloadZipFromURL(urlString: zipURL, wallpaperId: wallpaperId)
+    }
+
+    func downloadZipFromURL(urlString: String, wallpaperId: Int) {
+        guard let url = URL(string: urlString) else {
+            print("Invalid download URL: \(urlString)")
+            return
+        }
+
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            if let error = error {
+                print("Zip download error: \(error.localizedDescription)")
+                return
+            }
+
+            guard let data = data else {
+                print("No zip data received")
+                return
+            }
+
+            print("Downloaded zip data: \(data.count) bytes")
+            self?.extractAndSaveWallpaperZip(data: data, wallpaperId: wallpaperId)
+        }.resume()
+    }
+
+    func extractAndSaveWallpaperZip(data: Data, wallpaperId: Int) {
+        // Create temp directory for extraction
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+
+        do {
+            try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+            // Write zip data to temp file
+            let zipPath = tempDir.appendingPathComponent("wallpaper.zip")
+            try data.write(to: zipPath)
+
+            // First, peek inside the zip to get the filename without extracting
+            let listTask = Process()
+            listTask.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+            listTask.arguments = ["-Z1", zipPath.path]
+
+            let pipe = Pipe()
+            listTask.standardOutput = pipe
+            try listTask.run()
+            listTask.waitUntilExit()
+
+            let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
+            let fileList = String(data: outputData, encoding: .utf8)?.components(separatedBy: "\n").filter { !$0.isEmpty && !$0.hasPrefix("__MACOSX") && !$0.hasPrefix(".") } ?? []
+
+            guard let firstFile = fileList.first else {
+                print("Error: Could not read zip contents")
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+
+            // Get filename (handle both direct files and files in directories)
+            let fileName = URL(fileURLWithPath: firstFile).lastPathComponent
+            let ext = URL(fileURLWithPath: firstFile).pathExtension.lowercased()
+
+            // Determine destination folder based on extension
+            guard let assetsFolder = assetsFolderURL else {
+                print("Assets folder not available")
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+
+            let videoExtensions = ["mp4", "mov", "m4v", "avi"]
+            let imageExtensions = ["jpg", "jpeg", "png", "heic", "gif"]
+            let animationExtensions = ["riv"]
+            let shaderExtensions = ["msl"]
+
+            let destinationFolder: URL
+            if videoExtensions.contains(ext) {
+                destinationFolder = assetsFolder.appendingPathComponent("Videos")
+            } else if imageExtensions.contains(ext) {
+                destinationFolder = assetsFolder.appendingPathComponent("Images")
+            } else if animationExtensions.contains(ext) {
+                destinationFolder = assetsFolder.appendingPathComponent("Animations")
+            } else if shaderExtensions.contains(ext) {
+                destinationFolder = assetsFolder.appendingPathComponent("Shaders")
+            } else {
+                print("Unknown file type: \(ext)")
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+
+            // Check if file already exists in destination
+            let destinationPath = destinationFolder.appendingPathComponent(fileName)
+            if FileManager.default.fileExists(atPath: destinationPath.path) {
+                print("Already downloaded: \(fileName)")
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+
+            // Extract zip
+            let extractDir = tempDir.appendingPathComponent("extracted")
+            try FileManager.default.createDirectory(at: extractDir, withIntermediateDirectories: true)
+
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+            task.arguments = ["-q", zipPath.path, "-d", extractDir.path]
+            try task.run()
+            task.waitUntilExit()
+
+            // Check extracted contents
+            let allContents = try FileManager.default.contentsOfDirectory(at: extractDir, includingPropertiesForKeys: nil)
+
+            print("Extracted \(allContents.count) files:")
+            for file in allContents {
+                print("  - \(file.lastPathComponent)")
+            }
+
+            // Filter out __MACOSX and other metadata
+            let contents = allContents.filter { !$0.lastPathComponent.hasPrefix("__MACOSX") && !$0.lastPathComponent.hasPrefix(".") }
+
+            guard contents.count == 1 else {
+                print("Error: Expected 1 file in zip after filtering, got \(contents.count)")
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+
+            let extractedFile = contents[0]
+            let extractedFileName = extractedFile.lastPathComponent
+            let extractedExt = extractedFile.pathExtension.lowercased()
+
+            print("Extracted file: \(extractedFileName) with extension: \(extractedExt)")
+
+            // Check if it's a directory
+            var isDirectory: ObjCBool = false
+            if FileManager.default.fileExists(atPath: extractedFile.path, isDirectory: &isDirectory), isDirectory.boolValue {
+                print("Extracted item is a directory, looking inside...")
+                let dirContents = try FileManager.default.contentsOfDirectory(at: extractedFile, includingPropertiesForKeys: nil)
+                    .filter { !$0.lastPathComponent.hasPrefix(".") }
+
+                guard dirContents.count == 1 else {
+                    print("Directory contains \(dirContents.count) files, expected 1")
+                    try? FileManager.default.removeItem(at: tempDir)
+                    return
+                }
+
+                let actualFile = dirContents[0]
+                let actualFileName = actualFile.lastPathComponent
+                let actualExt = actualFile.pathExtension.lowercased()
+
+                print("Found actual file in directory: \(actualFileName) with extension: \(actualExt)")
+
+                // Continue with the actual file
+                continueExtraction(file: actualFile, fileName: actualFileName, ext: actualExt, tempDir: tempDir)
+                return
+            }
+
+            continueExtraction(file: extractedFile, fileName: extractedFileName, ext: extractedExt, tempDir: tempDir)
+
+        } catch {
+            print("Error extracting zip: \(error.localizedDescription)")
+            try? FileManager.default.removeItem(at: tempDir)
+        }
+    }
+
+    func continueExtraction(file: URL, fileName: String, ext: String, tempDir: URL) {
+        do {
+            // Determine destination folder based on extension
+            guard let assetsFolder = assetsFolderURL else {
+                print("Assets folder not available")
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+
+            let videoExtensions = ["mp4", "mov", "m4v", "avi"]
+            let imageExtensions = ["jpg", "jpeg", "png", "heic", "gif"]
+            let animationExtensions = ["riv"]
+            let shaderExtensions = ["msl"]
+
+            let destinationFolder: URL
+            if videoExtensions.contains(ext) {
+                destinationFolder = assetsFolder.appendingPathComponent("Videos")
+            } else if imageExtensions.contains(ext) {
+                destinationFolder = assetsFolder.appendingPathComponent("Images")
+            } else if animationExtensions.contains(ext) {
+                destinationFolder = assetsFolder.appendingPathComponent("Animations")
+            } else if shaderExtensions.contains(ext) {
+                destinationFolder = assetsFolder.appendingPathComponent("Shaders")
+            } else {
+                print("Unknown file type: \(ext)")
+                print("Full file path: \(file.path)")
+                try? FileManager.default.removeItem(at: tempDir)
+                return
+            }
+
+            // Create destination folder if needed
+            try? FileManager.default.createDirectory(at: destinationFolder, withIntermediateDirectories: true)
+
+            // Move file to destination
+            let destinationPath = destinationFolder.appendingPathComponent(fileName)
+
+            // Remove existing file if present
+            try? FileManager.default.removeItem(at: destinationPath)
+
+            try FileManager.default.moveItem(at: file, to: destinationPath)
+
+            print("Successfully saved wallpaper to: \(destinationPath.path)")
+
+            // Cleanup
+            try? FileManager.default.removeItem(at: tempDir)
+
+        } catch {
+            print("Error: \(error.localizedDescription)")
+            try? FileManager.default.removeItem(at: tempDir)
         }
     }
 
