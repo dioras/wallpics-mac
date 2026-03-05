@@ -675,7 +675,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var previewPanelView: NSView?
     var previewContainer: NSView?
     var previewTitleLabel: NSTextField?
-    var previewSubtitleLabel: NSTextField?
+    var previewDescriptionLabel: NSTextField?
+    var previewFavoriteButton: NSButton?
     var previewPlayer: AVPlayer?
     var previewRenderer: ShaderRenderer?
     var previewRiveViewModel: RiveViewModel?
@@ -1230,69 +1231,139 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         container.addSubview(placeholderLabel)
 
         // Title below preview
-        let titleY = frame.height - previewHeight - 60
+        let titleY = frame.height - previewHeight - 80
         let titleLabel = NSTextField(labelWithString: "")
         titleLabel.font = NSFont.systemFont(ofSize: 20, weight: .bold)
         titleLabel.textColor = .white
-        titleLabel.alignment = .left
+        titleLabel.alignment = .center
         titleLabel.frame = NSRect(x: 20, y: titleY, width: frame.width - 40, height: 30)
         titleLabel.autoresizingMask = [.width, .minYMargin]
         preview.addSubview(titleLabel)
         previewTitleLabel = titleLabel
 
-        // Subtitle
-        let subtitleY = titleY - 25
-        let subtitleLabel = NSTextField(labelWithString: "")
-        subtitleLabel.font = NSFont.systemFont(ofSize: 14)
-        subtitleLabel.textColor = .secondaryLabelColor
-        subtitleLabel.alignment = .left
-        subtitleLabel.frame = NSRect(x: 20, y: subtitleY, width: frame.width - 40, height: 20)
-        subtitleLabel.autoresizingMask = [.width, .minYMargin]
-        preview.addSubview(subtitleLabel)
-        previewSubtitleLabel = subtitleLabel
-
         // Buttons container (Set, Delete, Favorite)
-        let buttonsY = subtitleY - 50
-        let buttonWidth: CGFloat = 100
-        let buttonHeight: CGFloat = 35
-        let buttonSpacing: CGFloat = 10
+        let buttonsY = titleY - 70
+        let setButtonWidth: CGFloat = 240
+        let setButtonHeight: CGFloat = 37.5
+        let circularButtonSize: CGFloat = 37.5
+        let buttonSpacing: CGFloat = 15
 
-        // Set button
-        let setButton = NSButton(frame: NSRect(x: 20, y: buttonsY, width: buttonWidth * 2, height: buttonHeight))
-        setButton.title = "Set"
-        setButton.bezelStyle = .rounded
+        // Set button with icon
+        let setButton = NSButton(frame: NSRect(x: 20, y: buttonsY, width: setButtonWidth, height: setButtonHeight))
+        setButton.title = ""
+        setButton.isBordered = false
         setButton.target = self
         setButton.action = #selector(previewSetButtonClicked)
         setButton.autoresizingMask = [.maxXMargin, .minYMargin]
+        setButton.wantsLayer = true
+        setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.6, green: 0.75, blue: 0.9, alpha: 1.0).cgColor
+        setButton.layer?.cornerRadius = setButtonHeight / 2
+
+        // Create Set button content with icon and text
+        if let pictureIcon = NSImage(systemSymbolName: "photo", accessibilityDescription: "Set Wallpaper") {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 16, weight: .medium),
+                .foregroundColor: NSColor.black
+            ]
+            let text = "Set" as NSString
+            let textSize = text.size(withAttributes: attrs)
+            let iconSize: CGFloat = 20
+            let spacing: CGFloat = 8
+            let totalWidth = iconSize + spacing + textSize.width
+
+            let combinedImage = NSImage(size: NSSize(width: totalWidth, height: iconSize))
+            combinedImage.lockFocus()
+
+            // Draw icon in black
+            let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+            let configuredIcon = pictureIcon.withSymbolConfiguration(config)
+            NSColor.black.set()
+            configuredIcon?.draw(in: NSRect(x: 0, y: 0, width: iconSize, height: iconSize))
+
+            // Draw text
+            let textY = (iconSize - textSize.height) / 2
+            let textX = iconSize + spacing
+            text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+
+            combinedImage.unlockFocus()
+            setButton.image = combinedImage
+            setButton.imagePosition = .imageOnly
+        }
+
         preview.addSubview(setButton)
 
-        // Delete button
+        // Delete button (circular with coral background)
         let deleteButton = NSButton(frame: NSRect(
-            x: 20 + buttonWidth * 2 + buttonSpacing,
+            x: 20 + setButtonWidth + buttonSpacing,
             y: buttonsY,
-            width: buttonWidth / 2,
-            height: buttonHeight
+            width: circularButtonSize,
+            height: circularButtonSize
         ))
-        deleteButton.title = "🗑️"
-        deleteButton.bezelStyle = .circular
+        deleteButton.title = ""
+        deleteButton.isBordered = false
         deleteButton.target = self
         deleteButton.action = #selector(previewDeleteButtonClicked)
         deleteButton.autoresizingMask = [.maxXMargin, .minYMargin]
+        deleteButton.wantsLayer = true
+        deleteButton.layer?.backgroundColor = NSColor(calibratedRed: 0.9, green: 0.5, blue: 0.45, alpha: 1.0).cgColor
+        deleteButton.layer?.cornerRadius = circularButtonSize / 2
+
+        if let trashIcon = NSImage(systemSymbolName: "trash", accessibilityDescription: "Delete") {
+            trashIcon.isTemplate = true
+            let iconImage = NSImage(size: NSSize(width: 24, height: 24))
+            iconImage.lockFocus()
+            trashIcon.draw(in: NSRect(x: 0, y: 0, width: 24, height: 24))
+            iconImage.unlockFocus()
+            deleteButton.image = iconImage
+            deleteButton.imagePosition = .imageOnly
+            deleteButton.contentTintColor = .white
+        }
+
         preview.addSubview(deleteButton)
 
-        // Favorite button
+        // Favorite button (circular with gray background)
         let favoriteButton = NSButton(frame: NSRect(
-            x: 20 + buttonWidth * 2 + buttonSpacing + buttonWidth / 2 + buttonSpacing,
+            x: 20 + setButtonWidth + buttonSpacing + circularButtonSize + buttonSpacing,
             y: buttonsY,
-            width: buttonWidth / 2,
-            height: buttonHeight
+            width: circularButtonSize,
+            height: circularButtonSize
         ))
-        favoriteButton.title = "⭐"
-        favoriteButton.bezelStyle = .circular
+        favoriteButton.title = ""
+        favoriteButton.isBordered = false
         favoriteButton.target = self
         favoriteButton.action = #selector(previewFavoriteButtonClicked)
         favoriteButton.autoresizingMask = [.maxXMargin, .minYMargin]
+        favoriteButton.wantsLayer = true
+        favoriteButton.layer?.backgroundColor = NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+        favoriteButton.layer?.cornerRadius = circularButtonSize / 2
+
+        if let starIcon = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favorite") {
+            starIcon.isTemplate = true
+            let iconImage = NSImage(size: NSSize(width: 24, height: 24))
+            iconImage.lockFocus()
+            starIcon.draw(in: NSRect(x: 0, y: 0, width: 24, height: 24))
+            iconImage.unlockFocus()
+            favoriteButton.image = iconImage
+            favoriteButton.imagePosition = .imageOnly
+            favoriteButton.contentTintColor = .white
+        }
+
         preview.addSubview(favoriteButton)
+        previewFavoriteButton = favoriteButton
+
+        // Description text below buttons
+        let descriptionY: CGFloat = 20
+        let descriptionHeight: CGFloat = buttonsY - 40
+        let descriptionLabel = NSTextField(labelWithString: "")
+        descriptionLabel.font = NSFont.systemFont(ofSize: 16)
+        descriptionLabel.textColor = .secondaryLabelColor
+        descriptionLabel.alignment = .left
+        descriptionLabel.frame = NSRect(x: 20, y: descriptionY, width: frame.width - 40, height: descriptionHeight)
+        descriptionLabel.autoresizingMask = [.width, .minYMargin, .height]
+        descriptionLabel.maximumNumberOfLines = 0
+        descriptionLabel.lineBreakMode = .byWordWrapping
+        preview.addSubview(descriptionLabel)
+        previewDescriptionLabel = descriptionLabel
 
         return preview
     }
@@ -1309,7 +1380,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func previewFavoriteButtonClicked() {
         print("Preview Favorite button clicked")
-        // TODO: Implement favorite toggle
+
+        guard let wallpaperId = selectedWallpaperId,
+              let assetsFolderURL = assetsFolderURL else {
+            print("No wallpaper selected or assets folder not available")
+            return
+        }
+
+        // Remove from Favorites folder
+        let favoritesFolder = assetsFolderURL.appendingPathComponent("Favorites")
+        let favoriteFile = favoritesFolder.appendingPathComponent("\(wallpaperId)")
+
+        do {
+            if FileManager.default.fileExists(atPath: favoriteFile.path) {
+                try FileManager.default.removeItem(at: favoriteFile)
+                print("Removed wallpaper \(wallpaperId) from favorites")
+
+                // Update button color to gray (not in favorites)
+                previewFavoriteButton?.layer?.backgroundColor = NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+            } else {
+                print("Wallpaper \(wallpaperId) not in favorites")
+            }
+        } catch {
+            print("Error removing from favorites: \(error)")
+        }
     }
 
     func thumbnailSelected(wallpaperId: Int) {
@@ -1334,12 +1428,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let wallpaperId = wallpaper["id"] as? Int ?? 0
         selectedWallpaperId = wallpaperId
 
-        // Update title and subtitle
+        // Update title
         let name = wallpaper["name"] as? String ?? "Unknown"
-        let author = (wallpaper["author"] as? [String: Any])?["name"] as? String ?? ""
+        let description = wallpaper["description"] as? String ?? ""
 
         previewTitleLabel?.stringValue = name
-        previewSubtitleLabel?.stringValue = author
+        previewDescriptionLabel?.stringValue = description
+
+        // Update favorite button color based on whether it's in favorites
+        if let assetsFolderURL = assetsFolderURL {
+            let favoritesFolder = assetsFolderURL.appendingPathComponent("Favorites")
+            let favoriteFile = favoritesFolder.appendingPathComponent("\(wallpaperId)")
+            let isInFavorites = FileManager.default.fileExists(atPath: favoriteFile.path)
+
+            previewFavoriteButton?.layer?.backgroundColor = isInFavorites
+                ? NSColor.systemYellow.cgColor
+                : NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+        }
 
         // Remove placeholder if it exists
         previewContainer.subviews.first(where: { $0.identifier?.rawValue == "placeholder" })?.removeFromSuperview()
