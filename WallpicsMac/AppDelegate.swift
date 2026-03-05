@@ -1021,10 +1021,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             width: iconSize,
             height: iconSize
         ))
-        if let appIcon = NSImage(systemSymbolName: "photo.on.rectangle", accessibilityDescription: "WallpicsMac") {
-            iconView.image = appIcon
-            iconView.contentTintColor = NSColor(red: 100/255.0, green: 200/255.0, blue: 255/255.0, alpha: 1.0)
-        }
+        iconView.image = NSApp.applicationIconImage
+        iconView.imageScaling = .scaleProportionallyUpOrDown
         iconView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
         sidebar.addSubview(iconView)
 
