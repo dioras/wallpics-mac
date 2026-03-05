@@ -451,6 +451,7 @@ class HoverScaleView: NSView {
     var playButtonView: NSImageView?
     var isMouseInside = false
     var wallpaperId: Int?
+    var clickGesture: NSClickGestureRecognizer?
 
     static func createPlayButtonImage(size: CGFloat) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size))
@@ -541,34 +542,11 @@ class HoverScaleView: NSView {
         super.mouseEntered(with: event)
         isMouseInside = true
 
-        // Check if play button should be shown
-        let shouldShowPlayButton = shouldShowPlayButtonForType()
-
-        // Show play button only if appropriate
-        if shouldShowPlayButton && playButtonView == nil {
-            // Create play button image once
-            if HoverScaleView.playButtonImage == nil {
-                HoverScaleView.playButtonImage = HoverScaleView.createPlayButtonImage(size: 80)
-            }
-
-            let buttonSize: CGFloat = 80
-            let buttonFrame = NSRect(
-                x: (bounds.width - buttonSize) / 2,
-                y: (bounds.height - buttonSize) / 2,
-                width: buttonSize,
-                height: buttonSize
-            )
-            let imageView = NSImageView(frame: buttonFrame)
-            imageView.image = HoverScaleView.playButtonImage
-            imageView.alphaValue = 0
-            imageView.wantsLayer = true
-
-            // Add click gesture
-            let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(playButtonClicked(_:)))
-            imageView.addGestureRecognizer(clickGesture)
-
-            addSubview(imageView)
-            playButtonView = imageView
+        // Add click gesture to entire view if not already added
+        if clickGesture == nil {
+            let gesture = NSClickGestureRecognizer(target: self, action: #selector(cellClicked(_:)))
+            addGestureRecognizer(gesture)
+            clickGesture = gesture
         }
 
         NSAnimationContext.runAnimationGroup({ context in
@@ -583,11 +561,6 @@ class HoverScaleView: NSView {
             self.layer?.shadowOffset = CGSize(width: 0, height: 5)
             self.layer?.shadowRadius = 10
             self.layer?.zPosition = 100
-
-            // Fade in play button only if it should be shown
-            if shouldShowPlayButton {
-                self.playButtonView?.animator().alphaValue = 1.0
-            }
         })
     }
 
@@ -622,7 +595,7 @@ class HoverScaleView: NSView {
         self.playButtonView?.alphaValue = 0
     }
 
-    @objc func playButtonClicked(_ sender: NSClickGestureRecognizer) {
+    @objc func cellClicked(_ sender: NSClickGestureRecognizer) {
         // self is the HoverScaleView since it's the target
         guard let wallpaperId = self.wallpaperId,
               let appDelegate = NSApplication.shared.delegate as? AppDelegate else {
@@ -630,10 +603,13 @@ class HoverScaleView: NSView {
             return
         }
 
-        print("Play button clicked for wallpaper ID: \(wallpaperId)")
+        print("Cell clicked for wallpaper ID: \(wallpaperId)")
 
         // Download and then play the content in this cell
         appDelegate.downloadAndPlayInCell(wallpaperId: wallpaperId, cellView: self)
+
+        // Also trigger preview panel update
+        appDelegate.thumbnailSelected(wallpaperId: wallpaperId)
     }
 }
 
@@ -686,6 +662,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     var screensaverIsPlaying: Bool = true
     var playPauseMenuItem: NSMenuItem?
+
+    // Preview panel elements
+    var previewPanelView: NSView?
+    var previewContainer: NSView?
+    var previewTitleLabel: NSTextField?
+    var previewSubtitleLabel: NSTextField?
+    var previewPlayer: AVPlayer?
+    var previewRenderer: ShaderRenderer?
+    var previewRiveViewModel: RiveViewModel?
+    var selectedWallpaperId: Int?
 
     enum WallpaperType {
         case none
@@ -951,9 +937,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
 
-        // Calculate 90% of screen width and height
-        let windowWidth = screenFrame.width * 0.9
-        let windowHeight = screenFrame.height * 0.9
+        // Calculate 100% of screen width and height
+        let windowWidth = screenFrame.width * 1.0
+        let windowHeight = screenFrame.height * 1.0
 
         let contentRect = NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight)
 
@@ -1203,20 +1189,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         preview.wantsLayer = true
         preview.layer?.backgroundColor = NSColor(red: 25/255.0, green: 25/255.0, blue: 25/255.0, alpha: 1.0).cgColor
         preview.autoresizingMask = [.height, .minXMargin]
+        previewPanelView = preview
 
         // Preview container at top (will show selected wallpaper preview)
         let previewHeight: CGFloat = frame.width * 0.75 // 4:3 aspect ratio
-        let previewContainer = NSView(frame: NSRect(
+        let container = NSView(frame: NSRect(
             x: 20,
             y: frame.height - previewHeight - 20,
             width: frame.width - 40,
             height: previewHeight
         ))
-        previewContainer.wantsLayer = true
-        previewContainer.layer?.backgroundColor = NSColor.darkGray.cgColor
-        previewContainer.layer?.cornerRadius = 8
-        previewContainer.autoresizingMask = [.width, .minYMargin]
-        preview.addSubview(previewContainer)
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor.darkGray.cgColor
+        container.layer?.cornerRadius = 8
+        container.autoresizingMask = [.width, .minYMargin]
+        preview.addSubview(container)
+        previewContainer = container
 
         // Placeholder text
         let placeholderLabel = NSTextField(labelWithString: "Select a wallpaper")
@@ -1226,11 +1214,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         placeholderLabel.frame = NSRect(
             x: 0,
             y: (previewHeight - 25) / 2,
-            width: previewContainer.bounds.width,
+            width: container.bounds.width,
             height: 25
         )
+        placeholderLabel.identifier = NSUserInterfaceItemIdentifier("placeholder")
         placeholderLabel.autoresizingMask = [.width, .minYMargin, .maxYMargin]
-        previewContainer.addSubview(placeholderLabel)
+        container.addSubview(placeholderLabel)
 
         // Title below preview
         let titleY = frame.height - previewHeight - 60
@@ -1241,6 +1230,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         titleLabel.frame = NSRect(x: 20, y: titleY, width: frame.width - 40, height: 30)
         titleLabel.autoresizingMask = [.width, .minYMargin]
         preview.addSubview(titleLabel)
+        previewTitleLabel = titleLabel
 
         // Subtitle
         let subtitleY = titleY - 25
@@ -1251,6 +1241,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         subtitleLabel.frame = NSRect(x: 20, y: subtitleY, width: frame.width - 40, height: 20)
         subtitleLabel.autoresizingMask = [.width, .minYMargin]
         preview.addSubview(subtitleLabel)
+        previewSubtitleLabel = subtitleLabel
 
         // Buttons container (Set, Delete, Favorite)
         let buttonsY = subtitleY - 50
@@ -1311,6 +1302,201 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func previewFavoriteButtonClicked() {
         print("Preview Favorite button clicked")
         // TODO: Implement favorite toggle
+    }
+
+    func thumbnailSelected(wallpaperId: Int) {
+        print("Thumbnail selected: \(wallpaperId)")
+
+        // Find the wallpaper data
+        guard let wallpaper = wallpaperData.first(where: { $0["id"] as? Int == wallpaperId }) else {
+            print("Wallpaper not found in data")
+            return
+        }
+
+        // Update preview panel with wallpaper info
+        updatePreviewPanel(with: wallpaper)
+
+        // Start playback in preview panel after download completes
+        // This will be triggered from downloadAndPlayInCell callback
+    }
+
+    func updatePreviewPanel(with wallpaper: [String: Any]) {
+        guard let previewContainer = previewContainer else { return }
+
+        let wallpaperId = wallpaper["id"] as? Int ?? 0
+        selectedWallpaperId = wallpaperId
+
+        // Update title and subtitle
+        let name = wallpaper["name"] as? String ?? "Unknown"
+        let author = (wallpaper["author"] as? [String: Any])?["name"] as? String ?? ""
+
+        previewTitleLabel?.stringValue = name
+        previewSubtitleLabel?.stringValue = author
+
+        // Remove placeholder if it exists
+        previewContainer.subviews.first(where: { $0.identifier?.rawValue == "placeholder" })?.removeFromSuperview()
+
+        // Clean up previous preview content
+        cleanupPreviewPlayback()
+
+        // Find the asset URL
+        guard let assetURL = findAssetURLByWallpaperId(wallpaperId) else {
+            print("Asset not downloaded yet for preview")
+            return
+        }
+
+        // Start playback based on file type
+        let ext = assetURL.pathExtension.lowercased()
+
+        if ["mp4", "mov", "m4v"].contains(ext) {
+            // Video playback
+            playVideoInPreview(url: assetURL)
+        } else if ext == "msl" {
+            // Shader playback
+            playShaderInPreview(url: assetURL)
+        } else if ext == "riv" {
+            // Rive animation playback
+            playRiveInPreview(url: assetURL)
+        } else if ext == "gif" {
+            // GIF playback
+            playGIFInPreview(url: assetURL)
+        } else {
+            // Static image
+            showImageInPreview(url: assetURL)
+        }
+    }
+
+    func cleanupPreviewPlayback() {
+        // Stop and remove any existing preview playback
+        previewPlayer?.pause()
+        previewPlayer = nil
+        previewRenderer = nil
+        previewRiveViewModel = nil
+
+        // Remove all subviews from preview container except placeholder
+        previewContainer?.subviews.forEach { subview in
+            if subview.identifier?.rawValue != "placeholder" {
+                subview.removeFromSuperview()
+            }
+        }
+    }
+
+    func playVideoInPreview(url: URL) {
+        guard let previewContainer = previewContainer else { return }
+
+        let player = AVPlayer(url: url)
+        let playerLayer = AVPlayerLayer(player: player)
+        playerLayer.frame = previewContainer.bounds
+        playerLayer.videoGravity = .resizeAspectFill
+
+        let containerView = NSView(frame: previewContainer.bounds)
+        containerView.wantsLayer = true
+        containerView.layer?.addSublayer(playerLayer)
+        containerView.autoresizingMask = [.width, .height]
+
+        previewContainer.addSubview(containerView)
+
+        player.play()
+        previewPlayer = player
+
+        // Loop video
+        NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: player.currentItem, queue: .main) { [weak player] _ in
+            player?.seek(to: .zero)
+            player?.play()
+        }
+    }
+
+    func playShaderInPreview(url: URL) {
+        guard let previewContainer = previewContainer else { return }
+        guard let device = MTLCreateSystemDefaultDevice() else { return }
+        guard let shaderSource = try? String(contentsOf: url, encoding: .utf8) else { return }
+
+        let metalView = MTKView(frame: previewContainer.bounds, device: device)
+        metalView.autoresizingMask = [.width, .height]
+
+        let renderer = ShaderRenderer(device: device, shaderSource: shaderSource)
+        metalView.delegate = renderer
+
+        previewContainer.addSubview(metalView)
+        previewRenderer = renderer
+    }
+
+    func playRiveInPreview(url: URL) {
+        guard let previewContainer = previewContainer else { return }
+
+        let viewModel = RiveViewModel(
+            webURL: url.absoluteString,
+            fit: .fill,
+            alignment: .center,
+            loadCdn: false
+        )
+
+        let riveView = viewModel.createRiveView()
+        riveView.frame = previewContainer.bounds
+        riveView.autoresizingMask = [.width, .height]
+        previewContainer.addSubview(riveView)
+        previewRiveViewModel = viewModel
+    }
+
+    func playGIFInPreview(url: URL) {
+        guard let previewContainer = previewContainer else { return }
+
+        guard let image = NSImage(contentsOf: url) else { return }
+
+        // Calculate scale to fill container while maintaining aspect ratio
+        let containerSize = previewContainer.bounds.size
+        let imageSize = image.size
+
+        let scaleWidth = containerSize.width / imageSize.width
+        let scaleHeight = containerSize.height / imageSize.height
+        let scale = max(scaleWidth, scaleHeight) // Use max to ensure both dimensions are covered
+
+        let scaledWidth = imageSize.width * scale
+        let scaledHeight = imageSize.height * scale
+
+        // Center the scaled image
+        let x = (containerSize.width - scaledWidth) / 2
+        let y = (containerSize.height - scaledHeight) / 2
+
+        let imageView = NSImageView(frame: NSRect(x: x, y: y, width: scaledWidth, height: scaledHeight))
+        imageView.image = image
+        imageView.animates = true
+        imageView.canDrawSubviewsIntoLayer = true
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        previewContainer.addSubview(imageView)
+    }
+
+    func showImageInPreview(url: URL) {
+        guard let previewContainer = previewContainer else { return }
+
+        let imageView = NSImageView(frame: previewContainer.bounds)
+        imageView.imageScaling = .scaleNone
+
+        if let image = NSImage(contentsOf: url) {
+            // Calculate scale to fill container while maintaining aspect ratio
+            let containerSize = previewContainer.bounds.size
+            let imageSize = image.size
+
+            let scaleWidth = containerSize.width / imageSize.width
+            let scaleHeight = containerSize.height / imageSize.height
+            let scale = max(scaleWidth, scaleHeight) // Use max to ensure both dimensions are covered
+
+            let scaledWidth = imageSize.width * scale
+            let scaledHeight = imageSize.height * scale
+
+            // Center the scaled image
+            let x = (containerSize.width - scaledWidth) / 2
+            let y = (containerSize.height - scaledHeight) / 2
+
+            let scaledImageView = NSImageView(frame: NSRect(x: x, y: y, width: scaledWidth, height: scaledHeight))
+            scaledImageView.image = image
+            scaledImageView.imageScaling = .scaleProportionallyUpOrDown
+            previewContainer.addSubview(scaledImageView)
+            return
+        }
+
+        imageView.autoresizingMask = [.width, .height]
+        previewContainer.addSubview(imageView)
     }
 
     func setupWindowContent(frame: NSRect) {
@@ -2605,53 +2791,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             overlayView.addSubview(label)
         }
 
-        // Add tags as custom views
-        if let tags = wallpaper["tags"] as? [[String: Any]] {
-            let tagNames = tags.compactMap { $0["name"] as? String }
-            if !tagNames.isEmpty {
-                // Take only first 3 tags
-                let displayTags = Array(tagNames.prefix(3))
-
-                let buttonHeight: CGFloat = 20
-                let font = NSFont.systemFont(ofSize: 11)
-                var xOffset: CGFloat = 10
-                let buttonSpacing: CGFloat = 6
-                let maxXOffset = frame.width - 20
-
-                for tagName in displayTags {
-                    // Calculate button width based on text
-                    let textSize = (tagName as NSString).size(withAttributes: [.font: font])
-                    let buttonWidth = textSize.width + 16 // Add padding
-
-                    // Stop if we would overlap with Set button
-                    if xOffset + buttonWidth > maxXOffset {
-                        break
-                    }
-
-                    // Create custom view for tag
-                    let tagView = NSView(frame: NSRect(x: xOffset, y: 5, width: buttonWidth, height: buttonHeight))
-                    tagView.wantsLayer = true
-                    tagView.layer?.backgroundColor = NSColor(white: 0.3, alpha: 1.0).cgColor
-                    tagView.layer?.cornerRadius = buttonHeight * 0.5
-
-                    // Add text label
-                    let label = NSTextField(labelWithString: tagName)
-                    label.font = font
-                    label.textColor = .white
-                    label.alignment = .center
-                    label.frame = NSRect(x: 0, y: -2, width: buttonWidth, height: buttonHeight)
-                    tagView.addSubview(label)
-
-                    // Add click gesture
-                    let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(tagButtonClicked(_:)))
-                    tagView.addGestureRecognizer(clickGesture)
-
-                    overlayView.addSubview(tagView)
-
-                    xOffset += buttonWidth + buttonSpacing
-                }
-            }
-        }
+        // Tags removed from thumbnails
 
         // Add click gesture to download
         let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(wallpaperThumbnailClicked(_:)))
