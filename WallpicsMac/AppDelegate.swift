@@ -934,6 +934,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         currentAssetIndex = 0
 
         print("Loaded \(homeAssets.count) random assets")
+
+        // If no assets, switch to browse screen
+        if homeAssets.isEmpty {
+            DispatchQueue.main.async { [weak self] in
+                self?.segmentedControl?.selectedSegment = 1
+                self?.showView(self?.browserView)
+            }
+        }
     }
 
     func createMainWindow() {
@@ -3269,15 +3277,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         createView?.wantsLayer = true
         createView?.autoresizingMask = [.width, .height]
 
-        // Add centered text
-        let textField = NSTextField(labelWithString: "Create")
-        textField.font = NSFont.systemFont(ofSize: 48, weight: .medium)
-        textField.textColor = .labelColor
-        textField.alignment = .center
-        textField.frame = NSRect(x: 0, y: frame.height / 2 - 30, width: frame.width, height: 60)
-        textField.autoresizingMask = [.width, .minYMargin, .maxYMargin]
+        // Create huge centered clickable view
+        let buttonWidth: CGFloat = frame.width * 0.8
+        let buttonHeight: CGFloat = frame.height * 0.375  // 0.3 * 1.25
+        let buttonView = NSView(frame: NSRect(
+            x: (frame.width - buttonWidth) / 2,
+            y: (frame.height - buttonHeight) / 2,
+            width: buttonWidth,
+            height: buttonHeight
+        ))
+        buttonView.wantsLayer = true
+        buttonView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        buttonView.layer?.cornerRadius = 12
+        buttonView.layer?.borderWidth = 2
+        buttonView.layer?.borderColor = NSColor.separatorColor.cgColor
+        buttonView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
 
-        createView?.addSubview(textField)
+        // Add text label inside
+        let label = NSTextField(wrappingLabelWithString: "Click to import asset to create your own wallpaper (.jpg, .png, .gif, .heic, .mp4, .mov, \n.m4v, .avi, .mkv, .msl, .riv)")
+        label.font = NSFont.systemFont(ofSize: 45, weight: .bold)  // 1.5 times more (32 * 1.5 = 48)
+        label.textColor = NSColor.labelColor
+        label.alignment = .center
+        label.frame = NSRect(x: 40, y: 40, width: buttonWidth - 80, height: buttonHeight - 100)
+        label.autoresizingMask = [.width, .height]
+        label.isEditable = false
+        label.isBordered = false
+        label.backgroundColor = .clear
+        buttonView.addSubview(label)
+
+        // Add click gesture
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(importAsset))
+        buttonView.addGestureRecognizer(clickGesture)
+
+        createView?.addSubview(buttonView)
     }
 
     func showView(_ view: NSView?) {
