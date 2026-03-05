@@ -647,7 +647,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var homeView: NSView?
     var browserView: NSView?
     var createView: NSView?
+    var favoritesView: NSView?
     var segmentedControl: NSSegmentedControl?
+    var currentMenuIndex: Int = 0 // Track selected menu (0=Favorites, 1=Browse)
 
     // Browser view data
     var wallpaperData: [[String: Any]] = []
@@ -1066,8 +1068,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSView(frame: frame)
         item.wantsLayer = true
 
-        // Highlight Favorites by default (index 0)
-        if index == 0 {
+        // Highlight the currently selected menu item
+        if index == currentMenuIndex {
             item.layer?.backgroundColor = NSColor(red: 60/255.0, green: 100/255.0, blue: 150/255.0, alpha: 1.0).cgColor
         }
 
@@ -1097,32 +1099,102 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return item
     }
 
+    @objc func browseLinkClicked() {
+        // Switch to Browse menu
+        switchToMenu(index: 1)
+    }
+
+    func switchToMenu(index: Int) {
+        currentMenuIndex = index
+
+        // Update sidebar highlighting
+        if let sidebar = window?.contentView?.subviews.first {
+            for subview in sidebar.subviews {
+                if let identifier = subview.identifier?.rawValue,
+                   identifier.hasPrefix("menu_item_") {
+                    subview.layer?.backgroundColor = NSColor.clear.cgColor
+
+                    // Highlight the selected menu item
+                    if let indexString = identifier.components(separatedBy: "_").last,
+                       let menuIndex = Int(indexString),
+                       menuIndex == index {
+                        subview.layer?.backgroundColor = NSColor(red: 60/255.0, green: 100/255.0, blue: 150/255.0, alpha: 1.0).cgColor
+                    }
+                }
+            }
+        }
+
+        // Switch view
+        switch index {
+        case 0: // Favorites
+            showCenterView(favoritesView)
+        case 1: // Browse
+            showCenterView(browserView)
+        default:
+            break
+        }
+    }
+
     @objc func menuItemClicked(_ sender: NSClickGestureRecognizer) {
         guard let clickedView = sender.view,
               let identifier = clickedView.identifier?.rawValue,
               let indexString = identifier.components(separatedBy: "_").last,
               let menuIndex = Int(indexString) else { return }
 
-        // Update menu item highlighting
-        if let sidebar = window?.contentView?.subviews.first {
-            for subview in sidebar.subviews {
-                if subview.identifier?.rawValue.hasPrefix("menu_item_") == true {
-                    subview.layer?.backgroundColor = NSColor.clear.cgColor
-                }
-            }
-            clickedView.layer?.backgroundColor = NSColor(red: 60/255.0, green: 100/255.0, blue: 150/255.0, alpha: 1.0).cgColor
+        // Don't do anything if clicking the same menu item
+        if menuIndex == currentMenuIndex {
+            return
         }
 
-        // Switch view based on menu
-        switch menuIndex {
-        case 0: // Favorites
-            print("Favorites clicked")
-            // TODO: Load favorites
-        case 1: // Browse
-            print("Browse clicked")
-            // Already showing browser view
-        default:
-            break
+        // Refresh favorites view if switching to it
+        if menuIndex == 0 {
+            let isEmpty = isFavoritesFolderEmpty()
+            if isEmpty {
+                createFavoritesView(frame: favoritesView?.frame ?? .zero)
+            }
+        }
+
+        switchToMenu(index: menuIndex)
+    }
+
+    func createFavoritesView(frame: NSRect) {
+        favoritesView = NSView(frame: frame)
+        favoritesView?.wantsLayer = true
+        favoritesView?.autoresizingMask = [.width, .height]
+
+        guard let favoritesView = favoritesView else { return }
+
+        // Check if favorites is empty
+        if isFavoritesFolderEmpty() {
+            // Clickable link for entire message
+            let linkButton = NSButton(frame: NSRect(
+                x: (frame.width - 500) / 2,
+                y: (frame.height - 80) / 2,
+                width: 500,
+                height: 80
+            ))
+            linkButton.title = "Favorites folder is empty,\nbrowse templates and add something"
+            linkButton.isBordered = false
+            linkButton.setButtonType(.momentaryChange)
+            linkButton.bezelStyle = .inline
+            linkButton.contentTintColor = .systemBlue
+            linkButton.font = NSFont.systemFont(ofSize: 18, weight: .medium)
+            linkButton.alignment = .center
+            linkButton.lineBreakMode = .byWordWrapping
+            linkButton.target = self
+            linkButton.action = #selector(browseLinkClicked)
+            linkButton.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
+
+            favoritesView.addSubview(linkButton)
+        } else {
+            // TODO: Show favorites grid
+            let label = NSTextField(labelWithString: "Favorites content will be here")
+            label.font = NSFont.systemFont(ofSize: 18)
+            label.textColor = .labelColor
+            label.alignment = .center
+            label.frame = NSRect(x: 0, y: frame.height / 2, width: frame.width, height: 30)
+            label.autoresizingMask = [.width, .minYMargin, .maxYMargin]
+            favoritesView.addSubview(label)
         }
     }
 
@@ -1255,15 +1327,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let previewWidth: CGFloat = 450
         let centerWidth = frame.width - sidebarWidth - previewWidth
 
+        // Check if Favorites folder is empty
+        let favoritesEmpty = isFavoritesFolderEmpty()
+
+        // Set initial menu index (0=Favorites, 1=Browse)
+        currentMenuIndex = favoritesEmpty ? 1 : 0
+
         // LEFT SIDEBAR
         let sidebarView = createSidebarView(frame: NSRect(x: 0, y: 0, width: sidebarWidth, height: frame.height))
         mainView.addSubview(sidebarView)
 
-        // CENTER COLUMN (Browser grid)
+        // CENTER COLUMN (container for favorites/browser views)
         let centerFrame = NSRect(x: sidebarWidth, y: 0, width: centerWidth, height: frame.height)
-        createBrowserView(frame: centerFrame)
-        if let browserView = browserView {
-            mainView.addSubview(browserView)
+        contentContainer = NSView(frame: centerFrame)
+        contentContainer?.wantsLayer = true
+        contentContainer?.autoresizingMask = [.width, .height]
+        if let contentContainer = contentContainer {
+            mainView.addSubview(contentContainer)
+        }
+
+        // Create Favorites and Browser views
+        createFavoritesView(frame: NSRect(x: 0, y: 0, width: centerWidth, height: frame.height))
+        createBrowserView(frame: NSRect(x: 0, y: 0, width: centerWidth, height: frame.height))
+
+        // Show appropriate view based on favorites content
+        if favoritesEmpty {
+            showCenterView(browserView)
+        } else {
+            showCenterView(favoritesView)
         }
 
         // RIGHT PREVIEW PANEL
@@ -1271,9 +1362,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let previewView = createPreviewView(frame: previewFrame)
         mainView.addSubview(previewView)
 
-        // Initialize guest ID and fetch wallpapers
+        // Initialize guest ID and fetch wallpapers for Browse
         initializeGuestId { [weak self] in
             self?.fetchWallpapers(page: 1)
+        }
+    }
+
+    func isFavoritesFolderEmpty() -> Bool {
+        guard let assetsFolderURL = assetsFolderURL else { return true }
+        let favoritesFolder = assetsFolderURL.appendingPathComponent("Favorites")
+
+        guard let files = try? FileManager.default.contentsOfDirectory(at: favoritesFolder, includingPropertiesForKeys: nil) else {
+            return true
+        }
+
+        // Filter out hidden files
+        let visibleFiles = files.filter { !$0.lastPathComponent.hasPrefix(".") }
+        return visibleFiles.isEmpty
+    }
+
+    func showCenterView(_ view: NSView?) {
+        contentContainer?.subviews.forEach { $0.removeFromSuperview() }
+        if let view = view {
+            contentContainer?.addSubview(view)
         }
     }
 
