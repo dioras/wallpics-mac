@@ -1510,7 +1510,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Three-column layout
         let sidebarWidth: CGFloat = 250
-        let previewWidth: CGFloat = 450
+        let previewWidth: CGFloat = 400
         let centerWidth = frame.width - sidebarWidth - previewWidth
 
         // Check if Favorites folder is empty
@@ -2671,7 +2671,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let itemSpacing: CGFloat = 20
         let containerWidth = scrollView.frame.width
         let itemWidth = (containerWidth - CGFloat(columns + 1) * itemSpacing) / CGFloat(columns)
-        let itemHeight = itemWidth * 0.75 // 0.75 aspect ratio
+        let itemHeight = itemWidth * 1.5 // 1.5 aspect ratio (twice as tall)
 
         // Calculate total rows
         let totalItems = filteredWallpaperData.count
