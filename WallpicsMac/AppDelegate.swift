@@ -3063,12 +3063,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             player.play()
 
         } else if gifExtensions.contains(ext) {
-            // Play GIF
+            // Play GIF with aspect-fill scaling
             if let gifImage = NSImage(contentsOf: assetURL) {
-                let gifImageView = NSImageView(frame: playbackView.bounds)
+                let imageSize = gifImage.size
+                let containerSize = playbackView.bounds.size
+                let imageAspect = imageSize.width / imageSize.height
+                let containerAspect = containerSize.width / containerSize.height
+
+                var imageFrame = playbackView.bounds
+                if imageAspect > containerAspect {
+                    // Image is wider - fit height, center width
+                    let scaledWidth = containerSize.height * imageAspect
+                    imageFrame = NSRect(
+                        x: (containerSize.width - scaledWidth) / 2,
+                        y: 0,
+                        width: scaledWidth,
+                        height: containerSize.height
+                    )
+                } else {
+                    // Image is taller - fit width, center height
+                    let scaledHeight = containerSize.width / imageAspect
+                    imageFrame = NSRect(
+                        x: 0,
+                        y: (containerSize.height - scaledHeight) / 2,
+                        width: containerSize.width,
+                        height: scaledHeight
+                    )
+                }
+
+                let gifImageView = NSImageView(frame: imageFrame)
                 gifImageView.image = gifImage
                 gifImageView.imageScaling = .scaleAxesIndependently
-                gifImageView.autoresizingMask = [NSView.AutoresizingMask.width, NSView.AutoresizingMask.height]
                 gifImageView.animates = true
                 playbackView.addSubview(gifImageView)
             }
