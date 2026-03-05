@@ -2712,6 +2712,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func getAverageColor(from image: NSImage) -> NSColor? {
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData) else {
+            return nil
+        }
+
+        let width = bitmap.pixelsWide
+        let height = bitmap.pixelsHigh
+        var totalRed: CGFloat = 0
+        var totalGreen: CGFloat = 0
+        var totalBlue: CGFloat = 0
+        var pixelCount: CGFloat = 0
+
+        // Sample every 10th pixel for performance
+        for x in stride(from: 0, to: width, by: 10) {
+            for y in stride(from: 0, to: height, by: 10) {
+                guard let color = bitmap.colorAt(x: x, y: y) else { continue }
+                totalRed += color.redComponent
+                totalGreen += color.greenComponent
+                totalBlue += color.blueComponent
+                pixelCount += 1
+            }
+        }
+
+        guard pixelCount > 0 else { return nil }
+
+        let avgRed = totalRed / pixelCount
+        let avgGreen = totalGreen / pixelCount
+        let avgBlue = totalBlue / pixelCount
+
+        return NSColor(red: avgRed, green: avgGreen, blue: avgBlue, alpha: 1.0)
+    }
+
     func createWallpaperThumbnail(wallpaper: [String: Any], frame: NSRect) -> NSView {
         let itemView = HoverScaleView(frame: frame)
         itemView.wantsLayer = true
@@ -2724,13 +2757,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             itemView.wallpaperId = wallpaperId
         }
 
-        // Create clipping container with top-only rounded corners
-        let clipContainer = NSView(frame: NSRect(x: 0, y: 0, width: frame.width, height: frame.height))
+        // Calculate heights
+        let thumbnailHeight = frame.height * 0.8
+        let overlayHeight = frame.height * 0.2
+
+        // Create clipping container with top-only rounded corners - positioned at top, 80% of height
+        let clipContainer = NSView(frame: NSRect(x: 0, y: overlayHeight, width: frame.width, height: thumbnailHeight))
         clipContainer.wantsLayer = true
         clipContainer.layer?.cornerRadius = 8
         clipContainer.layer?.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner] // Top corners only
         clipContainer.layer?.masksToBounds = true
         itemView.addSubview(clipContainer)
+
+        // Add overlay at bottom 20% (will be filled with average color later)
+        let overlayView = NSView(frame: NSRect(x: 0, y: 0, width: frame.width, height: overlayHeight))
+        overlayView.wantsLayer = true
+        overlayView.layer?.backgroundColor = NSColor.darkGray.cgColor // Default color, will be replaced
+        itemView.addSubview(overlayView)
 
         // Load thumbnail image asynchronously
         if let thumbnailURLString = wallpaper["thumbnail"] as? String,
@@ -2738,6 +2781,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             URLSession.shared.dataTask(with: thumbnailURL) { data, _, error in
                 guard let data = data, error == nil, let image = NSImage(data: data) else { return }
                 DispatchQueue.main.async {
+                    // Calculate average color from thumbnail
+                    let averageColor = self.getAverageColor(from: image) ?? NSColor.darkGray
+                    overlayView.layer?.backgroundColor = averageColor.cgColor
+
                     // Calculate aspect-fill frame from top
                     let imageSize = image.size
                     let containerSize = clipContainer.bounds.size
@@ -2773,21 +2820,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }.resume()
         }
 
-        // Add black semi-transparent overlay at bottom 20%
-        let overlayHeight = frame.height * 0.2
-        let overlayView = NSView(frame: NSRect(x: 0, y: 0, width: frame.width, height: overlayHeight))
-        overlayView.wantsLayer = true
-        overlayView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor // 30% transparency = 70% opacity
-        itemView.addSubview(overlayView)
-
-        // Add white text label with wallpaper name
+        // Add white text label with wallpaper name (vertically centered)
         if let name = wallpaper["name"] as? String {
             let label = NSTextField(labelWithString: name)
             label.font = NSFont.systemFont(ofSize: 14, weight: .medium)
             label.textColor = .white
             label.alignment = .left
             label.lineBreakMode = .byTruncatingTail
-            label.frame = NSRect(x: 10, y: overlayHeight - 22, width: frame.width - 20, height: 18)
+            let labelHeight: CGFloat = 18
+            label.frame = NSRect(x: 10, y: (overlayHeight - labelHeight) / 2, width: frame.width - 20, height: labelHeight)
             overlayView.addSubview(label)
         }
 
