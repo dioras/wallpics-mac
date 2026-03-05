@@ -3115,10 +3115,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             playbackView.addSubview(metalView)
 
         } else if animationExtensions.contains(ext) {
-            // Play Rive animation - exactly like home screen
+            // Play Rive animation with aspect-fill (cover) fit
             let viewModel = RiveViewModel(
                 webURL: assetURL.absoluteString,
-                fit: .fill,
+                fit: .cover,
                 alignment: .center,
                 loadCdn: false
             )
