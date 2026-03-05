@@ -631,7 +631,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var wallpaperData: [[String: Any]] = []
     var filteredWallpaperData: [[String: Any]] = []
     var searchField: NSSearchField?
-    var typeComboBox: NSPopUpButton?
+    var typeButton: NSButton?
+    var typePopover: NSPopover?
+    var selectedTypes: Set<String> = []
     var tagsButton: NSButton?
     var tagsPopover: NSPopover?
     var selectedTags: Set<String> = []
@@ -2404,6 +2406,54 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         loadAssetAtIndex(currentAssetIndex)
     }
 
+    func createDropdownButton(iconName: String, title: String, frame: NSRect, action: Selector) -> NSButton {
+        let button = NSButton(frame: frame)
+        button.title = ""
+        button.bezelStyle = .rounded
+        button.target = self
+        button.action = action
+        button.autoresizingMask = [.minXMargin, .minYMargin]
+
+        if let leftIcon = NSImage(systemSymbolName: iconName, accessibilityDescription: title),
+           let chevronImage = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: "Dropdown") {
+            leftIcon.isTemplate = true
+            chevronImage.isTemplate = true
+
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
+                .foregroundColor: NSColor.controlTextColor
+            ]
+            let text = title as NSString
+            let textSize = text.size(withAttributes: attrs)
+            let padding: CGFloat = 12
+            let combinedWidth = frame.width
+            let combinedHeight = max(leftIcon.size.height, textSize.height, chevronImage.size.height)
+
+            let combinedImage = NSImage(size: NSSize(width: combinedWidth, height: combinedHeight))
+            combinedImage.isTemplate = true
+            combinedImage.lockFocus()
+
+            // Draw left icon (left-aligned, centered vertically)
+            let iconY = (combinedHeight - leftIcon.size.height) / 2
+            leftIcon.draw(at: NSPoint(x: padding, y: iconY), from: NSRect.zero, operation: .sourceOver, fraction: 1.0)
+
+            // Draw chevron on right (right-aligned, centered vertically)
+            let chevronY = (combinedHeight - chevronImage.size.height) / 2
+            chevronImage.draw(at: NSPoint(x: combinedWidth - chevronImage.size.width - padding, y: chevronY), from: NSRect.zero, operation: .sourceOver, fraction: 1.0)
+
+            // Draw text in center (centered horizontally and vertically)
+            let textY = (combinedHeight - textSize.height) / 2
+            let textX = (combinedWidth - textSize.width) / 2
+            text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+
+            combinedImage.unlockFocus()
+            button.image = combinedImage
+            button.imagePosition = .imageOnly
+        }
+
+        return button
+    }
+
     func createBrowserView(frame: NSRect) {
         browserView = NSView(frame: frame)
         browserView?.wantsLayer = true
@@ -2434,74 +2484,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         searchField = search
         browserView.addSubview(search)
 
-        // Type combobox
-        let typeComboX = padding + searchWidth + comboboxSpacing
-        let typeCombo = NSPopUpButton(frame: NSRect(
-            x: typeComboX,
-            y: controlsY,
-            width: comboboxWidth,
-            height: controlsHeight
-        ))
-        typeCombo.addItem(withTitle: "Select Type")
-        typeCombo.autoresizingMask = [.minXMargin, .minYMargin]
-        typeComboBox = typeCombo
-        browserView.addSubview(typeCombo)
+        // Type button
+        let typeButtonX = padding + searchWidth + comboboxSpacing
+        let typeBtn = createDropdownButton(
+            iconName: "square.stack.3d.down.right",
+            title: "Type",
+            frame: NSRect(x: typeButtonX, y: controlsY, width: comboboxWidth, height: controlsHeight),
+            action: #selector(typeButtonClicked(_:))
+        )
+        typeButton = typeBtn
+        browserView.addSubview(typeBtn)
 
-        // Tags button (will show popover with checkboxes)
-        let tagsButtonX = typeComboX + comboboxWidth + comboboxSpacing
-        let tagsBtn = NSButton(frame: NSRect(
-            x: tagsButtonX,
-            y: controlsY,
-            width: comboboxWidth,
-            height: controlsHeight
-        ))
-        tagsBtn.title = " Tags  "
-        tagsBtn.bezelStyle = .rounded
-        tagsBtn.target = self
-        tagsBtn.action = #selector(tagsButtonClicked(_:))
-        tagsBtn.autoresizingMask = [.minXMargin, .minYMargin]
-
-        // Create composite image with tag icon on left and chevron on right
-        if let tagImage = NSImage(systemSymbolName: "tag", accessibilityDescription: "Tag"),
-           let chevronImage = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: "Dropdown") {
-            // Set as template images so they inherit text color
-            tagImage.isTemplate = true
-            chevronImage.isTemplate = true
-
-            // Calculate sizes
-            let attrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
-                .foregroundColor: NSColor.controlTextColor
-            ]
-            let text = "Tags" as NSString
-            let textSize = text.size(withAttributes: attrs)
-            let padding: CGFloat = 12
-            let combinedWidth = comboboxWidth
-            let combinedHeight = max(tagImage.size.height, textSize.height, chevronImage.size.height)
-
-            let combinedImage = NSImage(size: NSSize(width: combinedWidth, height: combinedHeight))
-            combinedImage.isTemplate = true
-            combinedImage.lockFocus()
-
-            // Draw tag icon on left (left-aligned, centered vertically)
-            let tagY = (combinedHeight - tagImage.size.height) / 2
-            tagImage.draw(at: NSPoint(x: padding, y: tagY), from: NSRect.zero, operation: .sourceOver, fraction: 1.0)
-
-            // Draw chevron on right (right-aligned, centered vertically)
-            let chevronY = (combinedHeight - chevronImage.size.height) / 2
-            chevronImage.draw(at: NSPoint(x: combinedWidth - chevronImage.size.width - padding, y: chevronY), from: NSRect.zero, operation: .sourceOver, fraction: 1.0)
-
-            // Draw text in center (centered horizontally and vertically)
-            let textY = (combinedHeight - textSize.height) / 2
-            let textX = (combinedWidth - textSize.width) / 2
-            text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
-
-            combinedImage.unlockFocus()
-            tagsBtn.image = combinedImage
-            tagsBtn.title = ""
-            tagsBtn.imagePosition = .imageOnly
-        }
-
+        // Tags button
+        let tagsButtonX = typeButtonX + comboboxWidth + comboboxSpacing
+        let tagsBtn = createDropdownButton(
+            iconName: "tag",
+            title: "Tags",
+            frame: NSRect(x: tagsButtonX, y: controlsY, width: comboboxWidth, height: controlsHeight),
+            action: #selector(tagsButtonClicked(_:))
+        )
         tagsButton = tagsBtn
         browserView.addSubview(tagsBtn)
 
@@ -3291,7 +3292,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let contentView = NSView(frame: NSRect(x: 0, y: 0, width: popoverWidth - 20, height: contentHeight))
 
         var column = 0
-        var yOffset: CGFloat = contentHeight - rowHeight
+        var yOffset: CGFloat = contentHeight - rowHeight + 5
 
         for (index, tag) in availableTags.enumerated() {
             let xOffset = CGFloat(column) * (columnWidth + 10) + 10
@@ -3306,7 +3307,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Switch to second column when first column is filled
             if (index + 1) == tagsPerColumn && column == 0 {
                 column = 1
-                yOffset = contentHeight - rowHeight
+                yOffset = contentHeight - rowHeight + 5
             }
         }
 
@@ -3319,6 +3320,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
         tagsPopover = popover
+    }
+
+    @objc func typeButtonClicked(_ sender: NSButton) {
+        let types = ["Image", "Video", "Shader", "Animation"]
+        let popoverView = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: CGFloat(types.count * 25 + 20)))
+
+        let contentView = NSView(frame: NSRect(x: 0, y: 5, width: 180, height: CGFloat(types.count * 25)))
+
+        var yOffset: CGFloat = CGFloat(types.count * 25 - 20)
+        for type in types {
+            let checkbox = NSButton(checkboxWithTitle: type, target: self, action: #selector(typeCheckboxChanged(_:)))
+            checkbox.frame = NSRect(x: 10, y: yOffset, width: 170, height: 20)
+            checkbox.state = selectedTypes.contains(type) ? .on : .off
+            contentView.addSubview(checkbox)
+            yOffset -= 25
+        }
+
+        popoverView.addSubview(contentView)
+
+        let popover = NSPopover()
+        popover.contentViewController = NSViewController()
+        popover.contentViewController?.view = popoverView
+        popover.behavior = .transient
+        popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+        typePopover = popover
+    }
+
+    @objc func typeCheckboxChanged(_ sender: NSButton) {
+        let type = sender.title
+        if sender.state == .on {
+            selectedTypes.insert(type)
+            print("Type selected: \(type), selectedTypes: \(selectedTypes)")
+        } else {
+            selectedTypes.remove(type)
+            print("Type deselected: \(type), selectedTypes: \(selectedTypes)")
+        }
+        filterWallpapers()
     }
 
     @objc func tagCheckboxChanged(_ sender: NSButton) {
@@ -3716,6 +3754,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
 
                 return false
+            }
+        }
+
+        // Filter by selected types (must have ANY of the selected types)
+        if !selectedTypes.isEmpty {
+            filtered = filtered.filter { wallpaper in
+                guard let wallpaperId = wallpaper["id"] as? Int else { return false }
+
+                // Check if downloaded by looking for ID file
+                guard let assetsFolderURL = self.assetsFolderURL else { return false }
+                let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+                let idFilePath = idsFolder.appendingPathComponent("\(wallpaperId)")
+
+                guard FileManager.default.fileExists(atPath: idFilePath.path),
+                      let assetPath = try? String(contentsOf: idFilePath, encoding: .utf8) else {
+                    return false
+                }
+
+                let assetURL = URL(fileURLWithPath: assetPath)
+                let ext = assetURL.pathExtension.lowercased()
+
+                // Determine type from extension
+                let wallpaperType: String
+                if ext == "msl" {
+                    wallpaperType = "Shader"
+                } else if ext == "riv" {
+                    wallpaperType = "Animation"
+                } else if ["jpg", "jpeg", "png", "heic", "gif"].contains(ext) {
+                    wallpaperType = "Image"
+                } else {
+                    wallpaperType = "Video"
+                }
+
+                return selectedTypes.contains(wallpaperType)
             }
         }
 
