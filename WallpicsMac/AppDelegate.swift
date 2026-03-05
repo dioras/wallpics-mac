@@ -631,7 +631,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var wallpaperData: [[String: Any]] = []
     var filteredWallpaperData: [[String: Any]] = []
     var searchField: NSSearchField?
-    var globalTagsContainer: NSView?
+    var typeComboBox: NSPopUpButton?
+    var tagsButton: NSButton?
+    var tagsPopover: NSPopover?
+    var selectedTags: Set<String> = []
+    var sortComboBox: NSPopUpButton?
     var currentPage: Int = 1
     var isLoadingWallpapers: Bool = false
     var browserScrollView: NSScrollView?
@@ -2407,15 +2411,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard let browserView = browserView else { return }
 
-        // Create search field at top with padding
-        let searchFieldHeight: CGFloat = 30
-        let searchFieldPadding: CGFloat = 20
-        let searchFieldTopOffset: CGFloat = 10 + searchFieldHeight
+        // Create controls row at top with padding
+        let controlsHeight: CGFloat = 30
+        let padding: CGFloat = 20
+        let controlsTopOffset: CGFloat = 10
+        let controlsY = frame.height - controlsHeight - controlsTopOffset
+        let comboboxSpacing: CGFloat = 10
+
+        // Search field (takes remaining width)
+        let comboboxWidth: CGFloat = 150
+        let searchWidth = frame.width - (padding * 2) - (comboboxWidth * 3) - (comboboxSpacing * 3)
         let search = NSSearchField(frame: NSRect(
-            x: searchFieldPadding,
-            y: frame.height - searchFieldHeight - searchFieldTopOffset,
-            width: frame.width - (searchFieldPadding * 2),
-            height: searchFieldHeight
+            x: padding,
+            y: controlsY,
+            width: searchWidth,
+            height: controlsHeight
         ))
         search.placeholderString = "Search wallpapers..."
         search.autoresizingMask = [.width, .minYMargin]
@@ -2424,23 +2434,93 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         searchField = search
         browserView.addSubview(search)
 
-        // Create global tags container below search field (initially empty, will resize when tags load)
-        let tagsContainerHeight: CGFloat = 0
-        let tagsContainerY = frame.height - searchFieldHeight - searchFieldTopOffset - 10 - tagsContainerHeight
-        let tagsContainer = NSView(frame: NSRect(
-            x: searchFieldPadding,
-            y: tagsContainerY,
-            width: frame.width - (searchFieldPadding * 2),
-            height: tagsContainerHeight
+        // Type combobox
+        let typeComboX = padding + searchWidth + comboboxSpacing
+        let typeCombo = NSPopUpButton(frame: NSRect(
+            x: typeComboX,
+            y: controlsY,
+            width: comboboxWidth,
+            height: controlsHeight
         ))
-        tagsContainer.wantsLayer = true
-        tagsContainer.autoresizingMask = []
-        globalTagsContainer = tagsContainer
-        browserView.addSubview(tagsContainer)
+        typeCombo.addItem(withTitle: "Select Type")
+        typeCombo.autoresizingMask = [.minXMargin, .minYMargin]
+        typeComboBox = typeCombo
+        browserView.addSubview(typeCombo)
 
-        // Create scroll view below tags
+        // Tags button (will show popover with checkboxes)
+        let tagsButtonX = typeComboX + comboboxWidth + comboboxSpacing
+        let tagsBtn = NSButton(frame: NSRect(
+            x: tagsButtonX,
+            y: controlsY,
+            width: comboboxWidth,
+            height: controlsHeight
+        ))
+        tagsBtn.title = " Tags  "
+        tagsBtn.bezelStyle = .rounded
+        tagsBtn.target = self
+        tagsBtn.action = #selector(tagsButtonClicked(_:))
+        tagsBtn.autoresizingMask = [.minXMargin, .minYMargin]
+
+        // Create composite image with tag icon on left and chevron on right
+        if let tagImage = NSImage(systemSymbolName: "tag", accessibilityDescription: "Tag"),
+           let chevronImage = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: "Dropdown") {
+            // Set as template images so they inherit text color
+            tagImage.isTemplate = true
+            chevronImage.isTemplate = true
+
+            // Calculate sizes
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
+                .foregroundColor: NSColor.controlTextColor
+            ]
+            let text = "Tags" as NSString
+            let textSize = text.size(withAttributes: attrs)
+            let padding: CGFloat = 12
+            let combinedWidth = comboboxWidth
+            let combinedHeight = max(tagImage.size.height, textSize.height, chevronImage.size.height)
+
+            let combinedImage = NSImage(size: NSSize(width: combinedWidth, height: combinedHeight))
+            combinedImage.isTemplate = true
+            combinedImage.lockFocus()
+
+            // Draw tag icon on left (left-aligned, centered vertically)
+            let tagY = (combinedHeight - tagImage.size.height) / 2
+            tagImage.draw(at: NSPoint(x: padding, y: tagY), from: NSRect.zero, operation: .sourceOver, fraction: 1.0)
+
+            // Draw chevron on right (right-aligned, centered vertically)
+            let chevronY = (combinedHeight - chevronImage.size.height) / 2
+            chevronImage.draw(at: NSPoint(x: combinedWidth - chevronImage.size.width - padding, y: chevronY), from: NSRect.zero, operation: .sourceOver, fraction: 1.0)
+
+            // Draw text in center (centered horizontally and vertically)
+            let textY = (combinedHeight - textSize.height) / 2
+            let textX = (combinedWidth - textSize.width) / 2
+            text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+
+            combinedImage.unlockFocus()
+            tagsBtn.image = combinedImage
+            tagsBtn.title = ""
+            tagsBtn.imagePosition = .imageOnly
+        }
+
+        tagsButton = tagsBtn
+        browserView.addSubview(tagsBtn)
+
+        // Sort combobox
+        let sortComboX = tagsButtonX + comboboxWidth + comboboxSpacing
+        let sortCombo = NSPopUpButton(frame: NSRect(
+            x: sortComboX,
+            y: controlsY,
+            width: comboboxWidth,
+            height: controlsHeight
+        ))
+        sortCombo.addItem(withTitle: "Sort")
+        sortCombo.autoresizingMask = [.minXMargin, .minYMargin]
+        sortComboBox = sortCombo
+        browserView.addSubview(sortCombo)
+
+        // Create scroll view below controls
         let scrollViewY: CGFloat = 0
-        let scrollViewHeight = tagsContainerY - 10
+        let scrollViewHeight = controlsY - 10
         let scrollView = NSScrollView(frame: NSRect(
             x: 0,
             y: scrollViewY,
@@ -3174,14 +3254,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         filterWallpapers()
     }
 
+    var availableTags: [String] = []
+
     func displayGlobalTags() {
-        guard let tagsContainer = globalTagsContainer,
-              let browserView = browserView,
-              let scrollView = browserScrollView else { return }
-
-        // Clear existing tags
-        tagsContainer.subviews.forEach { $0.removeFromSuperview() }
-
         // Collect first 3 tags from each wallpaper
         var allTags: [String] = []
         for wallpaper in wallpaperData {
@@ -3195,107 +3270,67 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         var uniqueTags = Array(Set(allTags)).sorted()
         uniqueTags = Array(uniqueTags.prefix(100))
 
-        // Add "All" as first tag
-        var displayTags = ["All"] + uniqueTags
-
-        // Create tag buttons
-        let buttonHeight: CGFloat = 20
-        let buttonSpacing: CGFloat = 6
-        let font = NSFont.systemFont(ofSize: 11)
-
-        // First pass: calculate required height
-        let searchFieldPadding: CGFloat = 20
-        let containerWidth = browserView.bounds.width - (searchFieldPadding * 2)
-        var xOffset: CGFloat = 0
-        var lineCount: CGFloat = 1
-
-        for tagName in displayTags {
-            let textSize = (tagName as NSString).size(withAttributes: [.font: font])
-            let buttonWidth = textSize.width + 16
-
-            if xOffset + buttonWidth > containerWidth && xOffset > 0 {
-                lineCount += 1
-                xOffset = 0
-            }
-            xOffset += buttonWidth + buttonSpacing
-        }
-
-        // Calculate actual height needed
-        let actualHeight = lineCount * buttonHeight + (lineCount - 1) * buttonSpacing
-
-        // Resize tags container
-        let searchFieldHeight: CGFloat = 30
-        let searchFieldTopOffset: CGFloat = 10 + searchFieldHeight / 2
-        let newTagsY = browserView.bounds.height - searchFieldHeight - searchFieldTopOffset - 10 - actualHeight - (actualHeight * 0.75)
-        tagsContainer.frame = NSRect(
-            x: searchFieldPadding,
-            y: newTagsY,
-            width: containerWidth,
-            height: actualHeight
-        )
-
-        // Update scroll view frame
-        scrollView.frame = NSRect(
-            x: 0,
-            y: 0,
-            width: browserView.bounds.width,
-            height: newTagsY - 10
-        )
-
-        // Second pass: create and layout tags
-        xOffset = 0
-        var yOffset: CGFloat = actualHeight - buttonHeight
-
-        for tagName in displayTags {
-            // Calculate button width
-            let textSize = (tagName as NSString).size(withAttributes: [.font: font])
-            let buttonWidth = textSize.width + 16
-
-            // Check if we need to wrap to next line
-            if xOffset + buttonWidth > containerWidth && xOffset > 0 {
-                xOffset = 0
-                yOffset -= buttonHeight + buttonSpacing
-            }
-
-            // Create tag view
-            let tagView = NSView(frame: NSRect(x: xOffset, y: yOffset, width: buttonWidth, height: buttonHeight))
-            tagView.wantsLayer = true
-            tagView.layer?.backgroundColor = NSColor(white: 0.3, alpha: 1.0).cgColor
-            tagView.layer?.cornerRadius = buttonHeight * 0.5
-
-            // Add text label
-            let label = NSTextField(labelWithString: tagName)
-            label.font = font
-            label.textColor = .white
-            label.alignment = .center
-            label.frame = NSRect(x: 0, y: -2, width: buttonWidth, height: buttonHeight)
-            tagView.addSubview(label)
-
-            // Add click gesture
-            let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(globalTagClicked(_:)))
-            tagView.addGestureRecognizer(clickGesture)
-
-            tagsContainer.addSubview(tagView)
-
-            xOffset += buttonWidth + buttonSpacing
-        }
+        // Store available tags
+        availableTags = uniqueTags
     }
 
-    @objc func globalTagClicked(_ sender: NSClickGestureRecognizer) {
-        guard let tagView = sender.view,
-              let label = tagView.subviews.first as? NSTextField else { return }
+    @objc func tagsButtonClicked(_ sender: NSButton) {
+        // Create popover content view with checkboxes in two columns
+        let columnWidth: CGFloat = 180
+        let popoverWidth = columnWidth * 2 + 30
+        let tagsPerColumn = (availableTags.count + 1) / 2
+        let rowHeight: CGFloat = 25
+        let contentHeight = CGFloat(tagsPerColumn) * rowHeight
 
-        let tagName = label.stringValue
+        let popoverView = NSView(frame: NSRect(x: 0, y: 0, width: popoverWidth, height: min(400, contentHeight + 20)))
 
-        if tagName == "All" {
-            // Clear search field and filter
-            searchField?.stringValue = ""
-            filterWallpapers()
-        } else {
-            // Set search field to tag name and filter
-            searchField?.stringValue = tagName
-            filterWallpapers()
+        let scrollView = NSScrollView(frame: popoverView.bounds)
+        scrollView.hasVerticalScroller = true
+        scrollView.autoresizingMask = [.width, .height]
+
+        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: popoverWidth - 20, height: contentHeight))
+
+        var column = 0
+        var yOffset: CGFloat = contentHeight - rowHeight
+
+        for (index, tag) in availableTags.enumerated() {
+            let xOffset = CGFloat(column) * (columnWidth + 10) + 10
+            let checkbox = NSButton(checkboxWithTitle: tag, target: self, action: #selector(tagCheckboxChanged(_:)))
+            checkbox.frame = NSRect(x: xOffset, y: yOffset, width: columnWidth, height: 20)
+            checkbox.state = selectedTags.contains(tag) ? .on : .off
+            contentView.addSubview(checkbox)
+
+            // Move to next row in current column
+            yOffset -= rowHeight
+
+            // Switch to second column when first column is filled
+            if (index + 1) == tagsPerColumn && column == 0 {
+                column = 1
+                yOffset = contentHeight - rowHeight
+            }
         }
+
+        scrollView.documentView = contentView
+        popoverView.addSubview(scrollView)
+
+        let popover = NSPopover()
+        popover.contentViewController = NSViewController()
+        popover.contentViewController?.view = popoverView
+        popover.behavior = .transient
+        popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+        tagsPopover = popover
+    }
+
+    @objc func tagCheckboxChanged(_ sender: NSButton) {
+        let tag = sender.title
+        if sender.state == .on {
+            selectedTags.insert(tag)
+            print("Tag selected: \(tag), selectedTags: \(selectedTags)")
+        } else {
+            selectedTags.remove(tag)
+            print("Tag deselected: \(tag), selectedTags: \(selectedTags)")
+        }
+        filterWallpapers()
     }
 
     func downloadWallpaperZip(wallpaperId: Int, completion: ((Bool, URL?) -> Void)? = nil) {
@@ -3658,12 +3693,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Save old results for comparison
         let oldFilteredData = filteredWallpaperData
 
-        if searchText.isEmpty {
-            // No search text - show all wallpapers
-            filteredWallpaperData = wallpaperData
-        } else {
-            // Filter by name and tags
-            filteredWallpaperData = wallpaperData.filter { wallpaper in
+        // Start with all wallpapers
+        var filtered = wallpaperData
+
+        // Filter by search text
+        if !searchText.isEmpty {
+            filtered = filtered.filter { wallpaper in
                 // Check name
                 if let name = wallpaper["name"] as? String,
                    name.lowercased().contains(searchText) {
@@ -3683,6 +3718,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return false
             }
         }
+
+        // Filter by selected tags (must have ANY of the selected tags)
+        if !selectedTags.isEmpty {
+            filtered = filtered.filter { wallpaper in
+                guard let tags = wallpaper["tags"] as? [[String: Any]] else { return false }
+                let wallpaperTagNames = Set(tags.compactMap { $0["name"] as? String })
+                return !selectedTags.isDisjoint(with: wallpaperTagNames)
+            }
+        }
+
+        filteredWallpaperData = filtered
 
         // Compare old and new filtered results
         let resultsChanged: Bool
