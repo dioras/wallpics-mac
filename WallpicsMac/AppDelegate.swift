@@ -637,7 +637,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var tagsButton: NSButton?
     var tagsPopover: NSPopover?
     var selectedTags: Set<String> = []
-    var sortComboBox: NSPopUpButton?
+    var sortButton: NSButton?
+    var sortPopover: NSPopover?
+    var selectedSort: String = ""
     var currentPage: Int = 1
     var isLoadingWallpapers: Bool = false
     var browserScrollView: NSScrollView?
@@ -2506,18 +2508,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         tagsButton = tagsBtn
         browserView.addSubview(tagsBtn)
 
-        // Sort combobox
-        let sortComboX = tagsButtonX + comboboxWidth + comboboxSpacing
-        let sortCombo = NSPopUpButton(frame: NSRect(
-            x: sortComboX,
-            y: controlsY,
-            width: comboboxWidth,
-            height: controlsHeight
-        ))
-        sortCombo.addItem(withTitle: "Sort")
-        sortCombo.autoresizingMask = [.minXMargin, .minYMargin]
-        sortComboBox = sortCombo
-        browserView.addSubview(sortCombo)
+        // Sort button
+        let sortButtonX = tagsButtonX + comboboxWidth + comboboxSpacing
+        let sortBtn = createDropdownButton(
+            iconName: "arrow.up.arrow.down",
+            title: "Sort",
+            frame: NSRect(x: sortButtonX, y: controlsY, width: comboboxWidth, height: controlsHeight),
+            action: #selector(sortButtonClicked(_:))
+        )
+        sortButton = sortBtn
+        browserView.addSubview(sortBtn)
 
         // Create scroll view below controls
         let scrollViewY: CGFloat = 0
@@ -3371,6 +3371,97 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         filterWallpapers()
     }
 
+    @objc func sortButtonClicked(_ sender: NSButton) {
+        let sortOptions = ["A-Z", "Z-A", "Newest First", "Oldest First"]
+        let popoverView = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: CGFloat(sortOptions.count * 25 + 20)))
+
+        let contentView = NSView(frame: NSRect(x: 0, y: 5, width: 180, height: CGFloat(sortOptions.count * 25)))
+
+        var yOffset: CGFloat = CGFloat(sortOptions.count * 25 - 20)
+        for option in sortOptions {
+            let radioButton = NSButton(radioButtonWithTitle: option, target: self, action: #selector(sortRadioChanged(_:)))
+            radioButton.frame = NSRect(x: 10, y: yOffset, width: 170, height: 20)
+            radioButton.state = (selectedSort == option) ? .on : .off
+            contentView.addSubview(radioButton)
+            yOffset -= 25
+        }
+
+        popoverView.addSubview(contentView)
+
+        let popover = NSPopover()
+        popover.contentViewController = NSViewController()
+        popover.contentViewController?.view = popoverView
+        popover.behavior = .transient
+        popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+        sortPopover = popover
+    }
+
+    @objc func sortRadioChanged(_ sender: NSButton) {
+        let option = sender.title
+        selectedSort = option
+        print("Sort selected: \(option)")
+
+        // Update all radio buttons in the popover
+        if let popover = sortPopover,
+           let contentView = popover.contentViewController?.view.subviews.first {
+            for subview in contentView.subviews {
+                if let radioButton = subview as? NSButton {
+                    radioButton.state = (radioButton.title == option) ? .on : .off
+                }
+            }
+        }
+
+        filterWallpapers()
+    }
+
+    func sortWallpapers(_ wallpapers: [[String: Any]], by sortOption: String) -> [[String: Any]] {
+        switch sortOption {
+        case "A-Z":
+            return wallpapers.sorted { wp1, wp2 in
+                let name1 = (wp1["name"] as? String ?? "").lowercased()
+                let name2 = (wp2["name"] as? String ?? "").lowercased()
+                return name1 < name2
+            }
+        case "Z-A":
+            return wallpapers.sorted { wp1, wp2 in
+                let name1 = (wp1["name"] as? String ?? "").lowercased()
+                let name2 = (wp2["name"] as? String ?? "").lowercased()
+                return name1 > name2
+            }
+        case "Newest First":
+            return wallpapers.sorted { wp1, wp2 in
+                let date1 = parseDate(wp1["created_at"] as? String ?? "")
+                let date2 = parseDate(wp2["created_at"] as? String ?? "")
+                return date1 > date2
+            }
+        case "Oldest First":
+            return wallpapers.sorted { wp1, wp2 in
+                let date1 = parseDate(wp1["created_at"] as? String ?? "")
+                let date2 = parseDate(wp2["created_at"] as? String ?? "")
+                return date1 < date2
+            }
+        default:
+            return wallpapers
+        }
+    }
+
+    func parseDate(_ dateString: String) -> Date {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: dateString) {
+            return date
+        }
+
+        // Try without fractional seconds
+        formatter.formatOptions = [.withInternetDateTime]
+        if let date = formatter.date(from: dateString) {
+            return date
+        }
+
+        // Fallback: return distant past for invalid dates
+        return Date.distantPast
+    }
+
     func downloadWallpaperZip(wallpaperId: Int, completion: ((Bool, URL?) -> Void)? = nil) {
         // Find wallpaper in data to get the zip URL
         print("Looking for wallpaper ID: \(wallpaperId) in \(wallpaperData.count) wallpapers")
@@ -3798,6 +3889,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let wallpaperTagNames = Set(tags.compactMap { $0["name"] as? String })
                 return !selectedTags.isDisjoint(with: wallpaperTagNames)
             }
+        }
+
+        // Apply sorting
+        if !selectedSort.isEmpty {
+            filtered = sortWallpapers(filtered, by: selectedSort)
         }
 
         filteredWallpaperData = filtered
