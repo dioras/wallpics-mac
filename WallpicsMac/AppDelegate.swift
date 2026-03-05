@@ -772,7 +772,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ensureFolderExists(at: folderURL)
 
         // Create required subfolders
-        let subfolders = ["Videos", "Images", "Shaders", "Animations", "FirstFrames", "IDs"]
+        let subfolders = ["Videos", "Images", "Shaders", "Animations", "FirstFrames", "IDs", "Favorites"]
         for subfolder in subfolders {
             let subfolderURL = folderURL.appendingPathComponent(subfolder)
             ensureFolderExists(at: subfolderURL)
