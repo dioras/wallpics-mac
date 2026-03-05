@@ -1007,134 +1007,276 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window?.makeFirstResponder(window?.contentView)
     }
 
+    func createSidebarView(frame: NSRect) -> NSView {
+        let sidebar = NSView(frame: frame)
+        sidebar.wantsLayer = true
+        sidebar.layer?.backgroundColor = NSColor(red: 30/255.0, green: 30/255.0, blue: 30/255.0, alpha: 1.0).cgColor
+        sidebar.autoresizingMask = [.height]
+
+        // App icon at top
+        let iconSize: CGFloat = 60
+        let iconView = NSImageView(frame: NSRect(
+            x: (frame.width - iconSize) / 2,
+            y: frame.height - iconSize - 30,
+            width: iconSize,
+            height: iconSize
+        ))
+        if let appIcon = NSImage(systemSymbolName: "photo.on.rectangle", accessibilityDescription: "WallpicsMac") {
+            iconView.image = appIcon
+            iconView.contentTintColor = NSColor(red: 100/255.0, green: 200/255.0, blue: 255/255.0, alpha: 1.0)
+        }
+        iconView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
+        sidebar.addSubview(iconView)
+
+        // App title below icon
+        let titleLabel = NSTextField(labelWithString: "WallpicsMac")
+        titleLabel.font = NSFont.systemFont(ofSize: 18, weight: .bold)
+        titleLabel.textColor = .white
+        titleLabel.alignment = .center
+        titleLabel.frame = NSRect(
+            x: 20,
+            y: frame.height - iconSize - 65,
+            width: frame.width - 40,
+            height: 25
+        )
+        titleLabel.autoresizingMask = [.width, .minYMargin]
+        sidebar.addSubview(titleLabel)
+
+        // Menu items
+        let menuItemHeight: CGFloat = 50
+        let menuStartY = frame.height - iconSize - 120
+        let menuItems = [
+            ("Favorites", "star"),
+            ("Browse", "square.grid.2x2")
+        ]
+
+        for (index, item) in menuItems.enumerated() {
+            let itemY = menuStartY - (CGFloat(index) * menuItemHeight)
+            let menuItem = createMenuItem(
+                title: item.0,
+                icon: item.1,
+                frame: NSRect(x: 0, y: itemY, width: frame.width, height: menuItemHeight),
+                index: index
+            )
+            sidebar.addSubview(menuItem)
+        }
+
+        return sidebar
+    }
+
+    func createMenuItem(title: String, icon: String, frame: NSRect, index: Int) -> NSView {
+        let item = NSView(frame: frame)
+        item.wantsLayer = true
+
+        // Highlight Favorites by default (index 0)
+        if index == 0 {
+            item.layer?.backgroundColor = NSColor(red: 60/255.0, green: 100/255.0, blue: 150/255.0, alpha: 1.0).cgColor
+        }
+
+        // Icon
+        let iconView = NSImageView(frame: NSRect(x: 20, y: (frame.height - 24) / 2, width: 24, height: 24))
+        if let iconImage = NSImage(systemSymbolName: icon, accessibilityDescription: title) {
+            iconView.image = iconImage
+            iconView.contentTintColor = .white
+        }
+        item.addSubview(iconView)
+
+        // Title
+        let label = NSTextField(labelWithString: title)
+        label.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        label.textColor = .white
+        label.isBordered = false
+        label.isEditable = false
+        label.backgroundColor = .clear
+        label.frame = NSRect(x: 55, y: (frame.height - 20) / 2, width: frame.width - 70, height: 20)
+        item.addSubview(label)
+
+        // Add click gesture
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(menuItemClicked(_:)))
+        item.addGestureRecognizer(clickGesture)
+        item.identifier = NSUserInterfaceItemIdentifier("menu_item_\(index)")
+
+        return item
+    }
+
+    @objc func menuItemClicked(_ sender: NSClickGestureRecognizer) {
+        guard let clickedView = sender.view,
+              let identifier = clickedView.identifier?.rawValue,
+              let indexString = identifier.components(separatedBy: "_").last,
+              let menuIndex = Int(indexString) else { return }
+
+        // Update menu item highlighting
+        if let sidebar = window?.contentView?.subviews.first {
+            for subview in sidebar.subviews {
+                if subview.identifier?.rawValue.hasPrefix("menu_item_") == true {
+                    subview.layer?.backgroundColor = NSColor.clear.cgColor
+                }
+            }
+            clickedView.layer?.backgroundColor = NSColor(red: 60/255.0, green: 100/255.0, blue: 150/255.0, alpha: 1.0).cgColor
+        }
+
+        // Switch view based on menu
+        switch menuIndex {
+        case 0: // Favorites
+            print("Favorites clicked")
+            // TODO: Load favorites
+        case 1: // Browse
+            print("Browse clicked")
+            // Already showing browser view
+        default:
+            break
+        }
+    }
+
+    func createPreviewView(frame: NSRect) -> NSView {
+        let preview = NSView(frame: frame)
+        preview.wantsLayer = true
+        preview.layer?.backgroundColor = NSColor(red: 25/255.0, green: 25/255.0, blue: 25/255.0, alpha: 1.0).cgColor
+        preview.autoresizingMask = [.height, .minXMargin]
+
+        // Preview container at top (will show selected wallpaper preview)
+        let previewHeight: CGFloat = frame.width * 0.75 // 4:3 aspect ratio
+        let previewContainer = NSView(frame: NSRect(
+            x: 20,
+            y: frame.height - previewHeight - 20,
+            width: frame.width - 40,
+            height: previewHeight
+        ))
+        previewContainer.wantsLayer = true
+        previewContainer.layer?.backgroundColor = NSColor.darkGray.cgColor
+        previewContainer.layer?.cornerRadius = 8
+        previewContainer.autoresizingMask = [.width, .minYMargin]
+        preview.addSubview(previewContainer)
+
+        // Placeholder text
+        let placeholderLabel = NSTextField(labelWithString: "Select a wallpaper")
+        placeholderLabel.font = NSFont.systemFont(ofSize: 18, weight: .medium)
+        placeholderLabel.textColor = .secondaryLabelColor
+        placeholderLabel.alignment = .center
+        placeholderLabel.frame = NSRect(
+            x: 0,
+            y: (previewHeight - 25) / 2,
+            width: previewContainer.bounds.width,
+            height: 25
+        )
+        placeholderLabel.autoresizingMask = [.width, .minYMargin, .maxYMargin]
+        previewContainer.addSubview(placeholderLabel)
+
+        // Title below preview
+        let titleY = frame.height - previewHeight - 60
+        let titleLabel = NSTextField(labelWithString: "")
+        titleLabel.font = NSFont.systemFont(ofSize: 20, weight: .bold)
+        titleLabel.textColor = .white
+        titleLabel.alignment = .left
+        titleLabel.frame = NSRect(x: 20, y: titleY, width: frame.width - 40, height: 30)
+        titleLabel.autoresizingMask = [.width, .minYMargin]
+        preview.addSubview(titleLabel)
+
+        // Subtitle
+        let subtitleY = titleY - 25
+        let subtitleLabel = NSTextField(labelWithString: "")
+        subtitleLabel.font = NSFont.systemFont(ofSize: 14)
+        subtitleLabel.textColor = .secondaryLabelColor
+        subtitleLabel.alignment = .left
+        subtitleLabel.frame = NSRect(x: 20, y: subtitleY, width: frame.width - 40, height: 20)
+        subtitleLabel.autoresizingMask = [.width, .minYMargin]
+        preview.addSubview(subtitleLabel)
+
+        // Buttons container (Set, Delete, Favorite)
+        let buttonsY = subtitleY - 50
+        let buttonWidth: CGFloat = 100
+        let buttonHeight: CGFloat = 35
+        let buttonSpacing: CGFloat = 10
+
+        // Set button
+        let setButton = NSButton(frame: NSRect(x: 20, y: buttonsY, width: buttonWidth * 2, height: buttonHeight))
+        setButton.title = "Set"
+        setButton.bezelStyle = .rounded
+        setButton.target = self
+        setButton.action = #selector(previewSetButtonClicked)
+        setButton.autoresizingMask = [.maxXMargin, .minYMargin]
+        preview.addSubview(setButton)
+
+        // Delete button
+        let deleteButton = NSButton(frame: NSRect(
+            x: 20 + buttonWidth * 2 + buttonSpacing,
+            y: buttonsY,
+            width: buttonWidth / 2,
+            height: buttonHeight
+        ))
+        deleteButton.title = "🗑️"
+        deleteButton.bezelStyle = .circular
+        deleteButton.target = self
+        deleteButton.action = #selector(previewDeleteButtonClicked)
+        deleteButton.autoresizingMask = [.maxXMargin, .minYMargin]
+        preview.addSubview(deleteButton)
+
+        // Favorite button
+        let favoriteButton = NSButton(frame: NSRect(
+            x: 20 + buttonWidth * 2 + buttonSpacing + buttonWidth / 2 + buttonSpacing,
+            y: buttonsY,
+            width: buttonWidth / 2,
+            height: buttonHeight
+        ))
+        favoriteButton.title = "⭐"
+        favoriteButton.bezelStyle = .circular
+        favoriteButton.target = self
+        favoriteButton.action = #selector(previewFavoriteButtonClicked)
+        favoriteButton.autoresizingMask = [.maxXMargin, .minYMargin]
+        preview.addSubview(favoriteButton)
+
+        return preview
+    }
+
+    @objc func previewSetButtonClicked() {
+        print("Preview Set button clicked")
+        // TODO: Implement set wallpaper from preview
+    }
+
+    @objc func previewDeleteButtonClicked() {
+        print("Preview Delete button clicked")
+        // TODO: Implement delete wallpaper
+    }
+
+    @objc func previewFavoriteButtonClicked() {
+        print("Preview Favorite button clicked")
+        // TODO: Implement favorite toggle
+    }
+
     func setupWindowContent(frame: NSRect) {
         guard let window = window else { return }
 
-        // Main container view with keyboard handling
-        let mainView = KeyHandlingView(frame: frame)
+        // Main container view
+        let mainView = NSView(frame: frame)
         mainView.wantsLayer = true
         mainView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-
-        // Set up keyboard shortcuts
-        mainView.onLeftArrow = { [weak self] in
-            self?.previousAsset()
-        }
-        mainView.onRightArrow = { [weak self] in
-            self?.nextAsset()
-        }
-
         window.contentView = mainView
 
-        // Create segmented control for navigation
-        let segmentedControlWidth: CGFloat = 300
-        let segmentedControlHeight: CGFloat = 28
+        // Three-column layout
+        let sidebarWidth: CGFloat = 250
+        let previewWidth: CGFloat = 450
+        let centerWidth = frame.width - sidebarWidth - previewWidth
 
-        // Get the actual position of the close button to align with it
-        var segmentedControlY: CGFloat = frame.height - 40
-        if let closeButton = window.standardWindowButton(.closeButton),
-           let buttonSuperview = closeButton.superview {
-            // Convert close button position to mainView coordinates
-            let closeButtonFrame = buttonSuperview.convert(closeButton.frame, to: mainView)
-            let closeButtonCenterY = closeButtonFrame.midY
-            segmentedControlY = closeButtonCenterY - (segmentedControlHeight / 2)
+        // LEFT SIDEBAR
+        let sidebarView = createSidebarView(frame: NSRect(x: 0, y: 0, width: sidebarWidth, height: frame.height))
+        mainView.addSubview(sidebarView)
+
+        // CENTER COLUMN (Browser grid)
+        let centerFrame = NSRect(x: sidebarWidth, y: 0, width: centerWidth, height: frame.height)
+        createBrowserView(frame: centerFrame)
+        if let browserView = browserView {
+            mainView.addSubview(browserView)
         }
 
-        // Center horizontally
-        let segmentedControlX = (frame.width - segmentedControlWidth) / 2
+        // RIGHT PREVIEW PANEL
+        let previewFrame = NSRect(x: sidebarWidth + centerWidth, y: 0, width: previewWidth, height: frame.height)
+        let previewView = createPreviewView(frame: previewFrame)
+        mainView.addSubview(previewView)
 
-        segmentedControl = NSSegmentedControl(frame: NSRect(
-            x: segmentedControlX,
-            y: segmentedControlY,
-            width: segmentedControlWidth,
-            height: segmentedControlHeight
-        ))
-        segmentedControl?.segmentCount = 3
-        segmentedControl?.setLabel("Home", forSegment: 0)
-        segmentedControl?.setLabel("Browser", forSegment: 1)
-        segmentedControl?.setLabel("Create", forSegment: 2)
-        segmentedControl?.selectedSegment = 0
-        segmentedControl?.target = self
-        segmentedControl?.action = #selector(segmentChanged(_:))
-        segmentedControl?.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
-        segmentedControl?.wantsLayer = true
-        segmentedControl?.layer?.borderColor = NSColor.clear.cgColor
-        segmentedControl?.layer?.borderWidth = 0
-
-        // Content container (below the segmented control)
-        let containerY: CGFloat = 0
-        let containerHeight = frame.height
-        contentContainer = NSView(frame: NSRect(x: 0, y: containerY, width: frame.width, height: containerHeight))
-        contentContainer?.wantsLayer = true
-
-        if let contentContainer = contentContainer {
-            mainView.addSubview(contentContainer)
+        // Initialize guest ID and fetch wallpapers
+        initializeGuestId { [weak self] in
+            self?.fetchWallpapers(page: 1)
         }
-
-        // Create notification label (invisible by default)
-        let labelView = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 100))
-
-        let textLayer = CATextLayer()
-        textLayer.frame = labelView.bounds
-        textLayer.string = ""
-        textLayer.fontSize = 32
-        textLayer.font = NSFont.boldSystemFont(ofSize: 32)
-        textLayer.alignmentMode = .center
-        textLayer.foregroundColor = NSColor.white.cgColor
-        textLayer.contentsScale = NSScreen.main?.backingScaleFactor ?? 2.0
-
-        // Add stroke (outline)
-        textLayer.shadowColor = NSColor.black.cgColor
-        textLayer.shadowOffset = CGSize.zero
-        textLayer.shadowOpacity = 1.0
-        textLayer.shadowRadius = 3.0
-
-        labelView.wantsLayer = true
-        labelView.layer?.addSublayer(textLayer)
-
-        // Position in center
-        labelView.frame.origin = NSPoint(
-            x: (frame.width - 400) / 2,
-            y: (frame.height - 100) / 2
-        )
-        labelView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
-        labelView.alphaValue = 0
-        labelView.isHidden = false  // Start visible on home screen, but transparent
-
-        notificationLabel = labelView
-        mainView.addSubview(labelView, positioned: .above, relativeTo: contentContainer)
-
-        // Add segmented control background and control ABOVE everything (added last to be on top)
-        if let segmentedControl = segmentedControl {
-            segmentedControl.wantsLayer = true
-
-            // Create a background container for the segmented control
-            let backgroundPadding: CGFloat = 4
-            let backgroundView = NSView(frame: NSRect(
-                x: segmentedControlX - backgroundPadding,
-                y: segmentedControlY - backgroundPadding / 2,
-                width: segmentedControlWidth + (backgroundPadding * 2),
-                height: segmentedControlHeight + backgroundPadding
-            ))
-            backgroundView.wantsLayer = true
-            backgroundView.layer?.backgroundColor = NSColor(red: 50/255.0, green: 50/255.0, blue: 50/255.0, alpha: 0.5).cgColor
-            backgroundView.layer?.cornerRadius = 8
-            backgroundView.layer?.borderWidth = 0
-            backgroundView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
-
-            mainView.addSubview(backgroundView, positioned: .above, relativeTo: nil)
-            mainView.addSubview(segmentedControl, positioned: .above, relativeTo: backgroundView)
-        }
-
-        // Load random assets for home screen
-        loadRandomAssets()
-
-        // Create the three views
-        createHomeView(frame: contentContainer?.bounds ?? .zero)
-        createBrowserView(frame: contentContainer?.bounds ?? .zero)
-        createCreateView(frame: contentContainer?.bounds ?? .zero)
-
-        // Show home view by default
-        showView(homeView)
     }
 
     func createHomeView(frame: NSRect) {
@@ -2354,39 +2496,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             overlayView.addSubview(label)
         }
 
-        // Add "Set" button aligned to the right
-        let buttonHeight: CGFloat = 20
-        let font = NSFont.systemFont(ofSize: 11)
-        let setButtonText = "Set"
-        let setButtonTextSize = (setButtonText as NSString).size(withAttributes: [.font: font])
-        let setButtonWidth = setButtonTextSize.width + 16
-
-        let setButton = NSView(frame: NSRect(x: frame.width - setButtonWidth - 10, y: 5, width: setButtonWidth, height: buttonHeight))
-        setButton.wantsLayer = true
-        setButton.layer?.backgroundColor = NSColor(red: 211/255.0, green: 45/255.0, blue: 74/255.0, alpha: 1.0).cgColor
-        setButton.layer?.cornerRadius = buttonHeight * 0.5
-
-        let setLabel = NSTextField(labelWithString: setButtonText)
-        setLabel.font = font
-        setLabel.textColor = .white
-        setLabel.alignment = .center
-        setLabel.frame = NSRect(x: 0, y: -2, width: setButtonWidth, height: buttonHeight)
-        setButton.addSubview(setLabel)
-
-        let setClickGesture = NSClickGestureRecognizer(target: self, action: #selector(setButtonClicked(_:)))
-        setButton.addGestureRecognizer(setClickGesture)
-        overlayView.addSubview(setButton)
-
-        // Add second line for tags as custom views
+        // Add tags as custom views
         if let tags = wallpaper["tags"] as? [[String: Any]] {
             let tagNames = tags.compactMap { $0["name"] as? String }
             if !tagNames.isEmpty {
                 // Take only first 3 tags
                 let displayTags = Array(tagNames.prefix(3))
 
+                let buttonHeight: CGFloat = 20
+                let font = NSFont.systemFont(ofSize: 11)
                 var xOffset: CGFloat = 10
                 let buttonSpacing: CGFloat = 6
-                let maxXOffset = frame.width - setButtonWidth - 20 // Leave space for Set button
+                let maxXOffset = frame.width - 20
 
                 for tagName in displayTags {
                     // Calculate button width based on text
