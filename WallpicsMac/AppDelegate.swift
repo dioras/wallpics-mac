@@ -6,6 +6,7 @@ import MetalKit
 import RiveRuntime
 import UniformTypeIdentifiers
 import CommonCrypto
+import IOKit.ps
 
 // Configuration
 private let maxHomeScreenAssets = 10
@@ -151,10 +152,12 @@ class VideoWallpaperWindow: NSWindow {
     }
 
     func pause() {
+        print("VideoWallpaperWindow.pause() called, player exists: \(player != nil)")
         player?.pause()
     }
 
     func resume() {
+        print("VideoWallpaperWindow.resume() called, player exists: \(player != nil)")
         player?.play()
     }
 
@@ -799,8 +802,109 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create the menu bar (tray) icon
         createMenuBarIcon()
 
+        // Start monitoring power source
+        startPowerSourceMonitoring()
+
         // Show window on launch
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: - Power Source Monitoring
+
+    func startPowerSourceMonitoring() {
+        // Register for power source change notifications
+        let runLoopSource = IOPSNotificationCreateRunLoopSource({ context in
+            guard let context = context else { return }
+            let appDelegate = Unmanaged<AppDelegate>.fromOpaque(context).takeUnretainedValue()
+            appDelegate.handlePowerSourceChange()
+        }, Unmanaged.passUnretained(self).toOpaque()).takeRetainedValue()
+
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .defaultMode)
+
+        // Check initial power state
+        handlePowerSourceChange()
+    }
+
+    func isOnACPower() -> Bool {
+        guard let snapshot = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let sources = IOPSCopyPowerSourcesList(snapshot)?.takeRetainedValue() as? [CFTypeRef] else {
+            return true // Default to AC power if we can't determine
+        }
+
+        for source in sources {
+            if let description = IOPSGetPowerSourceDescription(snapshot, source)?.takeUnretainedValue() as? [String: Any],
+               let powerSourceState = description[kIOPSPowerSourceStateKey] as? String {
+                // If power source state is "AC Power", we're on AC
+                if powerSourceState == kIOPSACPowerValue {
+                    return true
+                }
+            }
+        }
+
+        return false // On battery power
+    }
+
+    func handlePowerSourceChange() {
+        let onACPower = isOnACPower()
+
+        // If "Play on Battery Power" is OFF and we're on battery, pause wallpaper
+        if !settings.playOnBatteryPower && !onACPower {
+            pauseWallpaper()
+            print("Power unplugged - pausing wallpaper")
+        } else {
+            resumeWallpaper()
+            print("Power connected or play on battery enabled - resuming wallpaper")
+        }
+    }
+
+    func pauseWallpaper() {
+        print("pauseWallpaper called - video: \(videoWallpaperWindows.count), shader: \(shaderWallpaperWindows.count), animation: \(animationWallpaperWindows.count), gif: \(gifWallpaperWindows.count)")
+
+        // Pause all video wallpapers
+        for window in videoWallpaperWindows {
+            print("Pausing video wallpaper")
+            window.pause()
+        }
+
+        // Pause all shader wallpapers
+        for window in shaderWallpaperWindows {
+            print("Pausing shader wallpaper")
+            window.pause()
+        }
+
+        // Pause all animation (Rive) wallpapers
+        for window in animationWallpaperWindows {
+            print("Pausing animation wallpaper")
+            window.pause()
+        }
+
+        // Pause all GIF wallpapers
+        for window in gifWallpaperWindows {
+            print("Pausing GIF wallpaper")
+            window.pause()
+        }
+    }
+
+    func resumeWallpaper() {
+        // Resume all video wallpapers
+        for window in videoWallpaperWindows {
+            window.resume()
+        }
+
+        // Resume all shader wallpapers
+        for window in shaderWallpaperWindows {
+            window.resume()
+        }
+
+        // Resume all animation (Rive) wallpapers
+        for window in animationWallpaperWindows {
+            window.resume()
+        }
+
+        // Resume all GIF wallpapers
+        for window in gifWallpaperWindows {
+            window.resume()
+        }
     }
 
     func showNotification(message: String) {
@@ -1494,6 +1598,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 settings.cacheRecentWallpapers = newState
             } else if rowIdentifier.contains("Play on Battery Power") {
                 settings.playOnBatteryPower = newState
+                // Check power state and pause/resume accordingly
+                handlePowerSourceChange()
             } else if rowIdentifier.contains("Pause on Low Power Mode") {
                 settings.pauseOnLowPowerMode = newState
             }
