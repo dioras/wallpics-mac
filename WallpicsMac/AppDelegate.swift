@@ -805,6 +805,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Start monitoring power source
         startPowerSourceMonitoring()
 
+        // Start monitoring low power mode
+        startLowPowerModeMonitoring()
+
         // Show window on launch
         window?.makeKeyAndOrderFront(nil)
     }
@@ -904,6 +907,42 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Resume all GIF wallpapers
         for window in gifWallpaperWindows {
             window.resume()
+        }
+    }
+
+    // MARK: - Low Power Mode Monitoring
+
+    func startLowPowerModeMonitoring() {
+        if #available(macOS 12.0, *) {
+            // Register for low power mode change notifications
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleLowPowerModeChange),
+                name: Notification.Name.NSProcessInfoPowerStateDidChange,
+                object: nil
+            )
+
+            // Check initial low power mode state
+            handleLowPowerModeChange()
+        }
+    }
+
+    @objc func handleLowPowerModeChange() {
+        if #available(macOS 12.0, *) {
+            let isLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
+
+            // If "Pause on Low Power Mode" is ON and we're in low power mode, pause wallpaper
+            if settings.pauseOnLowPowerMode && isLowPowerMode {
+                pauseWallpaper()
+                print("Low power mode enabled - pausing wallpaper")
+            } else if settings.pauseOnLowPowerMode && !isLowPowerMode {
+                // Only resume if we're not also paused due to battery power
+                let onACPower = isOnACPower()
+                if settings.playOnBatteryPower || onACPower {
+                    resumeWallpaper()
+                    print("Low power mode disabled - resuming wallpaper")
+                }
+            }
         }
     }
 
@@ -1602,6 +1641,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 handlePowerSourceChange()
             } else if rowIdentifier.contains("Pause on Low Power Mode") {
                 settings.pauseOnLowPowerMode = newState
+                // Check low power mode state and pause/resume accordingly
+                handleLowPowerModeChange()
             }
 
             // Save settings immediately
