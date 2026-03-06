@@ -454,6 +454,7 @@ class HoverScaleView: NSView {
     var playButtonView: NSImageView?
     var isMouseInside = false
     var wallpaperId: Int?
+    var importFileName: String? // For imported wallpapers with "import_" prefix
     var clickGesture: NSClickGestureRecognizer?
 
     static func createPlayButtonImage(size: CGFloat) -> NSImage {
@@ -608,11 +609,17 @@ class HoverScaleView: NSView {
 
         print("Cell clicked for wallpaper ID: \(wallpaperId)")
 
-        // Download and then play the content in this cell
-        appDelegate.downloadAndPlayInCell(wallpaperId: wallpaperId, cellView: self)
+        // Check if it's an imported wallpaper
+        if let importFileName = self.importFileName {
+            // For imported wallpapers, just trigger preview panel update
+            appDelegate.thumbnailSelected(wallpaperId: wallpaperId, importFileName: importFileName)
+        } else {
+            // Download and then play the content in this cell
+            appDelegate.downloadAndPlayInCell(wallpaperId: wallpaperId, cellView: self)
 
-        // Also trigger preview panel update
-        appDelegate.thumbnailSelected(wallpaperId: wallpaperId)
+            // Also trigger preview panel update
+            appDelegate.thumbnailSelected(wallpaperId: wallpaperId)
+        }
     }
 }
 // Settings structure
@@ -1358,6 +1365,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             showCenterView(favoritesView)
         case 1: // Browse
             showCenterView(browserView)
+        case 2: // Create
+            showCenterView(createView)
         case 3: // Settings
             showCenterView(settingsView)
         default:
@@ -1378,7 +1387,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Handle Create and Settings (indices 2 and 3)
         if menuIndex == 2 {
-            print("Create clicked - not implemented yet")
+            // Show create view
+            if createView == nil {
+                createCreateView(frame: browserView?.frame ?? .zero)
+            }
+            switchToMenu(index: menuIndex)
             return
         } else if menuIndex == 3 {
             // Show settings
@@ -1489,6 +1502,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Skip hidden files like .DS_Store
             if fileName.hasPrefix(".") {
                 print("Skipping hidden file: \(fileName)")
+                continue
+            }
+
+            // Skip imported files (starts with "import_")
+            if fileName.hasPrefix("import_") {
+                print("Skipping imported file in favorites: \(fileName)")
                 continue
             }
 
@@ -1989,10 +2008,42 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func thumbnailSelected(wallpaperId: Int) {
-        print("Thumbnail selected: \(wallpaperId)")
+    func thumbnailSelected(wallpaperId: Int, importFileName: String? = nil) {
+        print("Thumbnail selected: \(wallpaperId), importFileName: \(importFileName ?? "none")")
 
-        // Find the wallpaper data
+        // Check if it's an imported wallpaper
+        if let importFileName = importFileName {
+            // Handle imported wallpaper
+            guard let assetsFolderURL = assetsFolderURL else { return }
+            let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+            let idFilePath = idsFolder.appendingPathComponent(importFileName)
+
+            guard let assetPath = try? String(contentsOf: idFilePath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+                  !assetPath.isEmpty else {
+                print("Could not read asset path from import file")
+                return
+            }
+
+            let assetURL = URL(fileURLWithPath: assetPath)
+            let assetName = assetURL.deletingPathExtension().lastPathComponent
+
+            // Create a fake wallpaper entry for the preview panel
+            let importedWallpaper: [String: Any] = [
+                "id": wallpaperId,
+                "name": assetName,
+                "description": "Imported wallpaper",
+                "type": determineTypeFromExtension(assetURL.pathExtension),
+                "thumbnail": assetPath,
+                "tags": [],
+                "isImported": true,
+                "importFileName": importFileName
+            ]
+
+            updatePreviewPanel(with: importedWallpaper)
+            return
+        }
+
+        // Find the wallpaper data (for non-imported wallpapers)
         guard let wallpaper = wallpaperData.first(where: { $0["id"] as? Int == wallpaperId }) else {
             print("Wallpaper not found in data")
             return
@@ -2059,7 +2110,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Yellow = NOT in favorites (can add), Gray = IS in favorites (can remove)
         if let assetsFolderURL = assetsFolderURL {
             let favoritesFolder = assetsFolderURL.appendingPathComponent("Favorites")
-            let favoriteFile = favoritesFolder.appendingPathComponent("\(wallpaperId)")
+
+            // Use import filename if available, otherwise use wallpaper ID
+            let isImported = wallpaper["isImported"] as? Bool ?? false
+            let favoriteFileName = isImported
+                ? (wallpaper["importFileName"] as? String ?? "\(wallpaperId)")
+                : "\(wallpaperId)"
+
+            let favoriteFile = favoritesFolder.appendingPathComponent(favoriteFileName)
             let isInFavorites = FileManager.default.fileExists(atPath: favoriteFile.path)
 
             previewFavoriteButton?.layer?.backgroundColor = isInFavorites
@@ -2081,8 +2139,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         cleanupPreviewPlayback()
 
         // Find the asset URL
-        guard let assetURL = findAssetURLByWallpaperId(wallpaperId) else {
-            print("Asset not downloaded yet for preview")
+        var assetURL: URL?
+        let isImported = wallpaper["isImported"] as? Bool ?? false
+
+        if isImported {
+            // For imported wallpapers, get the asset path from the thumbnail field
+            if let assetPath = wallpaper["thumbnail"] as? String {
+                assetURL = URL(fileURLWithPath: assetPath)
+            }
+        } else {
+            // For downloaded wallpapers, use the ID to find the asset
+            assetURL = findAssetURLByWallpaperId(wallpaperId)
+        }
+
+        guard let assetURL = assetURL else {
+            print("Asset not found for preview")
             return
         }
 
@@ -2565,6 +2636,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let assetURL = homeAssets[currentAssetIndex]
         setAsWallpaperWithPath(assetURL: assetURL)
+    }
+
+    func determineTypeFromExtension(_ ext: String) -> String {
+        let lowercasedExt = ext.lowercased()
+        let imageExtensions = ["jpg", "jpeg", "png", "bmp", "tiff", "heic"]
+        let gifExtensions = ["gif"]
+        let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv", "webm", "wmv"]
+        let shaderExtensions = ["msl", "glsl"]
+        let animationExtensions = ["riv"]
+        let htmlExtensions = ["html", "htm"]
+        let packageExtensions = ["pck"]
+
+        if videoExtensions.contains(lowercasedExt) {
+            return "video"
+        } else if shaderExtensions.contains(lowercasedExt) {
+            return "shader"
+        } else if animationExtensions.contains(lowercasedExt) {
+            return "animation"
+        } else if gifExtensions.contains(lowercasedExt) {
+            return "gif"
+        } else if htmlExtensions.contains(lowercasedExt) {
+            return "html"
+        } else if packageExtensions.contains(lowercasedExt) {
+            return "package"
+        } else if imageExtensions.contains(lowercasedExt) {
+            return "image"
+        } else {
+            return "unknown"
+        }
     }
 
     func setAsWallpaperWithPath(assetURL: URL) {
@@ -3669,6 +3769,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return NSColor(red: avgRed, green: avgGreen, blue: avgBlue, alpha: 1.0)
     }
 
+    func displayThumbnailImage(_ image: NSImage, in clipContainer: NSView, overlayView: NSView) {
+        // Calculate average color from thumbnail
+        let averageColor = self.getAverageColor(from: image) ?? NSColor.darkGray
+        overlayView.layer?.backgroundColor = averageColor.cgColor
+
+        // Calculate aspect-fill frame from top
+        let imageSize = image.size
+        let containerSize = clipContainer.bounds.size
+        let imageAspect = imageSize.width / imageSize.height
+        let containerAspect = containerSize.width / containerSize.height
+
+        var imageFrame = clipContainer.bounds
+        if imageAspect > containerAspect {
+            // Image is wider - fit height, center width
+            let scaledWidth = containerSize.height * imageAspect
+            imageFrame = NSRect(
+                x: (containerSize.width - scaledWidth) / 2,
+                y: 0,
+                width: scaledWidth,
+                height: containerSize.height
+            )
+        } else {
+            // Image is taller - fit width, align to top
+            let scaledHeight = containerSize.width / imageAspect
+            imageFrame = NSRect(
+                x: 0,
+                y: containerSize.height - scaledHeight, // Align to top in macOS coordinates
+                width: containerSize.width,
+                height: scaledHeight
+            )
+        }
+
+        let imageView = NSImageView(frame: imageFrame)
+        imageView.image = image
+        imageView.imageScaling = .scaleAxesIndependently
+        clipContainer.addSubview(imageView)
+    }
+
     func createWallpaperThumbnail(wallpaper: [String: Any], frame: NSRect) -> NSView {
         let itemView = HoverScaleView(frame: frame)
         itemView.wantsLayer = true
@@ -3676,9 +3814,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         itemView.layer?.cornerRadius = 8
         // Default anchor point is already (0.5, 0.5) = center
 
-        // Store wallpaper ID in the view
+        // Store wallpaper ID and import filename in the view
         if let wallpaperId = wallpaper["id"] as? Int {
             itemView.wallpaperId = wallpaperId
+        }
+        if let importFileName = wallpaper["importFileName"] as? String {
+            itemView.importFileName = importFileName
         }
 
         // Calculate heights
@@ -3700,57 +3841,64 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         itemView.addSubview(overlayView)
 
         // Load thumbnail image asynchronously
-        if let thumbnailURLString = wallpaper["thumbnail"] as? String,
-           let thumbnailURL = URL(string: thumbnailURLString) {
-            URLSession.shared.dataTask(with: thumbnailURL) { data, _, error in
-                guard let data = data, error == nil, let image = NSImage(data: data) else { return }
-                DispatchQueue.main.async {
-                    // Calculate average color from thumbnail
-                    let averageColor = self.getAverageColor(from: image) ?? NSColor.darkGray
-                    overlayView.layer?.backgroundColor = averageColor.cgColor
+        if let thumbnailString = wallpaper["thumbnail"] as? String, !thumbnailString.isEmpty {
+            let isImported = wallpaper["isImported"] as? Bool ?? false
 
-                    // Calculate aspect-fill frame from top
-                    let imageSize = image.size
-                    let containerSize = clipContainer.bounds.size
-                    let imageAspect = imageSize.width / imageSize.height
-                    let containerAspect = containerSize.width / containerSize.height
+            if isImported {
+                // Load from local file path
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let assetURL = URL(fileURLWithPath: thumbnailString)
 
-                    var imageFrame = clipContainer.bounds
-                    if imageAspect > containerAspect {
-                        // Image is wider - fit height, center width
-                        let scaledWidth = containerSize.height * imageAspect
-                        imageFrame = NSRect(
-                            x: (containerSize.width - scaledWidth) / 2,
-                            y: 0,
-                            width: scaledWidth,
-                            height: containerSize.height
-                        )
-                    } else {
-                        // Image is taller - fit width, align to top
-                        let scaledHeight = containerSize.width / imageAspect
-                        imageFrame = NSRect(
-                            x: 0,
-                            y: containerSize.height - scaledHeight, // Align to top in macOS coordinates
-                            width: containerSize.width,
-                            height: scaledHeight
-                        )
+                    // For videos, extract first frame if not exists
+                    var thumbnailURL = assetURL
+                    let ext = assetURL.pathExtension.lowercased()
+                    let videoExtensions = ["mp4", "mov", "m4v", "avi", "mkv", "webm", "wmv"]
+
+                    if videoExtensions.contains(ext) {
+                        if let firstFrameURL = self.extractFirstFrame(from: assetURL) {
+                            thumbnailURL = firstFrameURL
+                        }
                     }
 
-                    let imageView = NSImageView(frame: imageFrame)
-                    imageView.image = image
-                    imageView.imageScaling = .scaleAxesIndependently
-                    clipContainer.addSubview(imageView)
+                    guard let image = NSImage(contentsOf: thumbnailURL) else { return }
+
+                    DispatchQueue.main.async {
+                        self.displayThumbnailImage(image, in: clipContainer, overlayView: overlayView)
+                    }
                 }
-            }.resume()
+            } else {
+                // Load from remote URL
+                if let thumbnailURL = URL(string: thumbnailString) {
+                    URLSession.shared.dataTask(with: thumbnailURL) { data, _, error in
+                        guard let data = data, error == nil, let image = NSImage(data: data) else { return }
+                        DispatchQueue.main.async {
+                            self.displayThumbnailImage(image, in: clipContainer, overlayView: overlayView)
+                        }
+                    }.resume()
+                }
+            }
         }
 
         // Add white text label with wallpaper name and type icon (vertically centered)
         if let name = wallpaper["name"] as? String,
            let wallpaperId = wallpaper["id"] as? Int {
 
-            // Get type icon if asset is downloaded
+            // Get type icon if asset is downloaded or imported
             var typeIcon: NSImage?
-            if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
+            let isImported = wallpaper["isImported"] as? Bool ?? false
+
+            if isImported {
+                // For imported files, get icon from the thumbnail path (which stores the asset path)
+                if let assetPath = wallpaper["thumbnail"] as? String {
+                    let assetURL = URL(fileURLWithPath: assetPath)
+                    let ext = assetURL.pathExtension.lowercased()
+                    let typeInfo = getTypeInfoFromExtension(ext)
+                    if let icon = NSImage(systemSymbolName: typeInfo.icon, accessibilityDescription: nil) {
+                        icon.isTemplate = true
+                        typeIcon = icon
+                    }
+                }
+            } else if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
                 let ext = assetURL.pathExtension.lowercased()
                 let typeInfo = getTypeInfoFromExtension(ext)
                 if let icon = NSImage(systemSymbolName: typeInfo.icon, accessibilityDescription: nil) {
@@ -4804,41 +4952,96 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func createCreateView(frame: NSRect) {
         createView = NSView(frame: frame)
         createView?.wantsLayer = true
+        createView?.layer?.backgroundColor = NSColor(red: 18/255.0, green: 18/255.0, blue: 18/255.0, alpha: 1.0).cgColor
         createView?.autoresizingMask = [.width, .height]
 
-        // Create huge centered clickable view
-        let buttonWidth: CGFloat = frame.width * 0.8
-        let buttonHeight: CGFloat = frame.height * 0.375  // 0.3 * 1.25
-        let buttonView = NSView(frame: NSRect(
+        guard let container = createView else { return }
+
+        // Icon at top (using app icon or system icon)
+        let iconSize: CGFloat = 100
+        let iconY = frame.height - iconSize - 120
+        let iconView = NSImageView(frame: NSRect(
+            x: (frame.width - iconSize) / 2,
+            y: iconY,
+            width: iconSize,
+            height: iconSize
+        ))
+        if let appIcon = NSImage(named: "AppIcon") {
+            iconView.image = appIcon
+        } else {
+            // Fallback to system icon
+            if let icon = NSImage(systemSymbolName: "photo.on.rectangle.angled", accessibilityDescription: nil) {
+                icon.isTemplate = true
+                iconView.image = icon
+                iconView.contentTintColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0)
+            }
+        }
+        iconView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
+        container.addSubview(iconView)
+
+        // Title
+        let titleY = iconY - 120
+        let titleLabel = NSTextField(labelWithString: "Quick Wallpaper")
+        titleLabel.font = NSFont.systemFont(ofSize: 36, weight: .semibold)
+        titleLabel.textColor = .white
+        titleLabel.alignment = .center
+        titleLabel.frame = NSRect(x: 0, y: titleY, width: frame.width, height: 50)
+        titleLabel.autoresizingMask = [.width, .minYMargin]
+        container.addSubview(titleLabel)
+
+        // Subtitle
+        let subtitleY = titleY - 50
+        let subtitleLabel = NSTextField(labelWithString: "Create and instantly apply a wallpaper without saving it permanently")
+        subtitleLabel.font = NSFont.systemFont(ofSize: 16)
+        subtitleLabel.textColor = NSColor(white: 0.7, alpha: 1.0)
+        subtitleLabel.alignment = .center
+        subtitleLabel.frame = NSRect(x: 100, y: subtitleY, width: frame.width - 200, height: 40)
+        subtitleLabel.autoresizingMask = [.width, .minYMargin]
+        container.addSubview(subtitleLabel)
+
+        // Import File button
+        let buttonWidth: CGFloat = 400  // Half of 800
+        let buttonHeight: CGFloat = 60
+        let buttonY = subtitleY - 100
+        let importButton = NSButton(frame: NSRect(
             x: (frame.width - buttonWidth) / 2,
-            y: (frame.height - buttonHeight) / 2,
+            y: buttonY,
             width: buttonWidth,
             height: buttonHeight
         ))
-        buttonView.wantsLayer = true
-        buttonView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-        buttonView.layer?.cornerRadius = 12
-        buttonView.layer?.borderWidth = 2
-        buttonView.layer?.borderColor = NSColor.separatorColor.cgColor
-        buttonView.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
+        importButton.title = "Import File"
+        importButton.font = NSFont.systemFont(ofSize: 18, weight: .medium)
+        importButton.bezelStyle = .rounded
+        importButton.isBordered = false
+        importButton.wantsLayer = true
+        importButton.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor  // Same as Set button
+        importButton.layer?.cornerRadius = buttonHeight / 2
+        importButton.contentTintColor = .white
+        importButton.target = self
+        importButton.action = #selector(importAsset)
+        importButton.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin]
+        container.addSubview(importButton)
 
-        // Add text label inside
-        let label = NSTextField(wrappingLabelWithString: "Click to import asset to create your own wallpaper (.jpg, .png, .gif, .heic, .mp4, .mov, \n.m4v, .avi, .mkv, .msl, .riv)")
-        label.font = NSFont.systemFont(ofSize: 45, weight: .bold)  // 1.5 times more (32 * 1.5 = 48)
-        label.textColor = NSColor.labelColor
-        label.alignment = .center
-        label.frame = NSRect(x: 40, y: 40, width: buttonWidth - 80, height: buttonHeight - 100)
-        label.autoresizingMask = [.width, .height]
-        label.isEditable = false
-        label.isBordered = false
-        label.backgroundColor = .clear
-        buttonView.addSubview(label)
+        // Supported Files label
+        let supportedY = buttonY - 80
+        let supportedLabel = NSTextField(labelWithString: "Supported Files")
+        supportedLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        supportedLabel.textColor = NSColor(white: 0.6, alpha: 1.0)
+        supportedLabel.alignment = .center
+        supportedLabel.frame = NSRect(x: 0, y: supportedY, width: frame.width, height: 20)
+        supportedLabel.autoresizingMask = [.width, .minYMargin]
+        container.addSubview(supportedLabel)
 
-        // Add click gesture
-        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(importAsset))
-        buttonView.addGestureRecognizer(clickGesture)
-
-        createView?.addSubview(buttonView)
+        // File types list
+        let fileTypesY = supportedY - 30
+        let fileTypes = "gif • mp4 • mov • avi • mkv • m4v • wmv • riv • msl • png • jpg • jpeg • heic • tiff • bmp"
+        let fileTypesLabel = NSTextField(labelWithString: fileTypes)
+        fileTypesLabel.font = NSFont.systemFont(ofSize: 13)
+        fileTypesLabel.textColor = NSColor(white: 0.5, alpha: 1.0)
+        fileTypesLabel.alignment = .center
+        fileTypesLabel.frame = NSRect(x: 50, y: fileTypesY, width: frame.width - 100, height: 20)
+        fileTypesLabel.autoresizingMask = [.width, .minYMargin]
+        container.addSubview(fileTypesLabel)
     }
 
     func showView(_ view: NSView?) {
@@ -5171,9 +5374,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 try FileManager.default.copyItem(at: selectedURL, to: destinationURL)
                 print("Imported file to: \(destinationURL.path)")
 
-                // Reload home screen with newly imported file as last item
+                // Create ID file
+                let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+                try? FileManager.default.createDirectory(at: idsFolder, withIntermediateDirectories: true)
+
+                let uuid = UUID().uuidString
+                let idFileName = "import_\(uuid)"
+                let idFileURL = idsFolder.appendingPathComponent(idFileName)
+
+                // Write full path to the asset in the ID file
+                try destinationURL.path.write(to: idFileURL, atomically: true, encoding: .utf8)
+                print("Created ID file: \(idFileURL.path)")
+
+                // Apply the wallpaper immediately
                 DispatchQueue.main.async {
-                    self.reloadHomeScreenWithNewAsset(destinationURL)
+                    self.setAsWallpaperWithPath(assetURL: destinationURL)
                 }
 
             } catch {
