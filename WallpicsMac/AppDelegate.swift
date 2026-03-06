@@ -2232,6 +2232,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                             // Show delete button AFTER animation completes
                             self?.previewDeleteButton?.isHidden = false
                         }
+
+                        // Update the thumbnail cell to show type icon
+                        self?.updateThumbnailCellIcon(for: wallpaperId)
                     } catch {
                         print("Failed to mark wallpaper as downloaded: \(error)")
                     }
@@ -2243,6 +2246,85 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             progressLayer.bounds.size.width = setButton.frame.width
             CATransaction.commit()
         }
+    }
+
+    func updateThumbnailCellIcon(for wallpaperId: Int) {
+        print("updateThumbnailCellIcon called for wallpaperId: \(wallpaperId)")
+
+        // Find the thumbnail cell view for this wallpaper
+        guard let gridContainer = browserGridContainer else {
+            print("No gridContainer found")
+            return
+        }
+
+        print("Grid container has \(gridContainer.subviews.count) subviews")
+
+        // Find the cell with matching wallpaper ID
+        for subview in gridContainer.subviews {
+            if let hoverView = subview as? HoverScaleView,
+               hoverView.wallpaperId == wallpaperId {
+                print("Found matching cell for wallpaperId: \(wallpaperId)")
+
+                // Find the overlay view (bottom 20% of the cell)
+                for cellSubview in hoverView.subviews {
+                    print("Cell subview frame: \(cellSubview.frame)")
+                    if cellSubview.frame.minY == 0 {  // Overlay is at bottom
+                        let overlayView = cellSubview
+                        print("Found overlay view with \(overlayView.subviews.count) subviews")
+
+                        // Check if icon already exists
+                        let hasIcon = overlayView.subviews.contains(where: { $0 is NSImageView })
+                        print("Has icon already: \(hasIcon)")
+                        if hasIcon {
+                            return  // Icon already exists
+                        }
+
+                        // Get asset URL to determine type
+                        if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
+                            print("Found asset URL: \(assetURL)")
+                            let ext = assetURL.pathExtension.lowercased()
+                            print("Extension: \(ext)")
+                            let typeInfo = getTypeInfoFromExtension(ext)
+                            print("Type info: \(typeInfo)")
+
+                            // Create and add icon
+                            if let icon = NSImage(systemSymbolName: typeInfo.icon, accessibilityDescription: nil) {
+                                icon.isTemplate = true
+
+                                let iconSize: CGFloat = 16
+                                let iconView = NSImageView(frame: NSRect(
+                                    x: 10,
+                                    y: (overlayView.frame.height - iconSize) / 2,
+                                    width: iconSize,
+                                    height: iconSize
+                                ))
+                                iconView.image = icon
+                                iconView.contentTintColor = .white
+                                overlayView.addSubview(iconView)
+                                print("Added icon to overlay")
+
+                                // Shift the text label to the right
+                                if let label = overlayView.subviews.first(where: { $0 is NSTextField }) as? NSTextField {
+                                    let spacing: CGFloat = 6
+                                    let newX = 10 + iconSize + spacing
+                                    label.frame.origin.x = newX
+                                    label.frame.size.width = overlayView.frame.width - newX - 10
+                                    print("Shifted label to x: \(newX)")
+                                }
+                            } else {
+                                print("Failed to create icon from symbol: \(typeInfo.icon)")
+                            }
+                        } else {
+                            print("No asset URL found for wallpaperId: \(wallpaperId)")
+                        }
+
+                        return
+                    }
+                }
+                print("No overlay view found at bottom of cell")
+            }
+        }
+        print("No matching cell found for wallpaperId: \(wallpaperId)")
     }
 
     func clearImported() {
@@ -4496,6 +4578,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if self?.selectedWallpaperId == wallpaperId {
                     self?.refreshPreviewPanel()
                 }
+
+                // Update the thumbnail cell to show type icon
+                self?.updateThumbnailCellIcon(for: wallpaperId)
             }
         })
     }
@@ -4518,6 +4603,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if self.selectedWallpaperId == wallpaperId {
                     self.refreshPreviewPanel()
                 }
+
+                // Update the thumbnail cell to show type icon
+                self.updateThumbnailCellIcon(for: wallpaperId)
             }
         })
     }
