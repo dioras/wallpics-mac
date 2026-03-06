@@ -1007,7 +1007,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ensureFolderExists(at: folderURL)
 
         // Create required subfolders
-        let subfolders = ["Videos", "Images", "Shaders", "Animations", "FirstFrames", "IDs", "Favorites"]
+        let subfolders = ["Videos", "Images", "Shaders", "Animations", "FirstFrames", "IDs", "Favorites", "Downloaded"]
         for subfolder in subfolders {
             let subfolderURL = folderURL.appendingPathComponent(subfolder)
             ensureFolderExists(at: subfolderURL)
@@ -1947,24 +1947,201 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func previewSetButtonClicked() {
-        print("Preview Set button clicked")
+        print("Preview Set/Download button clicked")
 
-        guard let wallpaperId = selectedWallpaperId else {
-            print("No wallpaper selected")
+        guard let wallpaperId = selectedWallpaperId,
+              let assetsFolderURL = assetsFolderURL else {
+            print("No wallpaper selected or assets folder not available")
             return
         }
 
-        // Find the asset URL
-        if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
-            setAsWallpaperWithPath(assetURL: assetURL)
+        // Check if wallpaper is downloaded
+        let downloadedFolder = assetsFolderURL.appendingPathComponent("Downloaded")
+        let downloadedFile = downloadedFolder.appendingPathComponent("\(wallpaperId)")
+        let isDownloaded = FileManager.default.fileExists(atPath: downloadedFile.path)
+
+        if isDownloaded {
+            // Downloaded: Set as wallpaper
+            print("Setting wallpaper \(wallpaperId)")
+            if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
+                setAsWallpaperWithPath(assetURL: assetURL)
+
+                // Schedule cleanup of imported files after 10 seconds (only for non-imported wallpapers)
+                let wallpaperIdString = "\(wallpaperId)"
+                if !wallpaperIdString.hasPrefix("import_") {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) { [weak self] in
+                        self?.clearImported()
+                    }
+                }
+            } else {
+                print("Asset file not found for wallpaper \(wallpaperId)")
+            }
         } else {
-            print("Asset not downloaded for wallpaper \(wallpaperId)")
+            // Not downloaded: Mark as downloaded
+            print("Marking wallpaper \(wallpaperId) as downloaded")
+            do {
+                try "".write(to: downloadedFile, atomically: true, encoding: .utf8)
+                print("Wallpaper \(wallpaperId) marked as downloaded")
+
+                // Update button to "Set" with original styling
+                if let setButton = previewSetButton {
+                    setButton.frame.size.width = 240
+                    setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+
+                    // Create Set button content with icon and text as original
+                    if let pictureIcon = NSImage(systemSymbolName: "photo", accessibilityDescription: "Set Wallpaper") {
+                        let attrs: [NSAttributedString.Key: Any] = [
+                            .font: NSFont.systemFont(ofSize: 16, weight: .medium),
+                            .foregroundColor: NSColor.black
+                        ]
+                        let text = "Set" as NSString
+                        let textSize = text.size(withAttributes: attrs)
+                        let iconSize: CGFloat = 20
+                        let spacing: CGFloat = 8
+                        let totalWidth = iconSize + spacing + textSize.width
+
+                        let combinedImage = NSImage(size: NSSize(width: totalWidth, height: iconSize))
+                        combinedImage.lockFocus()
+
+                        // Draw icon in black
+                        let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+                        let configuredIcon = pictureIcon.withSymbolConfiguration(config)
+                        NSColor.black.set()
+                        configuredIcon?.draw(in: NSRect(x: 0, y: 0, width: iconSize, height: iconSize))
+
+                        // Draw text
+                        let textY = (iconSize - textSize.height) / 2
+                        let textX = iconSize + spacing
+                        text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+
+                        combinedImage.unlockFocus()
+                        setButton.image = combinedImage
+                        setButton.imagePosition = .imageOnly
+                    }
+                }
+
+                // Show delete button
+                previewDeleteButton?.isHidden = false
+
+            } catch {
+                print("Failed to mark wallpaper as downloaded: \(error)")
+            }
         }
+    }
+
+    func clearImported() {
+        print("Clearing imported files...")
+
+        guard let assetsFolderURL = assetsFolderURL else {
+            print("Assets folder not available")
+            return
+        }
+
+        let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+
+        // Get all files in IDs folder
+        guard let idFiles = try? FileManager.default.contentsOfDirectory(atPath: idsFolder.path) else {
+            print("Could not read IDs folder")
+            return
+        }
+
+        // Find all import_ files
+        let importFiles = idFiles.filter { $0.hasPrefix("import_") }
+        print("Found \(importFiles.count) import files to clean up")
+
+        for importFile in importFiles {
+            let importFilePath = idsFolder.appendingPathComponent(importFile)
+
+            // Read the asset path from the import file
+            if let assetPath = try? String(contentsOf: importFilePath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+               !assetPath.isEmpty {
+
+                let assetURL = URL(fileURLWithPath: assetPath)
+
+                // Delete the actual asset file
+                if FileManager.default.fileExists(atPath: assetURL.path) {
+                    do {
+                        try FileManager.default.removeItem(at: assetURL)
+                        print("Deleted asset file: \(assetURL.path)")
+                    } catch {
+                        print("Failed to delete asset file \(assetURL.path): \(error)")
+                    }
+                }
+            }
+
+            // Delete the import_ file itself from IDs folder
+            do {
+                try FileManager.default.removeItem(at: importFilePath)
+                print("Deleted import file: \(importFile)")
+            } catch {
+                print("Failed to delete import file \(importFile): \(error)")
+            }
+        }
+
+        print("Imported files cleanup completed")
     }
 
     @objc func previewDeleteButtonClicked() {
         print("Preview Delete button clicked")
-        // TODO: Implement delete wallpaper
+
+        guard let wallpaperId = selectedWallpaperId,
+              let assetsFolderURL = assetsFolderURL else {
+            print("No wallpaper selected or assets folder not available")
+            return
+        }
+
+        // Delete only from Downloaded folder
+        let downloadedFolder = assetsFolderURL.appendingPathComponent("Downloaded")
+        let downloadedFile = downloadedFolder.appendingPathComponent("\(wallpaperId)")
+
+        do {
+            if FileManager.default.fileExists(atPath: downloadedFile.path) {
+                try FileManager.default.removeItem(at: downloadedFile)
+                print("Removed wallpaper \(wallpaperId) from Downloaded folder")
+
+                // Update button to "Download" with wider width
+                if let setButton = previewSetButton {
+                    setButton.frame.size.width = 292.5 // 240 + 15 (spacing) + 37.5 (delete button)
+                    setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+
+                    // Create Download button content with icon and text
+                    if let downloadIcon = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: "Download") {
+                        let attrs: [NSAttributedString.Key: Any] = [
+                            .font: NSFont.systemFont(ofSize: 16, weight: .medium),
+                            .foregroundColor: NSColor.black
+                        ]
+                        let text = "Download" as NSString
+                        let textSize = text.size(withAttributes: attrs)
+                        let iconSize: CGFloat = 20
+                        let spacing: CGFloat = 8
+                        let totalWidth = iconSize + spacing + textSize.width
+
+                        let combinedImage = NSImage(size: NSSize(width: totalWidth, height: iconSize))
+                        combinedImage.lockFocus()
+
+                        // Draw icon in black
+                        let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+                        let configuredIcon = downloadIcon.withSymbolConfiguration(config)
+                        NSColor.black.set()
+                        configuredIcon?.draw(in: NSRect(x: 0, y: 0, width: iconSize, height: iconSize))
+
+                        // Draw text
+                        let textY = (iconSize - textSize.height) / 2
+                        let textX = iconSize + spacing
+                        text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+
+                        combinedImage.unlockFocus()
+                        setButton.image = combinedImage
+                        setButton.imagePosition = .imageOnly
+                    }
+                }
+
+                // Hide delete button
+                previewDeleteButton?.isHidden = true
+            }
+        } catch {
+            print("Failed to delete from Downloaded folder: \(error)")
+        }
     }
 
     @objc func previewFavoriteButtonClicked() {
@@ -2100,11 +2277,94 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         previewDescriptionLabel?.stringValue = description
         previewDescriptionLabel?.isHidden = false
 
+        // Check if wallpaper is downloaded
+        var isDownloaded = false
+        if let assetsFolderURL = assetsFolderURL {
+            let downloadedFolder = assetsFolderURL.appendingPathComponent("Downloaded")
+            let downloadedFile = downloadedFolder.appendingPathComponent("\(wallpaperId)")
+            isDownloaded = FileManager.default.fileExists(atPath: downloadedFile.path)
+        }
+
         // Show buttons and info container
         previewSetButton?.isHidden = false
-        previewDeleteButton?.isHidden = false
+        previewDeleteButton?.isHidden = !isDownloaded // Hide delete button if not downloaded
         previewFavoriteButton?.isHidden = false
         previewInfoContainer?.isHidden = false
+
+        // Update Set/Download button based on download status
+        if let setButton = previewSetButton {
+            if isDownloaded {
+                // Downloaded: Show "Set" button with original styling
+                setButton.frame.size.width = 240
+                setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+
+                // Create Set button content with icon and text as original
+                if let pictureIcon = NSImage(systemSymbolName: "photo", accessibilityDescription: "Set Wallpaper") {
+                    let attrs: [NSAttributedString.Key: Any] = [
+                        .font: NSFont.systemFont(ofSize: 16, weight: .medium),
+                        .foregroundColor: NSColor.black
+                    ]
+                    let text = "Set" as NSString
+                    let textSize = text.size(withAttributes: attrs)
+                    let iconSize: CGFloat = 20
+                    let spacing: CGFloat = 8
+                    let totalWidth = iconSize + spacing + textSize.width
+
+                    let combinedImage = NSImage(size: NSSize(width: totalWidth, height: iconSize))
+                    combinedImage.lockFocus()
+
+                    // Draw icon in black
+                    let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+                    let configuredIcon = pictureIcon.withSymbolConfiguration(config)
+                    NSColor.black.set()
+                    configuredIcon?.draw(in: NSRect(x: 0, y: 0, width: iconSize, height: iconSize))
+
+                    // Draw text
+                    let textY = (iconSize - textSize.height) / 2
+                    let textX = iconSize + spacing
+                    text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+
+                    combinedImage.unlockFocus()
+                    setButton.image = combinedImage
+                    setButton.imagePosition = .imageOnly
+                }
+            } else {
+                // Not downloaded: Show "Download" button with wider width to cover delete button space
+                setButton.frame.size.width = 292.5 // 240 + 15 (spacing) + 37.5 (delete button)
+                setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+
+                // Create Download button content with icon and text
+                if let downloadIcon = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: "Download") {
+                    let attrs: [NSAttributedString.Key: Any] = [
+                        .font: NSFont.systemFont(ofSize: 16, weight: .medium),
+                        .foregroundColor: NSColor.black
+                    ]
+                    let text = "Download" as NSString
+                    let textSize = text.size(withAttributes: attrs)
+                    let iconSize: CGFloat = 20
+                    let spacing: CGFloat = 8
+                    let totalWidth = iconSize + spacing + textSize.width
+
+                    let combinedImage = NSImage(size: NSSize(width: totalWidth, height: iconSize))
+                    combinedImage.lockFocus()
+
+                    // Draw icon in black
+                    let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+                    let configuredIcon = downloadIcon.withSymbolConfiguration(config)
+                    NSColor.black.set()
+                    configuredIcon?.draw(in: NSRect(x: 0, y: 0, width: iconSize, height: iconSize))
+
+                    // Draw text
+                    let textY = (iconSize - textSize.height) / 2
+                    let textX = iconSize + spacing
+                    text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+
+                    combinedImage.unlockFocus()
+                    setButton.image = combinedImage
+                    setButton.imagePosition = .imageOnly
+                }
+            }
+        }
 
         // Update favorite button color and tooltip based on whether it's in favorites
         // Yellow = NOT in favorites (can add), Gray = IS in favorites (can remove)
