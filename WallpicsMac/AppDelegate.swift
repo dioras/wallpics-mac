@@ -1599,7 +1599,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             linkButton.isBordered = false
             linkButton.setButtonType(.momentaryChange)
             linkButton.bezelStyle = .inline
-            linkButton.contentTintColor = .systemBlue
+            linkButton.contentTintColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0)
             linkButton.font = NSFont.systemFont(ofSize: 18, weight: .medium)
             linkButton.alignment = .center
             linkButton.lineBreakMode = .byWordWrapping
@@ -1686,6 +1686,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         print("Total favorite wallpapers to display: \(favoriteWallpapers.count)")
+
+        // Check if favorites is empty after filtering
+        if favoriteWallpapers.count == 0 {
+            // Clear the scroll view
+            favoritesView.subviews.forEach { $0.removeFromSuperview() }
+
+            // Show empty state label
+            let linkButton = NSButton(frame: NSRect(
+                x: (favoritesView.frame.width - 500) / 2,
+                y: (favoritesView.frame.height - 80) / 2,
+                width: 500,
+                height: 80
+            ))
+            linkButton.title = "Favorites folder is empty,\nbrowse templates and add something"
+            linkButton.isBordered = false
+            linkButton.setButtonType(.momentaryChange)
+            linkButton.bezelStyle = .inline
+            linkButton.contentTintColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0)
+            linkButton.font = NSFont.systemFont(ofSize: 18, weight: .medium)
+            linkButton.alignment = .center
+            linkButton.lineBreakMode = .byWordWrapping
+            linkButton.target = self
+            linkButton.action = #selector(browseLinkClicked)
+            linkButton.autoresizingMask = [.minXMargin, .maxXMargin, .minYMargin, .maxYMargin]
+
+            favoritesView.addSubview(linkButton)
+            return
+        }
 
         // Grid configuration (same as browser)
         let columns = 3
@@ -2342,7 +2370,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("Removed wallpaper \(wallpaperId) from favorites")
 
                 // Update button color to yellow (not in favorites, can add)
-                previewFavoriteButton?.layer?.backgroundColor = NSColor.systemYellow.cgColor
+                previewFavoriteButton?.layer?.backgroundColor = NSColor(calibratedRed: 1.0, green: 0.8, blue: 0.0, alpha: 1.0).cgColor
                 previewFavoriteButton?.toolTip = "Add to Favorites"
             } else {
                 // Add to favorites (create empty file with wallpaper ID)
@@ -2560,7 +2588,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             previewFavoriteButton?.layer?.backgroundColor = isInFavorites
                 ? NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
-                : NSColor.systemYellow.cgColor
+                : NSColor(calibratedRed: 1.0, green: 0.8, blue: 0.0, alpha: 1.0).cgColor
 
             previewFavoriteButton?.toolTip = isInFavorites
                 ? "Remove from Favorites"
