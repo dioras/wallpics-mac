@@ -4837,18 +4837,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func sortButtonClicked(_ sender: NSButton) {
-        let sortOptions = ["A-Z", "Z-A", "Newest First", "Oldest First"]
-        let popoverView = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: CGFloat(sortOptions.count * 25 + 20)))
+        let sortOptions = ["Alphabetical", "Alphabetical reverse", "Newest First", "Oldest First"]
+        let popoverView = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: CGFloat(sortOptions.count * 30 + 20)))
 
-        let contentView = NSView(frame: NSRect(x: 0, y: 5, width: 180, height: CGFloat(sortOptions.count * 25)))
+        let contentView = NSView(frame: NSRect(x: 0, y: 10, width: 200, height: CGFloat(sortOptions.count * 30)))
 
-        var yOffset: CGFloat = CGFloat(sortOptions.count * 25 - 20)
+        var yOffset: CGFloat = CGFloat(sortOptions.count * 30 - 30)
         for option in sortOptions {
-            let radioButton = NSButton(radioButtonWithTitle: option, target: self, action: #selector(sortRadioChanged(_:)))
-            radioButton.frame = NSRect(x: 10, y: yOffset, width: 170, height: 20)
-            radioButton.state = (selectedSort == option) ? .on : .off
-            contentView.addSubview(radioButton)
-            yOffset -= 25
+            let optionButton = NSButton(frame: NSRect(x: 30, y: yOffset, width: 160, height: 25))
+            optionButton.title = option
+            optionButton.isBordered = false
+            optionButton.alignment = .left
+            optionButton.target = self
+            optionButton.action = #selector(sortOptionSelected(_:))
+
+            // Highlight selected option
+            if selectedSort == option {
+                optionButton.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+                optionButton.contentTintColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0)
+
+                // Add checkmark icon
+                if let checkmark = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil) {
+                    let iconView = NSImageView(frame: NSRect(x: 10, y: yOffset + 4, width: 16, height: 16))
+                    iconView.image = checkmark
+                    iconView.contentTintColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0)
+                    contentView.addSubview(iconView)
+                }
+            } else {
+                optionButton.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+                optionButton.contentTintColor = .white
+            }
+
+            contentView.addSubview(optionButton)
+            yOffset -= 30
         }
 
         popoverView.addSubview(contentView)
@@ -4861,20 +4882,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         sortPopover = popover
     }
 
-    @objc func sortRadioChanged(_ sender: NSButton) {
+    @objc func sortOptionSelected(_ sender: NSButton) {
         let option = sender.title
         selectedSort = option
         print("Sort selected: \(option)")
 
-        // Update all radio buttons in the popover
-        if let popover = sortPopover,
-           let contentView = popover.contentViewController?.view.subviews.first {
-            for subview in contentView.subviews {
-                if let radioButton = subview as? NSButton {
-                    radioButton.state = (radioButton.title == option) ? .on : .off
-                }
-            }
-        }
+        // Close popover
+        sortPopover?.close()
 
         filterWallpapers()
     }
