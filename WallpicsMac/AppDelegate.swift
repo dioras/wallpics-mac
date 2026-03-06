@@ -1598,6 +1598,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         previewInfoContainer?.isHidden = true
     }
 
+    func refreshPreviewPanel() {
+        // Refresh the preview panel with the currently selected wallpaper
+        guard let wallpaperId = selectedWallpaperId,
+              let wallpaper = wallpaperData.first(where: { $0["id"] as? Int == wallpaperId }) else {
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.updatePreviewPanel(with: wallpaper)
+        }
+    }
+
     func updatePreviewPanel(with wallpaper: [String: Any]) {
         guard let previewContainer = previewContainer else { return }
 
@@ -3459,6 +3471,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         downloadWallpaperZip(wallpaperId: wallpaperId, completion: { [weak self] success, assetURL in
             if success, let assetURL = assetURL {
                 self?.setAsWallpaperWithPath(assetURL: assetURL)
+
+                // If this wallpaper is currently selected in preview panel, refresh it
+                if self?.selectedWallpaperId == wallpaperId {
+                    self?.refreshPreviewPanel()
+                }
             }
         })
     }
@@ -3476,6 +3493,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if success, let assetURL = assetURL {
                 // Play content in this cell
                 self.playContentInCell(assetURL: assetURL, cellView: cellView, wallpaperId: wallpaperId)
+
+                // If this wallpaper is currently selected in preview panel, refresh it
+                if self.selectedWallpaperId == wallpaperId {
+                    self.refreshPreviewPanel()
+                }
             }
         })
     }
