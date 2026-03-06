@@ -1277,6 +1277,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func createFavoritesView(frame: NSRect) {
         favoritesView = NSView(frame: frame)
         favoritesView?.wantsLayer = true
+        favoritesView?.layer?.backgroundColor = NSColor(red: 18/255.0, green: 18/255.0, blue: 18/255.0, alpha: 1.0).cgColor
         favoritesView?.autoresizingMask = [.width, .height]
 
         guard let favoritesView = favoritesView else { return }
@@ -1427,10 +1428,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsContainer.addSubview(appSettingsLabel)
         yPosition -= 80
 
-        // Theme row - use loaded settings value
-        createSettingRow(parent: settingsContainer, x: contentX, y: yPosition, width: contentWidth, icon: "paintpalette", label: "Theme", value: settings.theme, isToggle: false)
-        yPosition -= 80
-
         // Cache recent wallpapers - use loaded settings value
         createSettingRow(parent: settingsContainer, x: contentX, y: yPosition, width: contentWidth, icon: "internaldrive", label: "Cache recent wallpapers", value: "", isToggle: true, isOn: settings.cacheRecentWallpapers)
         yPosition -= 120
@@ -1477,23 +1474,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         copyrightLabel.frame = NSRect(x: 0, y: bottomY + 20, width: frame.width, height: 18)
         copyrightLabel.alignment = .center
         settingsContainer.addSubview(copyrightLabel)
-    }
-
-    @objc func themeRowClicked(_ sender: NSClickGestureRecognizer) {
-        guard let rowBackground = sender.view,
-              let valueLabel = rowBackground.subviews.first(where: { $0.identifier?.rawValue == "theme_value" }) as? NSTextField else {
-            return
-        }
-
-        // Toggle between Dark and Light
-        let newValue = valueLabel.stringValue == "Dark" ? "Light" : "Dark"
-        valueLabel.stringValue = newValue
-
-        // Update settings and save immediately
-        settings.theme = newValue
-        saveSettings()
-
-        print("Theme changed to: \(newValue)")
     }
 
     @objc func toggleClicked(_ sender: NSClickGestureRecognizer) {
@@ -1600,24 +1580,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Add click gesture
             let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(toggleClicked(_:)))
             toggleContainer.addGestureRecognizer(clickGesture)
-        } else {
-            // Value label (e.g., for Theme)
-            let valueLabel = NSTextField(labelWithString: value)
-            valueLabel.font = NSFont.systemFont(ofSize: 14)
-            valueLabel.textColor = .secondaryLabelColor
-            valueLabel.isBordered = false
-            valueLabel.isEditable = false
-            valueLabel.backgroundColor = .clear
-            valueLabel.alignment = .right
-            valueLabel.frame = NSRect(x: width - 120, y: (rowHeight - 20) / 2, width: 100, height: 20)
-            valueLabel.identifier = NSUserInterfaceItemIdentifier("theme_value")
-            rowBackground.addSubview(valueLabel)
-
-            // Make row clickable for theme
-            if label == "Theme" {
-                let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(themeRowClicked(_:)))
-                rowBackground.addGestureRecognizer(clickGesture)
-            }
         }
     }
 
@@ -3180,6 +3142,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func createBrowserView(frame: NSRect) {
         browserView = NSView(frame: frame)
         browserView?.wantsLayer = true
+        browserView?.layer?.backgroundColor = NSColor(red: 18/255.0, green: 18/255.0, blue: 18/255.0, alpha: 1.0).cgColor
         browserView?.autoresizingMask = [.width, .height]
 
         guard let browserView = browserView else { return }
