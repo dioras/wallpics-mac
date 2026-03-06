@@ -612,6 +612,22 @@ class HoverScaleView: NSView {
         appDelegate.thumbnailSelected(wallpaperId: wallpaperId)
     }
 }
+// Settings structure
+struct AppSettings: Codable {
+    var theme: String
+    var cacheRecentWallpapers: Bool
+    var playOnBatteryPower: Bool
+    var pauseOnLowPowerMode: Bool
+
+    static var `default`: AppSettings {
+        return AppSettings(
+            theme: "Dark",
+            cacheRecentWallpapers: true,
+            playOnBatteryPower: true,
+            pauseOnLowPowerMode: true
+        )
+    }
+}
 
 class AppDelegate: NSObject, NSApplicationDelegate {
 
@@ -627,6 +643,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var settingsView: NSView?
     var segmentedControl: NSSegmentedControl?
     var currentMenuIndex: Int = 0 // Track selected menu (0=Favorites, 1=Browse, 2=Create, 3=Settings)
+
+    // Settings
+    var settings: AppSettings = .default
+    var settingsFileURL: URL?
 
     // Browser view data
     var wallpaperData: [[String: Any]] = []
@@ -696,7 +716,71 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     var currentWallpaperType: WallpaperType = .none
 
+    // MARK: - Settings Management
+
+    func loadSettings() {
+        // Get Application Support directory
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            print("Failed to get Application Support directory")
+            settings = .default
+            return
+        }
+
+        // Create WallpicsMac folder if it doesn't exist
+        let appFolder = appSupport.appendingPathComponent("WallpicsMac")
+        if !FileManager.default.fileExists(atPath: appFolder.path) {
+            try? FileManager.default.createDirectory(at: appFolder, withIntermediateDirectories: true)
+        }
+
+        // Set settings file URL
+        settingsFileURL = appFolder.appendingPathComponent("settings.json")
+
+        guard let fileURL = settingsFileURL else {
+            settings = .default
+            return
+        }
+
+        // Check if settings file exists
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            // Read existing settings
+            do {
+                let data = try Data(contentsOf: fileURL)
+                settings = try JSONDecoder().decode(AppSettings.self, from: data)
+                print("Settings loaded from: \(fileURL.path)")
+            } catch {
+                print("Error loading settings: \(error)")
+                settings = .default
+                saveSettings() // Save default settings
+            }
+        } else {
+            // Create default settings file
+            settings = .default
+            saveSettings()
+            print("Created default settings at: \(fileURL.path)")
+        }
+    }
+
+    func saveSettings() {
+        guard let fileURL = settingsFileURL else {
+            print("Settings file URL not set")
+            return
+        }
+
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(settings)
+            try data.write(to: fileURL)
+            print("Settings saved to: \(fileURL.path)")
+        } catch {
+            print("Error saving settings: \(error)")
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Load settings first
+        loadSettings()
+
         // Force dark mode for the app
         NSApp.appearance = NSAppearance(named: .darkAqua)
 
@@ -1328,7 +1412,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsView?.layer?.backgroundColor = NSColor(red: 18/255.0, green: 18/255.0, blue: 18/255.0, alpha: 1.0).cgColor
         settingsView?.autoresizingMask = [.width, .height]
 
-        guard let settings = settingsView else { return }
+        guard let settingsContainer = settingsView else { return }
 
         let contentWidth: CGFloat = 600
         let contentX = (frame.width - contentWidth) / 2
@@ -1340,15 +1424,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         appSettingsLabel.textColor = .white
         appSettingsLabel.frame = NSRect(x: contentX, y: yPosition, width: contentWidth, height: 24)
         appSettingsLabel.alignment = .center
-        settings.addSubview(appSettingsLabel)
+        settingsContainer.addSubview(appSettingsLabel)
         yPosition -= 80
 
-        // Theme row
-        createSettingRow(parent: settings, x: contentX, y: yPosition, width: contentWidth, icon: "paintpalette", label: "Theme", value: "Dark", isToggle: false)
+        // Theme row - use loaded settings value
+        createSettingRow(parent: settingsContainer, x: contentX, y: yPosition, width: contentWidth, icon: "paintpalette", label: "Theme", value: settings.theme, isToggle: false)
         yPosition -= 80
 
-        // Cache recent wallpapers
-        createSettingRow(parent: settings, x: contentX, y: yPosition, width: contentWidth, icon: "internaldrive", label: "Cache recent wallpapers", value: "", isToggle: true)
+        // Cache recent wallpapers - use loaded settings value
+        createSettingRow(parent: settingsContainer, x: contentX, y: yPosition, width: contentWidth, icon: "internaldrive", label: "Cache recent wallpapers", value: "", isToggle: true, isOn: settings.cacheRecentWallpapers)
         yPosition -= 120
 
         // Wallpaper Settings Section
@@ -1357,15 +1441,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         wallpaperSettingsLabel.textColor = .white
         wallpaperSettingsLabel.frame = NSRect(x: contentX, y: yPosition, width: contentWidth, height: 24)
         wallpaperSettingsLabel.alignment = .center
-        settings.addSubview(wallpaperSettingsLabel)
+        settingsContainer.addSubview(wallpaperSettingsLabel)
         yPosition -= 80
 
-        // Play on Battery Power
-        createSettingRow(parent: settings, x: contentX, y: yPosition, width: contentWidth, icon: "bolt.fill", label: "Play on Battery Power", value: "", isToggle: true)
+        // Play on Battery Power - use loaded settings value
+        createSettingRow(parent: settingsContainer, x: contentX, y: yPosition, width: contentWidth, icon: "bolt.fill", label: "Play on Battery Power", value: "", isToggle: true, isOn: settings.playOnBatteryPower)
         yPosition -= 80
 
-        // Pause on Low Power Mode
-        createSettingRow(parent: settings, x: contentX, y: yPosition, width: contentWidth, icon: "battery.25", label: "Pause on Low Power Mode", value: "", isToggle: true)
+        // Pause on Low Power Mode - use loaded settings value
+        createSettingRow(parent: settingsContainer, x: contentX, y: yPosition, width: contentWidth, icon: "battery.25", label: "Pause on Low Power Mode", value: "", isToggle: true, isOn: settings.pauseOnLowPowerMode)
 
         // Bottom section with app icon, version, and copyright
         let bottomY: CGFloat = 80
@@ -1375,7 +1459,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let iconSize: CGFloat = 60
             let iconView = NSImageView(frame: NSRect(x: (frame.width - iconSize) / 2, y: bottomY + 80, width: iconSize, height: iconSize))
             iconView.image = appIcon
-            settings.addSubview(iconView)
+            settingsContainer.addSubview(iconView)
         }
 
         // Version
@@ -1384,7 +1468,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         versionLabel.textColor = .secondaryLabelColor
         versionLabel.frame = NSRect(x: 0, y: bottomY + 40, width: frame.width, height: 20)
         versionLabel.alignment = .center
-        settings.addSubview(versionLabel)
+        settingsContainer.addSubview(versionLabel)
 
         // Copyright
         let copyrightLabel = NSTextField(labelWithString: "Copyright © 2026")
@@ -1392,7 +1476,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         copyrightLabel.textColor = .tertiaryLabelColor
         copyrightLabel.frame = NSRect(x: 0, y: bottomY + 20, width: frame.width, height: 18)
         copyrightLabel.alignment = .center
-        settings.addSubview(copyrightLabel)
+        settingsContainer.addSubview(copyrightLabel)
     }
 
     @objc func themeRowClicked(_ sender: NSClickGestureRecognizer) {
@@ -1405,7 +1489,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let newValue = valueLabel.stringValue == "Dark" ? "Light" : "Dark"
         valueLabel.stringValue = newValue
 
-        // TODO: Actually apply theme change
+        // Update settings and save immediately
+        settings.theme = newValue
+        saveSettings()
+
         print("Theme changed to: \(newValue)")
     }
 
@@ -1418,6 +1505,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Update identifier
         toggleContainer.identifier = NSUserInterfaceItemIdentifier(newState ? "toggle_on" : "toggle_off")
+
+        // Find the row to identify which setting was toggled
+        if let rowBackground = toggleContainer.superview,
+           let rowIdentifier = rowBackground.identifier?.rawValue {
+            // Update the appropriate setting based on row identifier
+            if rowIdentifier.contains("Cache recent wallpapers") {
+                settings.cacheRecentWallpapers = newState
+            } else if rowIdentifier.contains("Play on Battery Power") {
+                settings.playOnBatteryPower = newState
+            } else if rowIdentifier.contains("Pause on Low Power Mode") {
+                settings.pauseOnLowPowerMode = newState
+            }
+
+            // Save settings immediately
+            saveSettings()
+        }
 
         // Animate toggle
         NSAnimationContext.runAnimationGroup({ context in
@@ -1440,7 +1543,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         })
     }
 
-    func createSettingRow(parent: NSView, x: CGFloat, y: CGFloat, width: CGFloat, icon: String, label: String, value: String, isToggle: Bool) {
+    func createSettingRow(parent: NSView, x: CGFloat, y: CGFloat, width: CGFloat, icon: String, label: String, value: String, isToggle: Bool, isOn: Bool = true) {
         let rowHeight: CGFloat = 60
         let rowBackground = NSView(frame: NSRect(x: x, y: y, width: width, height: rowHeight))
         rowBackground.wantsLayer = true
@@ -1468,19 +1571,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         rowBackground.addSubview(labelView)
 
         if isToggle {
-            // Custom toggle switch with dot
+            // Custom toggle switch with dot - use isOn parameter to set initial state
             let toggleWidth: CGFloat = 50
             let toggleHeight: CGFloat = 30
             let toggleContainer = NSView(frame: NSRect(x: width - 70, y: (rowHeight - toggleHeight) / 2, width: toggleWidth, height: toggleHeight))
             toggleContainer.wantsLayer = true
-            toggleContainer.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+            toggleContainer.layer?.backgroundColor = isOn
+                ? NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+                : NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
             toggleContainer.layer?.cornerRadius = toggleHeight / 2
-            toggleContainer.identifier = NSUserInterfaceItemIdentifier("toggle_on")
+            toggleContainer.identifier = NSUserInterfaceItemIdentifier(isOn ? "toggle_on" : "toggle_off")
             rowBackground.addSubview(toggleContainer)
+
+            // Store label in rowBackground identifier for later reference
+            rowBackground.identifier = NSUserInterfaceItemIdentifier("row_\(label)")
 
             // Toggle dot/knob
             let dotSize: CGFloat = 24
-            let dotX = toggleWidth - dotSize - 3 // Position on right (ON state)
+            let dotX = isOn ? (toggleWidth - dotSize - 3) : 3 // Position based on isOn state
             let dotY = (toggleHeight - dotSize) / 2
             let dot = NSView(frame: NSRect(x: dotX, y: dotY, width: dotSize, height: dotSize))
             dot.wantsLayer = true
