@@ -1157,8 +1157,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Refresh favorites view if switching to it
         if menuIndex == 0 {
+            // Ensure we have wallpaper data from API before showing favorites
+            if wallpaperData.isEmpty && !isLoadingWallpapers {
+                // Set current menu so API callback knows where to switch
+                currentMenuIndex = 0
+
+                // Show loading cursor
+                NSCursor.operationNotAllowed.push()
+
+                // Fetch wallpapers first
+                fetchWallpapers(page: 1)
+
+                // Don't switch yet - will switch after API response
+                return
+            }
+
             let isEmpty = isFavoritesFolderEmpty()
             if isEmpty {
+                createFavoritesView(frame: favoritesView?.frame ?? .zero)
+            } else {
                 createFavoritesView(frame: favoritesView?.frame ?? .zero)
             }
         }
@@ -1196,15 +1213,106 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             favoritesView.addSubview(linkButton)
         } else {
-            // TODO: Show favorites grid
-            let label = NSTextField(labelWithString: "Favorites content will be here")
-            label.font = NSFont.systemFont(ofSize: 18)
-            label.textColor = .labelColor
-            label.alignment = .center
-            label.frame = NSRect(x: 0, y: frame.height / 2, width: frame.width, height: 30)
-            label.autoresizingMask = [.width, .minYMargin, .maxYMargin]
-            favoritesView.addSubview(label)
+            // Show favorites grid
+            displayFavoritesGrid()
         }
+    }
+
+    func displayFavoritesGrid() {
+        guard let favoritesView = favoritesView,
+              let assetsFolderURL = assetsFolderURL else { return }
+
+        // Clear existing content
+        favoritesView.subviews.forEach { $0.removeFromSuperview() }
+
+        // Create scroll view
+        let scrollView = NSScrollView(frame: favoritesView.bounds)
+        scrollView.autoresizingMask = [.width, .height]
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.drawsBackground = false
+        favoritesView.addSubview(scrollView)
+
+        // Create grid container
+        let gridContainer = NSView(frame: NSRect(x: 0, y: 0, width: scrollView.frame.width, height: scrollView.frame.height))
+        gridContainer.wantsLayer = true
+        scrollView.documentView = gridContainer
+
+        // Read favorite wallpaper IDs from Favorites folder
+        let favoritesFolder = assetsFolderURL.appendingPathComponent("Favorites")
+        let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+        guard let favoriteFiles = try? FileManager.default.contentsOfDirectory(atPath: favoritesFolder.path) else {
+            print("Failed to read favorites folder at: \(favoritesFolder.path)")
+            return
+        }
+
+        print("Found \(favoriteFiles.count) files in Favorites folder: \(favoriteFiles)")
+
+        // Convert file names to wallpaper IDs and get their data
+        var favoriteWallpapers: [[String: Any]] = []
+        for fileName in favoriteFiles {
+            // Skip hidden files like .DS_Store
+            if fileName.hasPrefix(".") {
+                print("Skipping hidden file: \(fileName)")
+                continue
+            }
+
+            if let wallpaperId = Int(fileName) {
+                print("Processing favorite ID: \(wallpaperId)")
+
+                // Check if the asset is downloaded by reading the IDs folder
+                let idFilePath = idsFolder.appendingPathComponent(fileName)
+                print("Looking for ID file at: \(idFilePath.path)")
+
+                if FileManager.default.fileExists(atPath: idFilePath.path) {
+                    if let assetPath = try? String(contentsOf: idFilePath, encoding: .utf8) {
+                        print("Asset path for ID \(wallpaperId): \(assetPath)")
+                    }
+
+                    if let wallpaper = wallpaperData.first(where: { $0["id"] as? Int == wallpaperId }) {
+                        print("Found wallpaper data for ID \(wallpaperId)")
+                        favoriteWallpapers.append(wallpaper)
+                    } else {
+                        print("No wallpaper data found for ID \(wallpaperId) in wallpaperData array")
+                    }
+                } else {
+                    print("ID file does not exist at: \(idFilePath.path)")
+                }
+            } else {
+                print("Could not parse ID from filename: \(fileName)")
+            }
+        }
+
+        print("Total favorite wallpapers to display: \(favoriteWallpapers.count)")
+
+        // Grid configuration (same as browser)
+        let columns = 3
+        let itemSpacing: CGFloat = 20
+        let containerWidth = scrollView.frame.width
+        let itemWidth = (containerWidth - CGFloat(columns + 1) * itemSpacing) / CGFloat(columns)
+        let itemHeight = itemWidth * 1.5
+
+        // Calculate total rows
+        let totalItems = favoriteWallpapers.count
+        let rows = (totalItems + columns - 1) / columns
+        let totalHeight = max(CGFloat(rows) * (itemHeight + itemSpacing) + itemSpacing, scrollView.frame.height)
+
+        // Resize grid container
+        gridContainer.frame = NSRect(x: 0, y: 0, width: containerWidth, height: totalHeight)
+
+        // Create grid items (reuse the same thumbnail creation code)
+        for (index, wallpaper) in favoriteWallpapers.enumerated() {
+            let row = index / columns
+            let col = index % columns
+            let x = itemSpacing + CGFloat(col) * (itemWidth + itemSpacing)
+            let y = totalHeight - (CGFloat(row + 1) * (itemHeight + itemSpacing))
+
+            let itemView = createWallpaperThumbnail(wallpaper: wallpaper, frame: NSRect(x: x, y: y, width: itemWidth, height: itemHeight))
+            gridContainer.addSubview(itemView)
+        }
+
+        // Scroll to top
+        scrollView.documentView?.scroll(NSPoint(x: 0, y: gridContainer.frame.height))
     }
 
     func createPreviewView(frame: NSRect) -> NSView {
@@ -1433,22 +1541,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Remove from Favorites folder
+        // Toggle favorites - add or remove
         let favoritesFolder = assetsFolderURL.appendingPathComponent("Favorites")
         let favoriteFile = favoritesFolder.appendingPathComponent("\(wallpaperId)")
 
         do {
             if FileManager.default.fileExists(atPath: favoriteFile.path) {
+                // Remove from favorites
                 try FileManager.default.removeItem(at: favoriteFile)
                 print("Removed wallpaper \(wallpaperId) from favorites")
 
-                // Update button color to gray (not in favorites)
-                previewFavoriteButton?.layer?.backgroundColor = NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+                // Update button color to yellow (not in favorites, can add)
+                previewFavoriteButton?.layer?.backgroundColor = NSColor.systemYellow.cgColor
+                previewFavoriteButton?.toolTip = "Add to Favorites"
             } else {
-                print("Wallpaper \(wallpaperId) not in favorites")
+                // Add to favorites (create empty file with wallpaper ID)
+                try "".write(to: favoriteFile, atomically: true, encoding: .utf8)
+                print("Added wallpaper \(wallpaperId) to favorites")
+
+                // Update button color to gray (is in favorites, can remove)
+                previewFavoriteButton?.layer?.backgroundColor = NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+                previewFavoriteButton?.toolTip = "Remove from Favorites"
+            }
+
+            // If Favorites view is active, refresh it (keep preview panel as is)
+            if currentMenuIndex == 0 {
+                displayFavoritesGrid()
             }
         } catch {
-            print("Error removing from favorites: \(error)")
+            print("Error toggling favorites: \(error)")
         }
     }
 
@@ -1466,6 +1587,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Start playback in preview panel after download completes
         // This will be triggered from downloadAndPlayInCell callback
+    }
+
+    func hidePreviewPanel() {
+        previewTitleLabel?.isHidden = true
+        previewDescriptionLabel?.isHidden = true
+        previewSetButton?.isHidden = true
+        previewDeleteButton?.isHidden = true
+        previewFavoriteButton?.isHidden = true
+        previewInfoContainer?.isHidden = true
     }
 
     func updatePreviewPanel(with wallpaper: [String: Any]) {
@@ -1489,15 +1619,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         previewFavoriteButton?.isHidden = false
         previewInfoContainer?.isHidden = false
 
-        // Update favorite button color based on whether it's in favorites
+        // Update favorite button color and tooltip based on whether it's in favorites
+        // Yellow = NOT in favorites (can add), Gray = IS in favorites (can remove)
         if let assetsFolderURL = assetsFolderURL {
             let favoritesFolder = assetsFolderURL.appendingPathComponent("Favorites")
             let favoriteFile = favoritesFolder.appendingPathComponent("\(wallpaperId)")
             let isInFavorites = FileManager.default.fileExists(atPath: favoriteFile.path)
 
             previewFavoriteButton?.layer?.backgroundColor = isInFavorites
-                ? NSColor.systemYellow.cgColor
-                : NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+                ? NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+                : NSColor.systemYellow.cgColor
+
+            previewFavoriteButton?.toolTip = isInFavorites
+                ? "Remove from Favorites"
+                : "Add to Favorites"
         }
 
         // Update info container
@@ -2979,6 +3114,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         }
                         self.currentPage = page
                         self.filterWallpapers()
+
+                        // If we were waiting to show favorites, now show it
+                        if self.currentMenuIndex == 0 {
+                            NSCursor.pop()
+                            let isEmpty = self.isFavoritesFolderEmpty()
+                            if isEmpty {
+                                self.createFavoritesView(frame: self.browserView?.frame ?? .zero)
+                            } else {
+                                self.createFavoritesView(frame: self.browserView?.frame ?? .zero)
+                            }
+                            self.switchToMenu(index: 0)
+                        }
                     }
                 }
             } catch {
