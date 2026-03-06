@@ -4138,9 +4138,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Calculate total rows
         let totalItems = filteredWallpaperData.count
         let rows = (totalItems + columns - 1) / columns
-        let searchText = searchField?.stringValue ?? ""
-        let loadMoreButtonHeight: CGFloat = searchText.isEmpty ? 60 : 0
-        let totalHeight = CGFloat(rows) * (itemHeight + itemSpacing) + itemSpacing + loadMoreButtonHeight
+        let totalHeight = CGFloat(rows) * (itemHeight + itemSpacing) + itemSpacing
 
         // Resize grid container
         gridContainer.frame = NSRect(x: 0, y: 0, width: containerWidth, height: totalHeight)
@@ -4154,23 +4152,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             let itemView = createWallpaperThumbnail(wallpaper: wallpaper, frame: NSRect(x: x, y: y, width: itemWidth, height: itemHeight))
             gridContainer.addSubview(itemView)
-        }
-
-        // Add "Load More" button at bottom only if not filtering
-        if searchText.isEmpty {
-            let buttonWidth: CGFloat = 200
-            let buttonHeight: CGFloat = 40
-            let loadMoreButton = NSButton(frame: NSRect(
-                x: (containerWidth - buttonWidth) / 2,
-                y: 10,
-                width: buttonWidth,
-                height: buttonHeight
-            ))
-            loadMoreButton.title = "Load More"
-            loadMoreButton.bezelStyle = .rounded
-            loadMoreButton.target = self
-            loadMoreButton.action = #selector(loadMoreWallpapers)
-            gridContainer.addSubview(loadMoreButton)
         }
     }
 
