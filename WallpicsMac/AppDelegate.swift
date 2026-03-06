@@ -1977,55 +1977,95 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("Asset file not found for wallpaper \(wallpaperId)")
             }
         } else {
-            // Not downloaded: Mark as downloaded
-            print("Marking wallpaper \(wallpaperId) as downloaded")
-            do {
-                try "".write(to: downloadedFile, atomically: true, encoding: .utf8)
-                print("Wallpaper \(wallpaperId) marked as downloaded")
+            // Not downloaded: Show fake download progress animation
+            print("Starting download animation for wallpaper \(wallpaperId)")
 
-                // Update button to "Set" with original styling
-                if let setButton = previewSetButton {
-                    setButton.frame.size.width = 240
-                    setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+            guard let setButton = previewSetButton else { return }
 
-                    // Create Set button content with icon and text as original
-                    if let pictureIcon = NSImage(systemSymbolName: "photo", accessibilityDescription: "Set Wallpaper") {
-                        let attrs: [NSAttributedString.Key: Any] = [
-                            .font: NSFont.systemFont(ofSize: 16, weight: .medium),
-                            .foregroundColor: NSColor.black
-                        ]
-                        let text = "Set" as NSString
-                        let textSize = text.size(withAttributes: attrs)
-                        let iconSize: CGFloat = 20
-                        let spacing: CGFloat = 8
-                        let totalWidth = iconSize + spacing + textSize.width
+            // Disable button during animation
+            setButton.isEnabled = false
 
-                        let combinedImage = NSImage(size: NSSize(width: totalWidth, height: iconSize))
-                        combinedImage.lockFocus()
+            // Create progress layer
+            let progressLayer = CALayer()
+            progressLayer.frame = CGRect(x: 0, y: 0, width: 0, height: setButton.frame.height)
+            progressLayer.backgroundColor = NSColor(calibratedRed: 0.3, green: 0.5, blue: 0.85, alpha: 1.0).cgColor
+            progressLayer.cornerRadius = setButton.frame.height / 2
+            progressLayer.anchorPoint = CGPoint(x: 0, y: 0.5) // Anchor to left side
+            progressLayer.name = "progressLayer"
+            setButton.layer?.insertSublayer(progressLayer, at: 0)
 
-                        // Draw icon in black
-                        let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
-                        let configuredIcon = pictureIcon.withSymbolConfiguration(config)
-                        NSColor.black.set()
-                        configuredIcon?.draw(in: NSRect(x: 0, y: 0, width: iconSize, height: iconSize))
+            // Random duration between 1-2 seconds
+            let duration = Double.random(in: 1.0...2.0)
 
-                        // Draw text
-                        let textY = (iconSize - textSize.height) / 2
-                        let textX = iconSize + spacing
-                        text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+            // Create explicit animation for progress (animate width from left)
+            let widthAnimation = CABasicAnimation(keyPath: "bounds.size.width")
+            widthAnimation.fromValue = 0
+            widthAnimation.toValue = setButton.frame.width
+            widthAnimation.duration = duration
+            widthAnimation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
 
-                        combinedImage.unlockFocus()
-                        setButton.image = combinedImage
-                        setButton.imagePosition = .imageOnly
+            // Use CATransaction to get completion callback
+            CATransaction.begin()
+            CATransaction.setCompletionBlock { [weak self] in
+                // Animation complete, NOW mark as downloaded and update UI
+                DispatchQueue.main.async {
+                    do {
+                        try "".write(to: downloadedFile, atomically: true, encoding: .utf8)
+                        print("Wallpaper \(wallpaperId) marked as downloaded")
+
+                        // Update button to "Set" with original styling
+                        if let setButton = self?.previewSetButton {
+                            // Remove progress layer
+                            setButton.layer?.sublayers?.first(where: { $0.name == "progressLayer" })?.removeFromSuperlayer()
+
+                            setButton.frame.size.width = 240
+                            setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+                            setButton.isEnabled = true
+
+                            // Create Set button content with icon and text as original
+                            if let pictureIcon = NSImage(systemSymbolName: "photo", accessibilityDescription: "Set Wallpaper") {
+                                let attrs: [NSAttributedString.Key: Any] = [
+                                    .font: NSFont.systemFont(ofSize: 16, weight: .medium),
+                                    .foregroundColor: NSColor.black
+                                ]
+                                let text = "Set" as NSString
+                                let textSize = text.size(withAttributes: attrs)
+                                let iconSize: CGFloat = 20
+                                let spacing: CGFloat = 8
+                                let totalWidth = iconSize + spacing + textSize.width
+
+                                let combinedImage = NSImage(size: NSSize(width: totalWidth, height: iconSize))
+                                combinedImage.lockFocus()
+
+                                // Draw icon in black
+                                let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
+                                let configuredIcon = pictureIcon.withSymbolConfiguration(config)
+                                NSColor.black.set()
+                                configuredIcon?.draw(in: NSRect(x: 0, y: 0, width: iconSize, height: iconSize))
+
+                                // Draw text
+                                let textY = (iconSize - textSize.height) / 2
+                                let textX = iconSize + spacing
+                                text.draw(at: NSPoint(x: textX, y: textY), withAttributes: attrs)
+
+                                combinedImage.unlockFocus()
+                                setButton.image = combinedImage
+                                setButton.imagePosition = .imageOnly
+                            }
+
+                            // Show delete button AFTER animation completes
+                            self?.previewDeleteButton?.isHidden = false
+                        }
+                    } catch {
+                        print("Failed to mark wallpaper as downloaded: \(error)")
                     }
                 }
-
-                // Show delete button
-                previewDeleteButton?.isHidden = false
-
-            } catch {
-                print("Failed to mark wallpaper as downloaded: \(error)")
             }
+
+            // Add animation and set final state
+            progressLayer.add(widthAnimation, forKey: "widthAnimation")
+            progressLayer.bounds.size.width = setButton.frame.width
+            CATransaction.commit()
         }
     }
 
