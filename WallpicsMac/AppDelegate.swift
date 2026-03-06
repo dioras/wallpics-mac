@@ -641,6 +641,9 @@ struct AppSettings: Codable {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
 
+    // Cache size limit in bytes (500 MB)
+    let maxCacheSize: Int64 = 500 * 1024 * 1024
+
     var window: NSWindow?
     var statusItem: NSStatusItem?
     var assetsFolderURL: URL?
@@ -817,6 +820,151 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Show window on launch
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        print("Application will terminate - performing cleanup...")
+        performCleanupOnExit()
+    }
+
+    // MARK: - Cleanup
+
+    func deleteAsset(at assetPath: String) {
+        let assetURL = URL(fileURLWithPath: assetPath)
+
+        // Delete the asset file
+        if FileManager.default.fileExists(atPath: assetURL.path) {
+            do {
+                try FileManager.default.removeItem(at: assetURL)
+                print("Deleted asset: \(assetPath)")
+            } catch {
+                print("Failed to delete asset \(assetPath): \(error)")
+            }
+        }
+
+        // Delete corresponding first frame in FirstFrames folder
+        guard let assetsFolderURL = assetsFolderURL else { return }
+        let firstFramesFolder = assetsFolderURL.appendingPathComponent("FirstFrames")
+        let assetName = assetURL.deletingPathExtension().lastPathComponent
+        let firstFrameURL = firstFramesFolder.appendingPathComponent("\(assetName).jpg")
+
+        if FileManager.default.fileExists(atPath: firstFrameURL.path) {
+            do {
+                try FileManager.default.removeItem(at: firstFrameURL)
+                print("Deleted first frame: \(firstFrameURL.path)")
+            } catch {
+                print("Failed to delete first frame \(firstFrameURL.path): \(error)")
+            }
+        }
+    }
+
+    func performCleanupOnExit() {
+        guard let assetsFolderURL = assetsFolderURL else {
+            print("Assets folder not available for cleanup")
+            return
+        }
+
+        let idsFolder = assetsFolderURL.appendingPathComponent("IDs")
+        let downloadedFolder = assetsFolderURL.appendingPathComponent("Downloaded")
+
+        // Get all ID files
+        guard let idFiles = try? FileManager.default.contentsOfDirectory(atPath: idsFolder.path) else {
+            print("Could not read IDs folder for cleanup")
+            return
+        }
+
+        // Filter out import_ files and hidden files
+        let regularIdFiles = idFiles.filter { !$0.hasPrefix("import_") && !$0.hasPrefix(".") }
+
+        // Collect files to potentially delete (not in Downloaded folder)
+        var filesToDelete: [(idFile: String, assetPath: String, assetSize: Int64)] = []
+
+        for idFile in regularIdFiles {
+            let idFilePath = idsFolder.appendingPathComponent(idFile)
+            let downloadedFilePath = downloadedFolder.appendingPathComponent(idFile)
+
+            // Skip if file is in Downloaded folder
+            if FileManager.default.fileExists(atPath: downloadedFilePath.path) {
+                continue
+            }
+
+            // Read asset path from ID file
+            guard let assetPath = try? String(contentsOf: idFilePath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+                  !assetPath.isEmpty else {
+                continue
+            }
+
+            let assetURL = URL(fileURLWithPath: assetPath)
+
+            // Get asset file size
+            if let attributes = try? FileManager.default.attributesOfItem(atPath: assetURL.path),
+               let fileSize = attributes[.size] as? Int64 {
+                filesToDelete.append((idFile: idFile, assetPath: assetPath, assetSize: fileSize))
+            }
+        }
+
+        if settings.cacheRecentWallpapers {
+            // Cache is ON: Delete largest files until total size < 500 MB
+            print("Cache is ON - cleaning up to keep under \(maxCacheSize / 1024 / 1024) MB")
+
+            // Calculate current total size
+            let totalSize = filesToDelete.reduce(0) { $0 + $1.assetSize }
+            print("Current cache size: \(totalSize / 1024 / 1024) MB")
+
+            if totalSize <= maxCacheSize {
+                print("Cache size is already under limit, no cleanup needed")
+                return
+            }
+
+            // Sort by size (largest first)
+            filesToDelete.sort { $0.assetSize > $1.assetSize }
+
+            var remainingSize = totalSize
+            var deletedCount = 0
+
+            for fileInfo in filesToDelete {
+                if remainingSize <= maxCacheSize {
+                    break
+                }
+
+                // Delete asset file and its first frame
+                deleteAsset(at: fileInfo.assetPath)
+
+                // Delete ID file
+                let idFilePath = idsFolder.appendingPathComponent(fileInfo.idFile)
+                do {
+                    try FileManager.default.removeItem(at: idFilePath)
+                    print("Deleted ID file: \(fileInfo.idFile)")
+                } catch {
+                    print("Failed to delete ID file \(fileInfo.idFile): \(error)")
+                }
+
+                remainingSize -= fileInfo.assetSize
+                deletedCount += 1
+            }
+
+            print("Cleanup complete: deleted \(deletedCount) files, remaining size: \(remainingSize / 1024 / 1024) MB")
+
+        } else {
+            // Cache is OFF: Delete all non-downloaded files
+            print("Cache is OFF - deleting all non-downloaded wallpapers")
+
+            for fileInfo in filesToDelete {
+                // Delete asset file and its first frame
+                deleteAsset(at: fileInfo.assetPath)
+
+                // Delete ID file
+                let idFilePath = idsFolder.appendingPathComponent(fileInfo.idFile)
+                do {
+                    try FileManager.default.removeItem(at: idFilePath)
+                    print("Deleted ID file: \(fileInfo.idFile)")
+                } catch {
+                    print("Failed to delete ID file \(fileInfo.idFile): \(error)")
+                }
+            }
+
+            print("Cleanup complete: deleted \(filesToDelete.count) files")
+        }
     }
 
     // MARK: - Power Source Monitoring
@@ -2095,18 +2243,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Read the asset path from the import file
             if let assetPath = try? String(contentsOf: importFilePath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
                !assetPath.isEmpty {
-
-                let assetURL = URL(fileURLWithPath: assetPath)
-
-                // Delete the actual asset file
-                if FileManager.default.fileExists(atPath: assetURL.path) {
-                    do {
-                        try FileManager.default.removeItem(at: assetURL)
-                        print("Deleted asset file: \(assetURL.path)")
-                    } catch {
-                        print("Failed to delete asset file \(assetURL.path): \(error)")
-                    }
-                }
+                // Delete the actual asset file and its first frame
+                deleteAsset(at: assetPath)
             }
 
             // Delete the import_ file itself from IDs folder
