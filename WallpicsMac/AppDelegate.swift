@@ -624,8 +624,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var browserView: NSView?
     var createView: NSView?
     var favoritesView: NSView?
+    var settingsView: NSView?
     var segmentedControl: NSSegmentedControl?
-    var currentMenuIndex: Int = 0 // Track selected menu (0=Favorites, 1=Browse)
+    var currentMenuIndex: Int = 0 // Track selected menu (0=Favorites, 1=Browse, 2=Create, 3=Settings)
 
     // Browser view data
     var wallpaperData: [[String: Any]] = []
@@ -1130,6 +1131,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             showCenterView(favoritesView)
         case 1: // Browse
             showCenterView(browserView)
+        case 3: // Settings
+            showCenterView(settingsView)
         default:
             break
         }
@@ -1151,7 +1154,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             print("Create clicked - not implemented yet")
             return
         } else if menuIndex == 3 {
-            print("Settings clicked - not implemented yet")
+            // Show settings
+            if settingsView == nil {
+                createSettingsView(frame: browserView?.frame ?? .zero)
+            }
+            switchToMenu(index: menuIndex)
             return
         }
 
@@ -1315,6 +1322,197 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         scrollView.documentView?.scroll(NSPoint(x: 0, y: gridContainer.frame.height))
     }
 
+    func createSettingsView(frame: NSRect) {
+        settingsView = NSView(frame: frame)
+        settingsView?.wantsLayer = true
+        settingsView?.layer?.backgroundColor = NSColor(red: 18/255.0, green: 18/255.0, blue: 18/255.0, alpha: 1.0).cgColor
+        settingsView?.autoresizingMask = [.width, .height]
+
+        guard let settings = settingsView else { return }
+
+        let contentWidth: CGFloat = 600
+        let contentX = (frame.width - contentWidth) / 2
+        var yPosition = frame.height - 80
+
+        // App Settings Section
+        let appSettingsLabel = NSTextField(labelWithString: "App Settings")
+        appSettingsLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        appSettingsLabel.textColor = .white
+        appSettingsLabel.frame = NSRect(x: contentX, y: yPosition, width: contentWidth, height: 24)
+        appSettingsLabel.alignment = .center
+        settings.addSubview(appSettingsLabel)
+        yPosition -= 80
+
+        // Theme row
+        createSettingRow(parent: settings, x: contentX, y: yPosition, width: contentWidth, icon: "paintpalette", label: "Theme", value: "Dark", isToggle: false)
+        yPosition -= 80
+
+        // Cache recent wallpapers
+        createSettingRow(parent: settings, x: contentX, y: yPosition, width: contentWidth, icon: "internaldrive", label: "Cache recent wallpapers", value: "", isToggle: true)
+        yPosition -= 120
+
+        // Wallpaper Settings Section
+        let wallpaperSettingsLabel = NSTextField(labelWithString: "Wallpaper Settings")
+        wallpaperSettingsLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        wallpaperSettingsLabel.textColor = .white
+        wallpaperSettingsLabel.frame = NSRect(x: contentX, y: yPosition, width: contentWidth, height: 24)
+        wallpaperSettingsLabel.alignment = .center
+        settings.addSubview(wallpaperSettingsLabel)
+        yPosition -= 80
+
+        // Play on Battery Power
+        createSettingRow(parent: settings, x: contentX, y: yPosition, width: contentWidth, icon: "bolt.fill", label: "Play on Battery Power", value: "", isToggle: true)
+        yPosition -= 80
+
+        // Pause on Low Power Mode
+        createSettingRow(parent: settings, x: contentX, y: yPosition, width: contentWidth, icon: "battery.25", label: "Pause on Low Power Mode", value: "", isToggle: true)
+
+        // Bottom section with app icon, version, and copyright
+        let bottomY: CGFloat = 80
+
+        // App icon
+        if let appIcon = NSImage(named: "AppIcon") {
+            let iconSize: CGFloat = 60
+            let iconView = NSImageView(frame: NSRect(x: (frame.width - iconSize) / 2, y: bottomY + 80, width: iconSize, height: iconSize))
+            iconView.image = appIcon
+            settings.addSubview(iconView)
+        }
+
+        // Version
+        let versionLabel = NSTextField(labelWithString: "Version 0.0.1")
+        versionLabel.font = NSFont.systemFont(ofSize: 13)
+        versionLabel.textColor = .secondaryLabelColor
+        versionLabel.frame = NSRect(x: 0, y: bottomY + 40, width: frame.width, height: 20)
+        versionLabel.alignment = .center
+        settings.addSubview(versionLabel)
+
+        // Copyright
+        let copyrightLabel = NSTextField(labelWithString: "Copyright © 2026")
+        copyrightLabel.font = NSFont.systemFont(ofSize: 12)
+        copyrightLabel.textColor = .tertiaryLabelColor
+        copyrightLabel.frame = NSRect(x: 0, y: bottomY + 20, width: frame.width, height: 18)
+        copyrightLabel.alignment = .center
+        settings.addSubview(copyrightLabel)
+    }
+
+    @objc func themeRowClicked(_ sender: NSClickGestureRecognizer) {
+        guard let rowBackground = sender.view,
+              let valueLabel = rowBackground.subviews.first(where: { $0.identifier?.rawValue == "theme_value" }) as? NSTextField else {
+            return
+        }
+
+        // Toggle between Dark and Light
+        let newValue = valueLabel.stringValue == "Dark" ? "Light" : "Dark"
+        valueLabel.stringValue = newValue
+
+        // TODO: Actually apply theme change
+        print("Theme changed to: \(newValue)")
+    }
+
+    @objc func toggleClicked(_ sender: NSClickGestureRecognizer) {
+        guard let toggleContainer = sender.view else { return }
+
+        // Get current state from identifier
+        let isOn = toggleContainer.identifier?.rawValue == "toggle_on"
+        let newState = !isOn
+
+        // Update identifier
+        toggleContainer.identifier = NSUserInterfaceItemIdentifier(newState ? "toggle_on" : "toggle_off")
+
+        // Animate toggle
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.2
+            context.allowsImplicitAnimation = true
+
+            // Update background color - more blue when ON
+            toggleContainer.layer?.backgroundColor = newState
+                ? NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+                : NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+
+            // Move dot
+            if let dot = toggleContainer.subviews.first(where: { $0.identifier?.rawValue == "toggle_dot" }) {
+                let dotSize: CGFloat = 24
+                let toggleWidth: CGFloat = 50
+                let dotX = newState ? (toggleWidth - dotSize - 3) : 3
+                let dotY = dot.frame.origin.y
+                dot.frame.origin = NSPoint(x: dotX, y: dotY)
+            }
+        })
+    }
+
+    func createSettingRow(parent: NSView, x: CGFloat, y: CGFloat, width: CGFloat, icon: String, label: String, value: String, isToggle: Bool) {
+        let rowHeight: CGFloat = 60
+        let rowBackground = NSView(frame: NSRect(x: x, y: y, width: width, height: rowHeight))
+        rowBackground.wantsLayer = true
+        rowBackground.layer?.backgroundColor = NSColor(red: 25/255.0, green: 25/255.0, blue: 25/255.0, alpha: 1.0).cgColor
+        rowBackground.layer?.cornerRadius = 12
+        parent.addSubview(rowBackground)
+
+        // Icon
+        if let iconImage = NSImage(systemSymbolName: icon, accessibilityDescription: nil) {
+            iconImage.isTemplate = true
+            let iconView = NSImageView(frame: NSRect(x: 20, y: (rowHeight - 24) / 2, width: 24, height: 24))
+            iconView.image = iconImage
+            iconView.contentTintColor = .white
+            rowBackground.addSubview(iconView)
+        }
+
+        // Label
+        let labelView = NSTextField(labelWithString: label)
+        labelView.font = NSFont.systemFont(ofSize: 14)
+        labelView.textColor = .white
+        labelView.isBordered = false
+        labelView.isEditable = false
+        labelView.backgroundColor = .clear
+        labelView.frame = NSRect(x: 56, y: (rowHeight - 20) / 2, width: 300, height: 20)
+        rowBackground.addSubview(labelView)
+
+        if isToggle {
+            // Custom toggle switch with dot
+            let toggleWidth: CGFloat = 50
+            let toggleHeight: CGFloat = 30
+            let toggleContainer = NSView(frame: NSRect(x: width - 70, y: (rowHeight - toggleHeight) / 2, width: toggleWidth, height: toggleHeight))
+            toggleContainer.wantsLayer = true
+            toggleContainer.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
+            toggleContainer.layer?.cornerRadius = toggleHeight / 2
+            toggleContainer.identifier = NSUserInterfaceItemIdentifier("toggle_on")
+            rowBackground.addSubview(toggleContainer)
+
+            // Toggle dot/knob
+            let dotSize: CGFloat = 24
+            let dotX = toggleWidth - dotSize - 3 // Position on right (ON state)
+            let dotY = (toggleHeight - dotSize) / 2
+            let dot = NSView(frame: NSRect(x: dotX, y: dotY, width: dotSize, height: dotSize))
+            dot.wantsLayer = true
+            dot.layer?.backgroundColor = NSColor.white.cgColor
+            dot.layer?.cornerRadius = dotSize / 2
+            dot.identifier = NSUserInterfaceItemIdentifier("toggle_dot")
+            toggleContainer.addSubview(dot)
+
+            // Add click gesture
+            let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(toggleClicked(_:)))
+            toggleContainer.addGestureRecognizer(clickGesture)
+        } else {
+            // Value label (e.g., for Theme)
+            let valueLabel = NSTextField(labelWithString: value)
+            valueLabel.font = NSFont.systemFont(ofSize: 14)
+            valueLabel.textColor = .secondaryLabelColor
+            valueLabel.isBordered = false
+            valueLabel.isEditable = false
+            valueLabel.backgroundColor = .clear
+            valueLabel.alignment = .right
+            valueLabel.frame = NSRect(x: width - 120, y: (rowHeight - 20) / 2, width: 100, height: 20)
+            valueLabel.identifier = NSUserInterfaceItemIdentifier("theme_value")
+            rowBackground.addSubview(valueLabel)
+
+            // Make row clickable for theme
+            if label == "Theme" {
+                let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(themeRowClicked(_:)))
+                rowBackground.addGestureRecognizer(clickGesture)
+            }
+        }
+    }
+
     func createPreviewView(frame: NSRect) -> NSView {
         let preview = NSView(frame: frame)
         preview.wantsLayer = true
@@ -1334,23 +1532,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         container.layer?.backgroundColor = NSColor.darkGray.cgColor
         container.layer?.cornerRadius = 8
         container.autoresizingMask = [.width, .minYMargin]
+        container.isHidden = true // Hide initially until wallpaper is selected
         preview.addSubview(container)
         previewContainer = container
 
-        // Placeholder text
-        let placeholderLabel = NSTextField(labelWithString: "Select a wallpaper")
-        placeholderLabel.font = NSFont.systemFont(ofSize: 18, weight: .medium)
+        // Placeholder text - centered in entire preview panel (not just container)
+        let placeholderLabel = NSTextField(labelWithString: "Select a Wallpaper")
+        placeholderLabel.font = NSFont.systemFont(ofSize: 22.5, weight: .medium) // 25% bigger than 18
         placeholderLabel.textColor = .secondaryLabelColor
         placeholderLabel.alignment = .center
         placeholderLabel.frame = NSRect(
             x: 0,
-            y: (previewHeight - 25) / 2,
-            width: container.bounds.width,
-            height: 25
+            y: (frame.height - 30) / 2, // Centered vertically in entire preview panel
+            width: frame.width,
+            height: 30
         )
         placeholderLabel.identifier = NSUserInterfaceItemIdentifier("placeholder")
         placeholderLabel.autoresizingMask = [.width, .minYMargin, .maxYMargin]
-        container.addSubview(placeholderLabel)
+        preview.addSubview(placeholderLabel) // Add to preview, not container
 
         // Title below preview
         let titleY = frame.height - previewHeight - 80
@@ -1378,7 +1577,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setButton.action = #selector(previewSetButtonClicked)
         setButton.autoresizingMask = [.maxXMargin, .minYMargin]
         setButton.wantsLayer = true
-        setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.6, green: 0.75, blue: 0.9, alpha: 1.0).cgColor
+        setButton.layer?.backgroundColor = NSColor(calibratedRed: 0.4, green: 0.6, blue: 0.95, alpha: 1.0).cgColor
         setButton.layer?.cornerRadius = setButtonHeight / 2
 
         // Create Set button content with icon and text
@@ -1590,6 +1789,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func hidePreviewPanel() {
+        // Hide preview container and show placeholder
+        previewContainer?.isHidden = true
+        previewPanelView?.subviews.first(where: { $0.identifier?.rawValue == "placeholder" })?.isHidden = false
+
         previewTitleLabel?.isHidden = true
         previewDescriptionLabel?.isHidden = true
         previewSetButton?.isHidden = true
@@ -1615,6 +1818,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let wallpaperId = wallpaper["id"] as? Int ?? 0
         selectedWallpaperId = wallpaperId
+
+        // Show preview container and hide placeholder
+        previewContainer.isHidden = false
+        previewPanelView?.subviews.first(where: { $0.identifier?.rawValue == "placeholder" })?.isHidden = true
 
         // Update title
         let name = wallpaper["name"] as? String ?? "Unknown"
