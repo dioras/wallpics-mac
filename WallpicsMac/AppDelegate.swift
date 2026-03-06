@@ -676,6 +676,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var previewContainer: NSView?
     var previewTitleLabel: NSTextField?
     var previewDescriptionLabel: NSTextField?
+    var previewInfoContainer: NSView?
+    var previewSetButton: NSButton?
+    var previewDeleteButton: NSButton?
     var previewFavoriteButton: NSButton?
     var previewPlayer: AVPlayer?
     var previewRenderer: ShaderRenderer?
@@ -1042,7 +1045,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let menuStartY = frame.height - iconSize - 120
         let menuItems = [
             ("Favorites", "star"),
-            ("Browse", "square.grid.2x2")
+            ("Browse", "square.grid.2x2"),
+            ("Create", "plus.circle"),
+            ("Settings", "gearshape")
         ]
 
         for (index, item) in menuItems.enumerated() {
@@ -1138,6 +1143,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Don't do anything if clicking the same menu item
         if menuIndex == currentMenuIndex {
+            return
+        }
+
+        // Handle Create and Settings (indices 2 and 3)
+        if menuIndex == 2 {
+            print("Create clicked - not implemented yet")
+            return
+        } else if menuIndex == 3 {
+            print("Settings clicked - not implemented yet")
             return
         }
 
@@ -1291,6 +1305,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         preview.addSubview(setButton)
+        previewSetButton = setButton
+        setButton.isHidden = true
 
         // Delete button (circular with coral background)
         let deleteButton = NSButton(frame: NSRect(
@@ -1320,6 +1336,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         preview.addSubview(deleteButton)
+        previewDeleteButton = deleteButton
+        deleteButton.isHidden = true
 
         // Favorite button (circular with gray background)
         let favoriteButton = NSButton(frame: NSRect(
@@ -1350,27 +1368,55 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         preview.addSubview(favoriteButton)
         previewFavoriteButton = favoriteButton
+        favoriteButton.isHidden = true
 
-        // Description text below buttons
-        let descriptionY: CGFloat = 20
-        let descriptionHeight: CGFloat = buttonsY - 40
+        // Info container below buttons (for downloads, type, date, size)
+        let infoContainerHeight: CGFloat = 80
+        let infoContainerY: CGFloat = 20
+        let infoContainer = NSView(frame: NSRect(x: 20, y: infoContainerY, width: frame.width - 40, height: infoContainerHeight))
+        infoContainer.wantsLayer = true
+        infoContainer.layer?.backgroundColor = NSColor(calibratedWhite: 0.2, alpha: 1.0).cgColor
+        infoContainer.layer?.cornerRadius = 12
+        infoContainer.autoresizingMask = [.width, .minYMargin]
+        preview.addSubview(infoContainer)
+        previewInfoContainer = infoContainer
+        infoContainer.isHidden = true
+
+        // Description text above info container
+        let descriptionY = infoContainerY + infoContainerHeight + 20
+        let descriptionHeight: CGFloat = buttonsY - descriptionY - 20
         let descriptionLabel = NSTextField(labelWithString: "")
         descriptionLabel.font = NSFont.systemFont(ofSize: 16)
         descriptionLabel.textColor = .secondaryLabelColor
         descriptionLabel.alignment = .left
         descriptionLabel.frame = NSRect(x: 20, y: descriptionY, width: frame.width - 40, height: descriptionHeight)
-        descriptionLabel.autoresizingMask = [.width, .minYMargin, .height]
+        descriptionLabel.autoresizingMask = [.width, .minYMargin]
         descriptionLabel.maximumNumberOfLines = 0
         descriptionLabel.lineBreakMode = .byWordWrapping
         preview.addSubview(descriptionLabel)
         previewDescriptionLabel = descriptionLabel
+        descriptionLabel.isHidden = true
+
+        // Hide title initially too
+        titleLabel.isHidden = true
 
         return preview
     }
 
     @objc func previewSetButtonClicked() {
         print("Preview Set button clicked")
-        // TODO: Implement set wallpaper from preview
+
+        guard let wallpaperId = selectedWallpaperId else {
+            print("No wallpaper selected")
+            return
+        }
+
+        // Find the asset URL
+        if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
+            setAsWallpaperWithPath(assetURL: assetURL)
+        } else {
+            print("Asset not downloaded for wallpaper \(wallpaperId)")
+        }
     }
 
     @objc func previewDeleteButtonClicked() {
@@ -1433,7 +1479,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let description = wallpaper["description"] as? String ?? ""
 
         previewTitleLabel?.stringValue = name
+        previewTitleLabel?.isHidden = false
         previewDescriptionLabel?.stringValue = description
+        previewDescriptionLabel?.isHidden = false
+
+        // Show buttons and info container
+        previewSetButton?.isHidden = false
+        previewDeleteButton?.isHidden = false
+        previewFavoriteButton?.isHidden = false
+        previewInfoContainer?.isHidden = false
 
         // Update favorite button color based on whether it's in favorites
         if let assetsFolderURL = assetsFolderURL {
@@ -1445,6 +1499,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 ? NSColor.systemYellow.cgColor
                 : NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
         }
+
+        // Update info container
+        updatePreviewInfoContainer(with: wallpaper)
 
         // Remove placeholder if it exists
         previewContainer.subviews.first(where: { $0.identifier?.rawValue == "placeholder" })?.removeFromSuperview()
@@ -1476,6 +1533,103 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             // Static image
             showImageInPreview(url: assetURL)
+        }
+    }
+
+    func updatePreviewInfoContainer(with wallpaper: [String: Any]) {
+        guard let infoContainer = previewInfoContainer else { return }
+
+        // Clear existing content
+        infoContainer.subviews.forEach { $0.removeFromSuperview() }
+
+        let wallpaperId = wallpaper["id"] as? Int ?? 0
+        let downloadCount = wallpaper["download_count"] as? Int ?? 0
+        let createdAt = wallpaper["created_at"] as? String ?? ""
+
+        // Get file type, icon, and size from downloaded asset
+        var fileType = "Unknown"
+        var fileTypeIcon = "questionmark.circle"
+        var fileSize = ""
+
+        if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
+            let ext = assetURL.pathExtension.lowercased()
+            let typeInfo = getTypeInfoFromExtension(ext)
+            fileType = typeInfo.type
+            fileTypeIcon = typeInfo.icon
+
+            // Get file size
+            if let attributes = try? FileManager.default.attributesOfItem(atPath: assetURL.path),
+               let size = attributes[.size] as? Int64 {
+                let sizeInMB = Double(size) / (1024 * 1024)
+                fileSize = String(format: "%.2f MB", sizeInMB)
+            }
+        }
+
+        // Format date
+        var dateString = ""
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = dateFormatter.date(from: createdAt) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateFormat = "MMMM d, yyyy"
+            dateString = displayFormatter.string(from: date)
+        } else {
+            // Try without fractional seconds
+            dateFormatter.formatOptions = [.withInternetDateTime]
+            if let date = dateFormatter.date(from: createdAt) {
+                let displayFormatter = DateFormatter()
+                displayFormatter.dateFormat = "MMMM d, yyyy"
+                dateString = displayFormatter.string(from: date)
+            }
+        }
+
+        // Create 2x2 grid of info items
+        let itemWidth = (infoContainer.bounds.width - 30) / 2
+        let itemHeight = infoContainer.bounds.height / 2
+        let padding: CGFloat = 10
+
+        // Row 1: Downloads and Type
+        createInfoItem(parent: infoContainer, x: padding, y: itemHeight, width: itemWidth, height: itemHeight - padding, icon: "arrow.down.circle", text: "Downloads: \(downloadCount)")
+        createInfoItem(parent: infoContainer, x: padding + itemWidth + 10, y: itemHeight, width: itemWidth, height: itemHeight - padding, icon: fileTypeIcon, text: fileType)
+
+        // Row 2: Date and Size
+        createInfoItem(parent: infoContainer, x: padding, y: padding, width: itemWidth, height: itemHeight - padding, icon: "calendar", text: dateString)
+        createInfoItem(parent: infoContainer, x: padding + itemWidth + 10, y: padding, width: itemWidth, height: itemHeight - padding, icon: "folder", text: fileSize)
+    }
+
+    func createInfoItem(parent: NSView, x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat, icon: String, text: String) {
+        let container = NSView(frame: NSRect(x: x, y: y, width: width, height: height))
+
+        // Icon
+        if let iconImage = NSImage(systemSymbolName: icon, accessibilityDescription: nil) {
+            iconImage.isTemplate = true
+            let iconView = NSImageView(frame: NSRect(x: 0, y: (height - 20) / 2, width: 20, height: 20))
+            iconView.image = iconImage
+            iconView.contentTintColor = .secondaryLabelColor
+            container.addSubview(iconView)
+
+            // Text label
+            let label = NSTextField(labelWithString: text)
+            label.font = NSFont.systemFont(ofSize: 13)
+            label.textColor = .secondaryLabelColor
+            label.frame = NSRect(x: 28, y: (height - 18) / 2, width: width - 28, height: 18)
+            container.addSubview(label)
+        }
+
+        parent.addSubview(container)
+    }
+
+    func getTypeInfoFromExtension(_ ext: String) -> (type: String, icon: String) {
+        if ext == "msl" {
+            return ("Shader", "wand.and.stars")
+        } else if ext == "riv" {
+            return ("Animation", "play.circle")
+        } else if ["jpg", "jpeg", "png", "heic", "gif"].contains(ext) {
+            return ("Image", "photo")
+        } else if ["mp4", "mov", "m4v"].contains(ext) {
+            return ("Video", "video")
+        } else {
+            return ("Unknown", "questionmark.circle")
         }
     }
 
@@ -3006,15 +3160,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }.resume()
         }
 
-        // Add white text label with wallpaper name (vertically centered)
-        if let name = wallpaper["name"] as? String {
+        // Add white text label with wallpaper name and type icon (vertically centered)
+        if let name = wallpaper["name"] as? String,
+           let wallpaperId = wallpaper["id"] as? Int {
+
+            // Get type icon if asset is downloaded
+            var typeIcon: NSImage?
+            if let assetURL = findAssetURLByWallpaperId(wallpaperId) {
+                let ext = assetURL.pathExtension.lowercased()
+                let typeInfo = getTypeInfoFromExtension(ext)
+                if let icon = NSImage(systemSymbolName: typeInfo.icon, accessibilityDescription: nil) {
+                    icon.isTemplate = true
+                    typeIcon = icon
+                }
+            }
+
+            let labelHeight: CGFloat = 18
+            let iconSize: CGFloat = 16
+            let spacing: CGFloat = 6
+            var textX: CGFloat = 10
+
+            // Add icon if available
+            if let icon = typeIcon {
+                let iconView = NSImageView(frame: NSRect(x: 10, y: (overlayHeight - iconSize) / 2, width: iconSize, height: iconSize))
+                iconView.image = icon
+                iconView.contentTintColor = .white
+                overlayView.addSubview(iconView)
+                textX = 10 + iconSize + spacing
+            }
+
             let label = NSTextField(labelWithString: name)
             label.font = NSFont.systemFont(ofSize: 14, weight: .medium)
             label.textColor = .white
             label.alignment = .left
             label.lineBreakMode = .byTruncatingTail
-            let labelHeight: CGFloat = 18
-            label.frame = NSRect(x: 10, y: (overlayHeight - labelHeight) / 2, width: frame.width - 20, height: labelHeight)
+            label.frame = NSRect(x: textX, y: (overlayHeight - labelHeight) / 2, width: frame.width - textX - 10, height: labelHeight)
             overlayView.addSubview(label)
         }
 
