@@ -334,6 +334,11 @@ class ShaderRenderer: NSObject, MTKViewDelegate {
     }
 
     func draw(in view: MTKView) {
+        // Don't draw at all when paused
+        if isPaused {
+            return
+        }
+
         guard let pipelineState = pipelineState,
               let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
@@ -342,14 +347,9 @@ class ShaderRenderer: NSObject, MTKViewDelegate {
             return
         }
 
-        // Calculate iTime - use frozen time if paused
-        let iTime: Float
-        if isPaused {
-            iTime = pausedTime
-        } else {
-            let elapsed = Date().timeIntervalSince(startTime)
-            iTime = Float(elapsed.truncatingRemainder(dividingBy: 300.0))
-        }
+        // Calculate iTime
+        let elapsed = Date().timeIntervalSince(startTime)
+        let iTime = Float(elapsed.truncatingRemainder(dividingBy: 300.0))
 
         // Setup uniforms
         var uniforms = Uniforms(
