@@ -2074,16 +2074,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         favoriteButton.layer?.backgroundColor = NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
         favoriteButton.layer?.cornerRadius = circularButtonSize / 2
 
-        if let starIcon = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favorite") {
-            starIcon.isTemplate = true
-            let iconImage = NSImage(size: NSSize(width: 24, height: 24))
-            iconImage.lockFocus()
-            starIcon.draw(in: NSRect(x: 0, y: 0, width: 24, height: 24))
-            iconImage.unlockFocus()
-            favoriteButton.image = iconImage
-            favoriteButton.imagePosition = .imageOnly
-            favoriteButton.contentTintColor = .white
-        }
+        // Star icon will be updated based on favorite status
+        favoriteButton.imagePosition = .imageOnly
 
         preview.addSubview(favoriteButton)
         previewFavoriteButton = favoriteButton
@@ -2432,6 +2424,77 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func updateFavoriteButtonAppearance(isInFavorites: Bool) {
+        guard let favoriteButton = previewFavoriteButton else { return }
+
+        // Background stays gray always
+        favoriteButton.layer?.backgroundColor = NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
+        favoriteButton.layer?.borderWidth = 0
+
+        let yellowColor = NSColor(calibratedRed: 1.0, green: 0.8, blue: 0.0, alpha: 1.0)
+
+        if isInFavorites {
+            // In favorites: BLACK filled star with YELLOW outline/border on the star shape itself
+            let iconImage = NSImage(size: NSSize(width: 24, height: 24))
+            iconImage.lockFocus()
+
+            if let ctx = NSGraphicsContext.current?.cgContext {
+                ctx.saveGState()
+
+                // Step 1: Draw filled star in GRAY (same as button background)
+                if let fillIcon = NSImage(systemSymbolName: "star.fill", accessibilityDescription: nil) {
+                    // Render the template icon with gray color (matches button background)
+                    ctx.setBlendMode(.normal)
+                    if let cgImage = fillIcon.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                        let grayColor = NSColor(calibratedWhite: 0.35, alpha: 1.0)
+                        ctx.setFillColor(grayColor.cgColor)
+                        ctx.clip(to: CGRect(x: 0, y: 0, width: 24, height: 24), mask: cgImage)
+                        ctx.fill(CGRect(x: 0, y: 0, width: 24, height: 24))
+                        ctx.resetClip()
+                    }
+                }
+
+                // Step 2: Draw outline star in YELLOW on top
+                if let outlineIcon = NSImage(systemSymbolName: "star", accessibilityDescription: nil) {
+                    if let cgImage = outlineIcon.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                        ctx.setFillColor(yellowColor.cgColor)
+                        ctx.clip(to: CGRect(x: 0, y: 0, width: 24, height: 24), mask: cgImage)
+                        ctx.fill(CGRect(x: 0, y: 0, width: 24, height: 24))
+                    }
+                }
+
+                ctx.restoreGState()
+            }
+
+            iconImage.unlockFocus()
+            iconImage.isTemplate = false
+            favoriteButton.image = iconImage
+
+            favoriteButton.toolTip = "Remove from Favorites"
+        } else {
+            // Not in favorites: yellow star only
+            if let starIcon = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favorite") {
+                starIcon.isTemplate = true
+
+                let iconImage = NSImage(size: NSSize(width: 24, height: 24))
+                iconImage.lockFocus()
+
+                // Draw star
+                starIcon.draw(in: NSRect(x: 0, y: 0, width: 24, height: 24), from: .zero, operation: .sourceOver, fraction: 1.0)
+
+                // Apply yellow color
+                yellowColor.set()
+                NSRect(x: 0, y: 0, width: 24, height: 24).fill(using: .sourceAtop)
+
+                iconImage.unlockFocus()
+                iconImage.isTemplate = false
+                favoriteButton.image = iconImage
+            }
+
+            favoriteButton.toolTip = "Add to Favorites"
+        }
+    }
+
     @objc func previewFavoriteButtonClicked() {
         print("Preview Favorite button clicked")
 
@@ -2451,17 +2514,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 try FileManager.default.removeItem(at: favoriteFile)
                 print("Removed wallpaper \(wallpaperId) from favorites")
 
-                // Update button color to yellow (not in favorites, can add)
-                previewFavoriteButton?.layer?.backgroundColor = NSColor(calibratedRed: 1.0, green: 0.8, blue: 0.0, alpha: 1.0).cgColor
-                previewFavoriteButton?.toolTip = "Add to Favorites"
+                // Update button appearance (not in favorites)
+                updateFavoriteButtonAppearance(isInFavorites: false)
             } else {
                 // Add to favorites (create empty file with wallpaper ID)
                 try "".write(to: favoriteFile, atomically: true, encoding: .utf8)
                 print("Added wallpaper \(wallpaperId) to favorites")
 
-                // Update button color to gray (is in favorites, can remove)
-                previewFavoriteButton?.layer?.backgroundColor = NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
-                previewFavoriteButton?.toolTip = "Remove from Favorites"
+                // Update button appearance (in favorites)
+                updateFavoriteButtonAppearance(isInFavorites: true)
             }
 
             // If Favorites view is active, refresh it (keep preview panel as is)
@@ -2668,13 +2729,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let favoriteFile = favoritesFolder.appendingPathComponent(favoriteFileName)
             let isInFavorites = FileManager.default.fileExists(atPath: favoriteFile.path)
 
-            previewFavoriteButton?.layer?.backgroundColor = isInFavorites
-                ? NSColor(calibratedWhite: 0.35, alpha: 1.0).cgColor
-                : NSColor(calibratedRed: 1.0, green: 0.8, blue: 0.0, alpha: 1.0).cgColor
-
-            previewFavoriteButton?.toolTip = isInFavorites
-                ? "Remove from Favorites"
-                : "Add to Favorites"
+            // Update favorite button appearance
+            updateFavoriteButtonAppearance(isInFavorites: isInFavorites)
         }
 
         // Update info container
