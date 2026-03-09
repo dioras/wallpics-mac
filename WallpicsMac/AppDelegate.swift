@@ -1513,6 +1513,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             showCenterView(favoritesView)
         case 1: // Browse
             showCenterView(browserView)
+            // Scroll to top when switching to browse view
+            if let scrollView = browserScrollView, let documentView = scrollView.documentView {
+                let topPoint = NSPoint(x: 0, y: documentView.bounds.maxY - scrollView.contentView.bounds.height)
+                scrollView.contentView.scroll(to: topPoint)
+                scrollView.reflectScrolledClipView(scrollView.contentView)
+            }
         case 2: // Create
             showCenterView(createView)
         case 3: // Settings
