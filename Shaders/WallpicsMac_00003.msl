@@ -1,0 +1,128 @@
+// fully based on:
+// https://www.shadertoy.com/view/XstXR2
+
+#define PI 3.1415926535897932384626433832795
+
+constant float wave_amplitude = 0.076;
+constant float period = 2.0 * PI;
+
+float wave_phase(float iTime) {
+    return iTime;
+}
+
+float square(float2 st) {
+    float2 bl = step(float2(0.0), st);       // bottom-left
+    float2 tr = step(float2(0.0), 1.0 - st);   // top-right
+    return bl.x * bl.y * tr.x * tr.y;
+}
+
+// Neue Farben aus dem Bild (Windows 3.x/95 Ära)
+constant float3 color_orange = float3(0.93, 0.4, 0.13);
+constant float3 color_blue = float3(0.29, 0.56, 0.82);
+constant float3 color_green = float3(0.43, 0.72, 0.27);
+constant float3 color_yellow = float3(0.98, 0.8, 0.0);
+
+float4 frame(float2 st) {
+    float tushka = square(st * float2x2((1.0 / 0.48), 0.0, 0.0, (1.0 / 0.69)));
+
+    float2x2 sector_mat = float2x2(1.0 / 0.16, 0.0, 0.0, 1.0 / 0.22);
+    float sectors[4];
+    sectors[0] = square(st * sector_mat + (1.0 / 0.16) * float2(0.000, -0.280));
+    sectors[1] = square(st * sector_mat + (1.0 / 0.16) * float2(0.000, -0.060));
+    sectors[2] = square(st * sector_mat + (1.0 / 0.16) * float2(-0.240, -0.280));
+    sectors[3] = square(st * sector_mat + (1.0 / 0.16) * float2(-0.240, -0.060));
+    float3 sector_colors[4];
+    sector_colors[0] = color_orange * sectors[0]; // Oben Links
+    sector_colors[1] = color_blue * sectors[1];   // Unten Links
+    sector_colors[2] = color_green * sectors[2];  // Oben Rechts
+    sector_colors[3] = color_yellow * sectors[3]; // Unten Rechts
+
+    return float4(float3(sector_colors[0] + sector_colors[1] +
+                         sector_colors[2] + sector_colors[3]), tushka);
+}
+
+float4 trail_piece(float2 st, float2 index, float scale) {
+    scale = index.x * 0.082 + 0.452;
+
+    float3 color;
+
+    // Bedingung: Wenn der Index >= 5.0 ist (direkt an der Flagge),
+    // wird die Farbe auf Schwarz gesetzt.
+    if (index.x >= 5.0) {
+        color = float3(0.0, 0.0, 0.0);
+    } else {
+        if (index.y > 0.9 && index.y < 2.1) {
+            color = color_blue; // Untere farbige Reihe
+            scale *= 0.8;
+        } else if (index.y > 3.9 && index.y < 5.1) {
+            color = color_orange; // Obere farbige Reihe
+            scale *= 0.8;
+        } else {
+            color = float3(0.0, 0.0, 0.0); // Schwarze Zwischenreihen
+        }
+    }
+
+    float scale1 = 1.0 / scale;
+    float shift = -(1.0 - scale) / (2.0 * scale);
+    float3x3 transform = float3x3(scale1, 0.0, 0.0, 0.0, scale1, 0.0, shift, shift, 1.0);
+    float3 st_homo = float3(st, 1.0);
+    float3 transformed = transform * st_homo;
+    float2 st2 = transformed.xy;
+    float mask = square(st2);
+
+    return float4(color, mask);
+}
+
+float4 trail(float2 st, float iTime) {
+    const float piece_height = 7.0 / 0.69;
+    const float piece_width = 6.0 / 0.54;
+
+    st.x = 1.2760 * pow(st.x, 3.0) - 1.4624 * st.x * st.x + 1.4154 * st.x;
+
+    float x_at_cell = floor(st.x * piece_width) / piece_width;
+    float x_at_cell_center = x_at_cell + 0.016;
+    float incline = cos(0.5 * period + wave_phase(iTime)) * wave_amplitude;
+
+    float offset = sin(x_at_cell_center * period + wave_phase(iTime)) * wave_amplitude +
+        incline * (st.x - x_at_cell) * 5.452;
+
+    float mask = step(offset, st.y) * (1.0 - step(0.69 + offset, st.y)) * step(0.0, st.x);
+
+    float2 cell_coord = float2((st.x - x_at_cell) * piece_width,
+                               fract((st.y - offset) * piece_height));
+    float2 cell_index = float2(x_at_cell * piece_width,
+                               floor((st.y - offset) * piece_height));
+
+    float4 pieces = trail_piece(cell_coord, cell_index, 0.752);
+
+    return float4(float3(pieces), pieces.a * mask);
+}
+
+float4 logo(float2 st, float iTime) {
+    if (st.x <= 0.54) {
+        return trail(st, iTime);
+    } else {
+        float2 st2 = st + float2(0.0, -sin(st.x * period + wave_phase(iTime)) * wave_amplitude);
+        return frame(st2 + float2(-0.54, 0.0));
+    }
+}
+
+fragment float4 fragmentShader(
+    VertexOut in [[stage_in]],
+    constant Uniforms& uniforms [[buffer(0)]]
+) {
+    float2 fragCoord = in.uv * uniforms.iResolution;
+
+    float2 st = fragCoord.xy / uniforms.iResolution.xy;
+    st.x *= uniforms.iResolution.x / uniforms.iResolution.y;
+
+    // Center the logo
+    st -= float2(uniforms.iResolution.x / uniforms.iResolution.y * 0.5, 0.5);
+    st.x += 0.3; // Move left
+    st *= 1.8;
+    float rot = PI * -0.124;
+    st *= float2x2(cos(rot), sin(rot), -sin(rot), cos(rot));
+
+    float4 logo_ = logo(st, uniforms.iTime);
+    return mix(float4(0.0, 0.5, 0.5, 1.0), logo_, logo_.a);
+}

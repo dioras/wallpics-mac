@@ -1,0 +1,4882 @@
+
+logo
+
+    Introduction
+
+    Authenticating requests
+
+    Auth management
+        Get guest ID
+        Destroy guest
+        Login OTP request
+        Login with OTP
+        Login with OTP (web)
+        Log out
+
+    Endpoints
+
+    Statistics
+
+    User management
+
+    Wallpapers management
+
+    View Postman collection
+    View OpenAPI spec
+    Documentation powered by Scribe ✍
+
+    Last updated: February 12, 2026
+
+Introduction
+Base URL: https://backend.wallpics.app
+
+This documentation aims to provide all the information you need to work with our API.
+As you scroll, you'll see code examples for working with the API in different programming languages in the dark area to the right (or as part of the content on mobile). You can switch the language used with the tabs at the top right (or from the nav menu at the top left on mobile).
+
+Authentication
+All API requests must include the following headers:
+
+    x-auth: Must be set to the current Unix timestamp (PHP: time()).
+    x-token: Must be the MD5 hash of the current timestamp concatenated with the string "wall" (PHP: md5(time() . "wall")).
+
+In the API examples the header values are pre-computed, but you should compute them at a request time.
+Ensure your client correctly calculates these values before making requests.
+
+Guest ID
+For better user experience you should provide a X-Guest-Id HTTP header with each request. You should obtain the guest ID from the server. There's 2 ways to get it:
+
+    Make a GET request to the /api/init-guest API endpoint.
+    Provide a X-Get-Guest-Id header to any API endpoint.
+
+In the response you will get X-Guest-Id header, which will contain the guest ID. You should store this ID and provide to all next requests to the API.
+In case you're using /api/init-guest - guestId will be also provided in the response.
+Authenticating requests
+
+To authenticate requests, include an Authorization header with the value "Bearer {YOUR_AUTH_KEY}".
+
+All authenticated endpoints are marked with a requires authentication badge in the documentation below.
+
+You can retrieve your token by logging in using /api/auth/request-code endpoint.
+Auth management
+Get guest ID
+
+X-Guest-Id header and guestId field with the guest ID value will be returned.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/init-guest"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/init-guest
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Destroy guest
+
+Provide X-Guest-Id header to destroy guest by provided UUID.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/destroy-guest"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "DELETE",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+DELETE api/destroy-guest
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Login OTP request
+
+Request One Time Password code using provided email
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/auth/request-code"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "email": "ikuhlman@example.org"
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+POST api/auth/request-code
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+email   string     
+
+Email to which the 6-digit OTP code should be sent to. Example: ikuhlman@example.org
+Login with OTP
+
+Authenticate using One Time Password code. Before calling this endpoint, you should call the api/auth/request-code to send the OTP code to user's email, so user can provide the code.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/auth/verify-code"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "device_name": "Nuno's iPhone 12",
+    "email": "nels.kuhn@example.org",
+    "code": 123456
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+POST api/auth/verify-code
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+device_name   string  optional    
+
+A user-friendly device name. Example: Nuno's iPhone 12
+email   string     
+
+Email to which the 6-digit OTP code should be sent to. Example: nels.kuhn@example.org
+code   integer     
+
+An 6-digit integer value. Example: 123456
+Login with OTP (web)
+
+Authenticate using One Time Password code. Session ID and remember me token (if remember is set to true) cookie will be set.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/stateful/auth/verify-code"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "remember": true,
+    "email": "callie.schulist@example.net",
+    "code": 123456
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+POST api/stateful/auth/verify-code
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+remember   boolean  optional    
+
+Stay logged in. Example: true
+email   string     
+
+Email to which the 6-digit OTP code should be sent to. Example: callie.schulist@example.net
+code   integer     
+
+An 6-digit integer value. Example: 123456
+Log out
+
+requires authentication
+
+Logs out authenticated user, regardless of the authentication method (web-session or API)
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/log-out"
+);
+
+const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/log-out
+Headers
+Authorization        
+
+Example: Bearer {YOUR_AUTH_KEY}
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Endpoints
+Home screen
+
+Contains all categories and covers with wallpapers inside. Also provides all available tags.
+Pagination is used to limit wallpapers count in each category, cover and discover section.
+The page parameter changes the page of each category. But to easily retrieve wallpapers from one particular category, you should use the wallpaper-list API endpoint.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/home-screen"
+);
+
+const params = {
+    "getChargeAnimationsCategory": "0",
+    "getLiveDiyTemplatesCategory": "0",
+    "getNewMatchingCategory": "1",
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": {
+        "last_update_cache": "...",
+        "category_list": [
+            {
+                "id": "...",
+                "name": "...",
+                "description": "...",
+                "slug": "...",
+                "position": "...",
+                "wallpapers": [
+                    {
+                        "id": "...",
+                        "type": "...",
+                        "width": "...",
+                        "height": "...",
+                        "name": "...",
+                        "slug": "...",
+                        "description": "...",
+                        "author": "...",
+                        "categories": [
+                            {
+                                "id": "...",
+                                "name": "...",
+                                "description": "...",
+                                "slug": "...",
+                                "position": "...",
+                                "child": "..."
+                            }
+                        ],
+                        "created_at": "...",
+                        "download_count": "...",
+                        "is_premium": "...",
+                        "nsfw": "...",
+                        "position": "...",
+                        "tags": [
+                            {
+                                "id": "...",
+                                "name": "..."
+                            }
+                        ],
+                        "hot_rank": "...",
+                        "thumbnail": "..."
+                    }
+                ]
+            }
+        ],
+        "discover_sections": [
+            {
+                "id": "...",
+                "name": "...",
+                "number_of_columns": "...",
+                "categories": [
+                    {
+                        "id": "...",
+                        "name": "...",
+                        "description": "...",
+                        "slug": "...",
+                        "position": "..."
+                    }
+                ],
+                "tags": [
+                    {
+                        "id": "...",
+                        "name": "..."
+                    }
+                ],
+                "wallpapers": [
+                    {
+                        "id": "...",
+                        "type": "...",
+                        "width": "...",
+                        "height": "...",
+                        "name": "...",
+                        "slug": "...",
+                        "description": "...",
+                        "author": "...",
+                        "categories": [
+                            {
+                                "id": "...",
+                                "name": "...",
+                                "description": "...",
+                                "slug": "...",
+                                "position": "...",
+                                "child": "..."
+                            }
+                        ],
+                        "created_at": "...",
+                        "download_count": "...",
+                        "is_premium": "...",
+                        "nsfw": "...",
+                        "position": "...",
+                        "tags": [
+                            {
+                                "id": "...",
+                                "name": "..."
+                            }
+                        ],
+                        "hot_rank": "...",
+                        "thumbnail": "..."
+                    }
+                ]
+            }
+        ],
+        "covers": {
+            "status": "...",
+            "exec_time": "...",
+            "info": [],
+            "data": {
+                "top": [
+                    {
+                        "id": "...",
+                        "name": "...",
+                        "slug": "...",
+                        "number_of_columns": "...",
+                        "category_id": "...",
+                        "section": "...",
+                        "position": "...",
+                        "hidden": "...",
+                        "image": "...",
+                        "wallpapers": [
+                            {
+                                "id": "...",
+                                "type": "...",
+                                "width": "...",
+                                "height": "...",
+                                "name": "...",
+                                "slug": "...",
+                                "description": "...",
+                                "author": "...",
+                                "categories": [
+                                    {
+                                        "id": "...",
+                                        "name": "...",
+                                        "description": "...",
+                                        "slug": "...",
+                                        "position": "...",
+                                        "child": "..."
+                                    }
+                                ],
+                                "created_at": "...",
+                                "download_count": "...",
+                                "is_premium": "...",
+                                "nsfw": "...",
+                                "position": "...",
+                                "tags": [
+                                    {
+                                        "id": "...",
+                                        "name": "..."
+                                    }
+                                ],
+                                "hot_rank": "...",
+                                "thumbnail": "..."
+                            }
+                        ]
+                    }
+                ],
+                "center": [
+                    {
+                        "id": "...",
+                        "name": "...",
+                        "slug": "...",
+                        "number_of_columns": "...",
+                        "category_id": "...",
+                        "section": "...",
+                        "position": "...",
+                        "hidden": "...",
+                        "image": "...",
+                        "wallpapers": [
+                            {
+                                "id": "...",
+                                "type": "...",
+                                "width": "...",
+                                "height": "...",
+                                "name": "...",
+                                "slug": "...",
+                                "description": "...",
+                                "author": "...",
+                                "categories": [
+                                    {
+                                        "id": "...",
+                                        "name": "...",
+                                        "description": "...",
+                                        "slug": "...",
+                                        "position": "...",
+                                        "child": "..."
+                                    }
+                                ],
+                                "created_at": "...",
+                                "download_count": "...",
+                                "is_premium": "...",
+                                "nsfw": "...",
+                                "position": "...",
+                                "tags": [
+                                    {
+                                        "id": "...",
+                                        "name": "..."
+                                    }
+                                ],
+                                "hot_rank": "...",
+                                "thumbnail": "..."
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "all_tags": [
+            {
+                "id": "...",
+                "name": "..."
+            }
+        ]
+    }
+}
+
+ 
+
+Request      
+
+GET api/home-screen
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+getChargeAnimationsCategory   boolean  optional    
+
+Get Charge Animations category in the response in "categories" list. Example: false
+getLiveDiyTemplatesCategory   boolean  optional    
+
+Get DIY Templates category in the response in "categories" list. Example: false
+getNewMatchingCategory   boolean  optional    
+
+Get matching wallpapers (matching_wallpaper type) category in the response in "categories" list. Also, it will hide the old "3 Friends" category (ID: 23). Example: true
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Live screen
+
+Contains categories with live wallpapers. Pagination is used to limit wallpapers count in each category.
+The page parameter changes the page of each category. But to easily retrieve wallpapers from one particular category, you should use the wallpaper-list API endpoint.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpapers/live/screen"
+);
+
+const params = {
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": {
+        "last_update_cache": "...",
+        "category_list": [
+            {
+                "id": "...",
+                "name": "...",
+                "description": "...",
+                "slug": "...",
+                "position": "...",
+                "wallpapers": [
+                    {
+                        "id": "...",
+                        "type": "...",
+                        "width": "...",
+                        "height": "...",
+                        "name": "...",
+                        "slug": "...",
+                        "description": "...",
+                        "author": "...",
+                        "categories": [
+                            {
+                                "id": "...",
+                                "name": "...",
+                                "description": "...",
+                                "slug": "...",
+                                "position": "...",
+                                "child": "..."
+                            }
+                        ],
+                        "created_at": "...",
+                        "download_count": "...",
+                        "is_premium": "...",
+                        "nsfw": "...",
+                        "position": "...",
+                        "tags": [
+                            {
+                                "id": "...",
+                                "name": "..."
+                            }
+                        ],
+                        "hot_rank": "...",
+                        "thumbnail": "...",
+                        "static_thumbnail": "...",
+                        "preview_speed": "...",
+                        "cm_time": "...",
+                        "video": "...",
+                        "video_original ": "...",
+                        "android_video": "...",
+                        "lq_video": "..."
+                    }
+                ]
+            }
+        ]
+    }
+}
+
+ 
+
+Request      
+
+GET api/wallpapers/live/screen
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Get all categories
+
+Returns a list with all categories with all hierarchy.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/category-list"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "modelType": "illo",
+    "type": 13
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": [
+        {
+            "id": "...",
+            "name": "...",
+            "description": "...",
+            "slug": "...",
+            "position": "...",
+            "children": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "children": "..."
+                }
+            ]
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/category-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+modelType   string  optional    
+
+Used to get categories that have content of specified type. Available values are: all, ai_filter, regular_wallpaper, live_wallpaper, double_wallpaper, matching_wallpaper.
+type   integer  optional    
+
+Used to get categories that have wallpapers of specified type. (0 - regular, 1 - live, 2 - double, 3 - matching).
+Body Parameters
+modelType   string  optional    
+
+Example: illo
+type   integer  optional    
+
+The type of an existing record in the wallpapers table. Example: 13
+Get categories with wallpapers
+
+Returns a list with all categories with all hierarchy and wallpapers (only on top level).
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/category-list-with-wallpapers"
+);
+
+const params = {
+    "wallpapers_per_category": "10",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "type": 18,
+    "modelType": "sit",
+    "wallpapers_per_category": 7
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": [
+        {
+            "id": "...",
+            "name": "...",
+            "description": "...",
+            "slug": "...",
+            "position": "...",
+            "wallpapers": [
+                {
+                    "id": "...",
+                    "type": "...",
+                    "width": "...",
+                    "height": "...",
+                    "name": "...",
+                    "slug": "...",
+                    "description": "...",
+                    "author": "...",
+                    "categories": [
+                        {
+                            "id": "...",
+                            "name": "...",
+                            "description": "...",
+                            "slug": "...",
+                            "position": "...",
+                            "child": "..."
+                        }
+                    ],
+                    "created_at": "...",
+                    "download_count": "...",
+                    "is_premium": "...",
+                    "nsfw": "...",
+                    "position": "...",
+                    "tags": [
+                        {
+                            "id": "...",
+                            "name": "..."
+                        }
+                    ],
+                    "hot_rank": "...",
+                    "thumbnail": "..."
+                }
+            ],
+            "children": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "children": "..."
+                }
+            ]
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/category-list-with-wallpapers
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+type   integer  optional    
+
+Used to get categories that have wallpapers of specified type. (0 - regular, 1 - live, 2 - double, 3 - matching).
+modelType   string  optional    
+
+Used to get categories that have content of specified type. Available values are: all, regular_wallpaper, live_wallpaper, double_wallpaper, matching_wallpaper.
+wallpapers_per_category   integer  optional    
+
+Wallpapers per category (default: 10). Example: 10
+Body Parameters
+type   integer  optional    
+
+Example: 18
+modelType   string  optional    
+
+Example: sit
+wallpapers_per_category   integer  optional    
+
+Example: 7
+Get categories with AI filters
+
+Returns a list with all categories with all hierarchy and AI filters (only on top level).
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/category-list-with-ai-filters"
+);
+
+const params = {
+    "ai_filters_per_category": "10",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "ai_filters_per_category": 12
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+GET api/category-list-with-ai-filters
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+ai_filters_per_category   integer  optional    
+
+AI filters per category (default: 10). Example: 10
+Body Parameters
+ai_filters_per_category   integer  optional    
+
+Example: 12
+GET api/category
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/category"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "id": 8734.45116217,
+    "slug": "illo"
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+GET api/category
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+id   number  optional    
+
+This field is required when slug is not present. Example: 8734.45116217
+slug   string  optional    
+
+This field is required when id is not present. Example: illo
+GET api/discover-section-list
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/discover-section-list"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/discover-section-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Get all tags
+
+Returns a list with all tags.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/tags-list"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "*": {
+        "id": "...",
+        "name": "..."
+    }
+}
+
+ 
+
+Request      
+
+GET api/tags-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Get all covers
+
+Returns all covers.
+If the coverId is specified - returns all wallpapers from that cover.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/cover-list/{coverId?}"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/cover-list/{coverId?}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+coverId   integer  optional    
+
+The ID of a cover to get all wallpapers from
+Get all covers with wallpapers
+
+Each cover will have a list of wallpapers that belong to it.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/cover-list-with-wallpapers"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/cover-list-with-wallpapers
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Add a new tag
+
+This endpoint allows you to add a new tag.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/add-tag"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "name": "Nature"
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+POST api/add-tag
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+name   string     
+
+The name of the tag. Example: Nature
+Add new tags
+
+This endpoint allows you to add tags by providing a JSON array of tag names. If a tag already exists, it will not be duplicated, and the ID of the existing tags will be returned along with the new tags.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/add-tags"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "tags": "[\"tag1\", \"tag2\", \"tag3\"]"
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+POST api/add-tags
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+tags   json  optional    
+
+nullable A JSON array of tags to be added. Example: ["tag1", "tag2", "tag3"]
+DIY Template list
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/diy-template-list"
+);
+
+const params = {
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": [
+        {
+            "id": "...",
+            "name": "...",
+            "template": "...",
+            "template_original_name": "...",
+            "position": "...",
+            "is_premium": "...",
+            "type": "...",
+            "thumbnail": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/diy-template-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+Live DIY Template list
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/live-diy-template-list"
+);
+
+const params = {
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": [
+        {
+            "id": "...",
+            "name": "...",
+            "template": "...",
+            "template_original_name": "...",
+            "position": "...",
+            "is_premium": "...",
+            "type": "...",
+            "thumbnail": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/live-diy-template-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+Mixed DIY Template list
+
+Returns both live and static DIY templates
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/mixed-diy-template-list"
+);
+
+const params = {
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": [
+        {
+            "id": "...",
+            "name": "...",
+            "template": "...",
+            "template_original_name": "...",
+            "position": "...",
+            "is_premium": "...",
+            "type": "...",
+            "thumbnail": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/mixed-diy-template-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+GET api/sticker-list
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/sticker-list"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/sticker-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+List all AI filters
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/ai-filter-list"
+);
+
+const params = {
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "categoryId": 2850295.671152598,
+    "categorySlug": "ratione"
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "current_page": "...",
+        "last_page": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "name": "...",
+            "created_at": "...",
+            "updated_at": "...",
+            "prompt": "...",
+            "hidden": "...",
+            "thumbnail": "...",
+            "source_image": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/ai-filter-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+Body Parameters
+categoryId   number  optional    
+
+The id of an existing record in the category table. Example: 2850295.6711526
+categorySlug   string  optional    
+
+Example: ratione
+Get AI filter by ID
+
+Returns AI filter entry.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/ai-filter/3"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/ai-filter/{aiFilterId}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+aiFilterId   integer  optional    
+
+ID of needed AI filter Example: 3
+List all fonts
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/fonts"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "fonts_archive": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "name": "...",
+            "font_file": "...",
+            "is_premium": "...",
+            "thumbnail": "...",
+            "created_at": "...",
+            "updated_at": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/fonts
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Get Font by ID
+
+Returns Font entry.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/fonts/10"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": {
+        "id": "...",
+        "name": "...",
+        "font_file": "...",
+        "is_premium": "...",
+        "thumbnail": "...",
+        "created_at": "...",
+        "updated_at": "..."
+    }
+}
+
+ 
+
+Request      
+
+GET api/fonts/{fontId}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+fontId   integer  optional    
+
+ID of needed font Example: 10
+List all profile pictures
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/profile-pictures"
+);
+
+const params = {
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/profile-pictures
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+Get Profile Picture by ID
+
+Returns Profile Picture entry.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/profile-pictures/10"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/profile-pictures/{pfpId}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+pfpId   integer  optional    
+
+ID of needed Profile Picture Example: 10
+GET api/charging-animation-list
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/charging-animation-list"
+);
+
+const params = {
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "sortBy": "recommended",
+    "sortOrder": "asc"
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+GET api/charging-animation-list
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+Body Parameters
+sortBy   string  optional    
+
+Example: recommended
+Must be one of:
+
+    popular
+    popular_last_month
+    popular_last_week
+    date
+    position
+    recommended
+
+sortOrder   string  optional    
+
+Example: asc
+Must be one of:
+
+    desc
+    asc
+
+POST api/contact
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/contact"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "name": "qaiwyvigrthos",
+    "email": "goyette.judy@example.com",
+    "message": "qui"
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+POST api/contact
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+name   string     
+
+Must not be greater than 255 characters. Example: qaiwyvigrthos
+email   string     
+
+Must be a valid email address. Example: goyette.judy@example.com
+message   string     
+
+Example: qui
+POST api/image-upscale
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/image-upscale"
+);
+
+const headers = {
+    "Content-Type": "multipart/form-data",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+const body = new FormData();
+body.append('scale', '1');
+body.append('prompt', 'sunt');
+body.append('target_longest_side', '18');
+body.append('image', document.querySelector('input[name="image"]').files[0]);
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body,
+}).then(response => response.json());
+
+Request      
+
+POST api/image-upscale
+Headers
+Content-Type        
+
+Example: multipart/form-data
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+image   file     
+
+Must be an image. Example: /tmp/phpmbs6oi3t8b01dJrdUxP
+scale   number  optional    
+
+Must be between 1 and 4. Example: 1
+prompt   string  optional    
+
+Example: sunt
+target_longest_side   integer  optional    
+
+Example: 18
+GET api/image-upscale/{id}
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/image-upscale/odit"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/image-upscale/{id}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+id   string     
+
+The ID of the image upscale. Example: odit
+DELETE api/image-upscale/{id}/cancel
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/image-upscale/et/cancel"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "DELETE",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+DELETE api/image-upscale/{id}/cancel
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+id   string     
+
+The ID of the image upscale. Example: et
+POST api/gemini/models/gemini-2.0-flash
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/gemini/models/gemini-2.0-flash"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/gemini/models/gemini-2.0-flash
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+POST api/gemini/models/gemini-2.5-flash-image-preview
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/gemini/models/gemini-2.5-flash-image-preview"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/gemini/models/gemini-2.5-flash-image-preview
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+POST api/gemini/models/auto
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/gemini/models/auto"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/gemini/models/auto
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Statistics
+Record download for wallpaper
+
+Register wallpaper download so its download count will increase by 1.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/download-stat"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "wallpaper_id": 16
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+POST api/download-stat
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+wallpaper_id   integer     
+
+The ID of wallpaper. Example: 16
+device_id   The  optional    
+
+ID of the device from where the wallpaper was downloaded.
+Record download for wallpaper
+
+Register wallpaper download so its download count will increase by 1.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpapers/1/download"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/wallpapers/{wallpaper_id}/download
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+wallpaper_id   integer     
+
+The ID of the wallpaper. Example: 1
+Body Parameters
+device_id   The  optional    
+
+ID of the device from where the wallpaper was downloaded.
+Record download for DIY Template
+
+Register DIY Template download so its download count will increase by 1.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/diy-templates/380/download"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/diy-templates/{diyTemplate_id}/download
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+diyTemplate_id   integer     
+
+The ID of the diyTemplate. Example: 380
+Body Parameters
+device_id   The  optional    
+
+ID of the device from where the download happened.
+Record download for Profile Picture
+
+Register Profile Picture download so its download count will increase by 1.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/profile-pictures/4/download"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/profile-pictures/{profilePicture_id}/download
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+profilePicture_id   integer     
+
+The ID of the profilePicture. Example: 4
+Body Parameters
+device_id   The  optional    
+
+ID of the device from where the download happened.
+Record download for Charge Animation
+
+Register Charge Animation download so its download count will increase by 1.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/charging-animations/8/download"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/charging-animations/{chargingAnimation_id}/download
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+chargingAnimation_id   integer     
+
+The ID of the chargingAnimation. Example: 8
+Body Parameters
+device_id   The  optional    
+
+ID of the device from where the download happened.
+Record click for model.
+
+This endpoint records view click for a model of a given type.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/add_click/wallpaper/123"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+POST api/add_click/{modelType}/{id}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+modelType   string     
+
+The type of model to record click for. Values are: wallpaper, diy_template, profile_picture, charge_animation. Example: wallpaper
+id   string     
+
+Model ID to record click for. Example: 123
+Record impressions for multiple models.
+
+This endpoint records view impressions for one or more models of a given type.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/add_impression/wallpaper"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "ids": [
+        123,
+        456,
+        789
+    ]
+};
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+Request      
+
+POST api/add_impression/{modelType}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+modelType   string     
+
+The type of model to record impressions for. Values are: wallpaper, diy_template, profile_picture, charge_animation. Example: wallpaper
+Body Parameters
+ids   string[]     
+
+A list of model IDs to record impressions for.
+User management
+Get authenticated user
+
+requires authentication
+
+Used to get authenticated user instance or can be used to check if the user is authenticated.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/user"
+);
+
+const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/user
+Headers
+Authorization        
+
+Example: Bearer {YOUR_AUTH_KEY}
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+User downloads
+
+requires authentication
+
+Get all user downloads (all content types).
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/user/download-entries"
+);
+
+const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/user/download-entries
+Headers
+Authorization        
+
+Example: Bearer {YOUR_AUTH_KEY}
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Delete authenticated user
+
+requires authentication
+
+Permanently deletes the authenticated user and anonymizes all user's past activity.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/user/delete-account"
+);
+
+const headers = {
+    "Authorization": "Bearer {YOUR_AUTH_KEY}",
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "DELETE",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+DELETE api/user/delete-account
+Headers
+Authorization        
+
+Example: Bearer {YOUR_AUTH_KEY}
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Wallpapers management
+Wallpaper list
+
+Returns wallpapers by:
+
+    Category
+    Tag
+    Cover
+    Discover section
+    All wallpapers
+    Combination of the parameters above (a wallpaper must meet all the parameters to be returned)
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpaper-list/cars/all/all/all"
+);
+
+const params = {
+    "categorySlug": "cars",
+    "categoryId": "all",
+    "coverId": "all",
+    "tagId": "all",
+    "discoverSectionId": "all",
+    "timestamp": "15",
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "category_id": "...",
+        "tag_id": "...",
+        "cover_id": "...",
+        "discover_section_id": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "type": "...",
+            "width": "...",
+            "height": "...",
+            "name": "...",
+            "slug": "...",
+            "description": "...",
+            "author": "...",
+            "categories": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "child": "..."
+                }
+            ],
+            "created_at": "...",
+            "download_count": "...",
+            "is_premium": "...",
+            "nsfw": "...",
+            "position": "...",
+            "tags": [
+                {
+                    "id": "...",
+                    "name": "..."
+                }
+            ],
+            "hot_rank": "...",
+            "thumbnail": "...",
+            "wallpaper": "...",
+            "upscaled": "...",
+            "thumbnail_extension": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/wallpaper-list/{categorySlug?}/{tagId?}/{coverId?}/{discoverSectionId?}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: cars
+tagId   string  optional    
+
+The Tag ID (to get all, use "all" or leave it empty). Example: all
+coverId   string  optional    
+
+The Cover ID (to get all, use "all" or leave it empty). Example: all
+discoverSectionId   string  optional    
+
+The Discover Section ID (to get all, use "all" or leave it empty). Example: all
+Query Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: cars
+categoryId   string  optional    
+
+The Category ID (to get all, use "all" or leave it empty). Example: all
+coverId   string  optional    
+
+The Cover ID (to get all, use "all" or leave it empty). Example: all
+tagId   string  optional    
+
+The Tag ID (to get all, use "all" or leave it empty). Example: all
+discoverSectionId   string  optional    
+
+The Discover Section ID (to get all, use "all" or leave it empty). Example: all
+timestamp   integer  optional    
+
+The Unix timestamp in seconds. The timestamp should be the same when paging through the results to avoid duplicates and skipping wallpapers. Example: 15
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Live Wallpapers list
+
+Returns wallpapers or wallpapers by category or just all wallpapers.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpapers/live/cars"
+);
+
+const params = {
+    "categorySlug": "cars",
+    "categoryId": "all",
+    "coverId": "all",
+    "tagId": "all",
+    "timestamp": "5",
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "category_id": "...",
+        "tag_id": "...",
+        "cover_id": "...",
+        "discover_section_id": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "type": "...",
+            "width": "...",
+            "height": "...",
+            "name": "...",
+            "slug": "...",
+            "description": "...",
+            "author": "...",
+            "categories": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "child": "..."
+                }
+            ],
+            "created_at": "...",
+            "download_count": "...",
+            "is_premium": "...",
+            "nsfw": "...",
+            "position": "...",
+            "tags": [
+                {
+                    "id": "...",
+                    "name": "..."
+                }
+            ],
+            "hot_rank": "...",
+            "thumbnail": "...",
+            "static_thumbnail": "...",
+            "preview_speed": "...",
+            "cm_time": "...",
+            "video": "...",
+            "video_original ": "...",
+            "android_video": "...",
+            "lq_video": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/wallpapers/live/{categorySlug?}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: cars
+Query Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: cars
+categoryId   string  optional    
+
+The Category ID (to get all, use "all" or leave it empty). Example: all
+coverId   string  optional    
+
+The Cover ID (to get all, use "all" or leave it empty). Example: all
+tagId   string  optional    
+
+The Tag ID (to get all, use "all" or leave it empty). Example: all
+timestamp   integer  optional    
+
+The Unix timestamp in seconds. The timestamp should be the same when paging through the results to avoid duplicates and skipping wallpapers. Example: 5
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Double Wallpapers list
+
+Returns all double wallpapers.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpapers/double"
+);
+
+const params = {
+    "tagId": "all",
+    "timestamp": "12",
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "category_id": "...",
+        "tag_id": "...",
+        "cover_id": "...",
+        "discover_section_id": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "type": "...",
+            "width": "...",
+            "height": "...",
+            "name": "...",
+            "slug": "...",
+            "description": "...",
+            "author": "...",
+            "categories": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "child": "..."
+                }
+            ],
+            "created_at": "...",
+            "download_count": "...",
+            "is_premium": "...",
+            "nsfw": "...",
+            "position": "...",
+            "tags": [
+                {
+                    "id": "...",
+                    "name": "..."
+                }
+            ],
+            "hot_rank": "...",
+            "thumbnail": "...",
+            "wallpaper": "...",
+            "lock_screen_wallpaper": "...",
+            "home_screen_thumbnail": "...",
+            "lock_screen_thumbnail": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/wallpapers/double
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+tagId   string  optional    
+
+The Tag ID (to get all, use "all" or leave it empty). Example: all
+timestamp   integer  optional    
+
+The Unix timestamp in seconds. The timestamp should be the same when paging through the results to avoid duplicates and skipping wallpapers. Example: 12
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Matching wallpaper list
+
+Returns wallpapers by:
+
+    Category
+    Tag
+    All wallpapers
+    Combination of the parameters above (a wallpaper must meet all the parameters to be returned)
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpapers/matching"
+);
+
+const params = {
+    "categorySlug": "cars",
+    "categoryId": "all",
+    "tagId": "all",
+    "timestamp": "17",
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "category_id": "...",
+        "tag_id": "...",
+        "cover_id": "...",
+        "discover_section_id": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "type": "...",
+            "width": "...",
+            "height": "...",
+            "name": "...",
+            "slug": "...",
+            "description": "...",
+            "author": "...",
+            "categories": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "child": "..."
+                }
+            ],
+            "created_at": "...",
+            "download_count": "...",
+            "is_premium": "...",
+            "nsfw": "...",
+            "position": "...",
+            "tags": [
+                {
+                    "id": "...",
+                    "name": "..."
+                }
+            ],
+            "hot_rank": "...",
+            "thumbnail": "...",
+            "wallpapers": [
+                {
+                    "image": "...",
+                    "thumbnail": "...",
+                    "is_premium": "..."
+                }
+            ]
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/wallpapers/matching
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: earth
+Query Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: cars
+categoryId   string  optional    
+
+The Category ID (to get all, use "all" or leave it empty). Example: all
+tagId   string  optional    
+
+The Tag ID (to get all, use "all" or leave it empty). Example: all
+timestamp   integer  optional    
+
+The Unix timestamp in seconds. The timestamp should be the same when paging through the results to avoid duplicates and skipping wallpapers. Example: 17
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Parallax Wallpapers list
+
+Returns wallpapers or wallpapers by category or just all wallpapers.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpapers/parallax"
+);
+
+const params = {
+    "categorySlug": "earth",
+    "categoryId": "all",
+    "tagId": "all",
+    "timestamp": "4",
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "category_id": "...",
+        "tag_id": "...",
+        "cover_id": "...",
+        "discover_section_id": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "type": "...",
+            "width": "...",
+            "height": "...",
+            "name": "...",
+            "slug": "...",
+            "description": "...",
+            "author": "...",
+            "categories": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "child": "..."
+                }
+            ],
+            "created_at": "...",
+            "download_count": "...",
+            "is_premium": "...",
+            "nsfw": "...",
+            "position": "...",
+            "tags": [
+                {
+                    "id": "...",
+                    "name": "..."
+                }
+            ],
+            "hot_rank": "...",
+            "thumbnail": "...",
+            "parallax_file": "...",
+            "thumbnail_parallax_file": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/wallpapers/parallax
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: earth
+Query Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: earth
+categoryId   string  optional    
+
+The Category ID (to get all, use "all" or leave it empty). Example: all
+tagId   string  optional    
+
+The Tag ID (to get all, use "all" or leave it empty). Example: all
+timestamp   integer  optional    
+
+The Unix timestamp in seconds. The timestamp should be the same when paging through the results to avoid duplicates and skipping wallpapers. Example: 4
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+MacOS Wallpapers list
+
+Returns wallpapers or wallpapers by category or just all wallpapers.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpapers/macos"
+);
+
+const params = {
+    "categorySlug": "earth",
+    "categoryId": "all",
+    "tagId": "all",
+    "timestamp": "6",
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "category_id": "...",
+        "tag_id": "...",
+        "cover_id": "...",
+        "discover_section_id": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "type": "...",
+            "width": "...",
+            "height": "...",
+            "name": "...",
+            "slug": "...",
+            "description": "...",
+            "author": "...",
+            "categories": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "child": "..."
+                }
+            ],
+            "created_at": "...",
+            "download_count": "...",
+            "is_premium": "...",
+            "nsfw": "...",
+            "position": "...",
+            "tags": [
+                {
+                    "id": "...",
+                    "name": "..."
+                }
+            ],
+            "hot_rank": "...",
+            "thumbnail": "...",
+            "wallpaper_file": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/wallpapers/macos
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: earth
+Query Parameters
+categorySlug   string  optional    
+
+The category's "slug" (to get all, use "all" or leave it empty). Generated based on wallpaper name and provided by other endpoints. Example: earth
+categoryId   string  optional    
+
+The Category ID (to get all, use "all" or leave it empty). Example: all
+tagId   string  optional    
+
+The Tag ID (to get all, use "all" or leave it empty). Example: all
+timestamp   integer  optional    
+
+The Unix timestamp in seconds. The timestamp should be the same when paging through the results to avoid duplicates and skipping wallpapers. Example: 6
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Wallpaper search
+
+Search wallpapers using search query. If modelType and modelTypes are not specified, regular_wallpaper and live_wallpaper wallpaper types will be returned.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpaper-search"
+);
+
+const params = {
+    "query": "red cartoon",
+    "paginated": "1",
+    "page": "1",
+    "per_page": "10",
+    "sortOrder": "desc",
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+let body = {
+    "sortBy": "date",
+    "sortOrder": "desc",
+    "query": "ngy",
+    "modelType": "necessitatibus",
+    "modelTypes": [
+        "illo"
+    ]
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+    body: JSON.stringify(body),
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "search_query": "...",
+        "result_count": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "type": "...",
+            "width": "...",
+            "height": "...",
+            "name": "...",
+            "slug": "...",
+            "description": "...",
+            "author": "...",
+            "categories": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "child": "..."
+                }
+            ],
+            "created_at": "...",
+            "download_count": "...",
+            "is_premium": "...",
+            "nsfw": "...",
+            "position": "...",
+            "tags": [
+                {
+                    "id": "...",
+                    "name": "..."
+                }
+            ],
+            "hot_rank": "...",
+            "thumbnail": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/wallpaper-search
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+query   string  optional    
+
+Query string to search wallpapers. Example: red cartoon
+modelType   string  optional    
+
+Get wallpapers of specified type. Has a priority over modelTypes. Available values are:
+
+    all
+    regular_wallpaper
+    live_wallpaper
+    double_wallpaper
+    matching_wallpaper
+
+modelTypes   string[]  optional    
+
+Get wallpapers of specified types. Available array values are:
+
+    all
+    regular_wallpaper
+    live_wallpaper
+    double_wallpaper
+    matching_wallpaper
+
+If all is provided in the array, all wallpaper types will be returned no matter what the rest of the types in the array.
+paginated   boolean  optional    
+
+Use pagination. Example: true
+page   int  optional    
+
+Page number to return. Example: 1
+per_page   int  optional    
+
+Number of items to return in a page. Defaults to 24. Example: 10
+sortBy   string  optional    
+
+Sort by given param. Can be: "date", "position", "recommended", "popular", "popular_last_month", "popular_last_week"
+sortOrder   string  optional    
+
+Sort order ("asc" or "desc") Example: desc
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Body Parameters
+sortBy   string  optional    
+
+Example: date
+Must be one of:
+
+    popular
+    popular_last_month
+    popular_last_week
+    date
+    position
+    recommended
+
+sortOrder   string  optional    
+
+Example: desc
+Must be one of:
+
+    desc
+    asc
+
+query   string     
+
+Must not be greater than 255 characters. Example: ngy
+modelType   string  optional    
+
+Example: necessitatibus
+modelTypes   string[]  optional    
+Suggest search
+
+Complete user search based on user input.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpaper-search-suggest"
+);
+
+const params = {
+    "query": "ca",
+    "limit": "7",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/wallpaper-search-suggest
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+query   string  optional    
+
+User's search query. It can be just few first characters of what user wants to search Example: ca
+limit   string  optional    
+
+Max amount of suggestions. Example: 7
+Popular searches
+
+Returns most popular searches.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpaper-search-popular"
+);
+
+const params = {
+    "limit": "7",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+Request      
+
+GET api/wallpaper-search-popular
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Query Parameters
+limit   string  optional    
+
+Max amount of suggestions. Example: 7
+Get wallpaper by ID
+
+Returns full wallpaper entry.
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpaper/19"
+);
+
+const params = {
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": [],
+    "data": {
+        "id": "...",
+        "type": "...",
+        "width": "...",
+        "height": "...",
+        "name": "...",
+        "slug": "...",
+        "description": "...",
+        "author": "...",
+        "categories": [
+            {
+                "id": "...",
+                "name": "...",
+                "description": "...",
+                "slug": "...",
+                "position": "...",
+                "child": "..."
+            }
+        ],
+        "created_at": "...",
+        "download_count": "...",
+        "is_premium": "...",
+        "nsfw": "...",
+        "position": "...",
+        "tags": [
+            {
+                "id": "...",
+                "name": "..."
+            }
+        ],
+        "hot_rank": "...",
+        "thumbnail": "..."
+    }
+}
+
+ 
+
+Request      
+
+GET api/wallpaper/{wallpaperId}
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+wallpaperId   integer  optional    
+
+ID of needed wallpaper Example: 19
+Query Parameters
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+Get similar wallpapers
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpaper/1/get-similar"
+);
+
+const params = {
+    "nsfwContent": "0",
+};
+Object.keys(params)
+    .forEach(key => url.searchParams.append(key, params[key]));
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+fetch(url, {
+    method: "GET",
+    headers,
+}).then(response => response.json());
+
+    Example response (200, Successful response data structure.):
+
+
+{
+    "status": "...",
+    "exec_time": "...",
+    "info": {
+        "wallpaper_id": "..."
+    },
+    "data": [
+        {
+            "id": "...",
+            "type": "...",
+            "width": "...",
+            "height": "...",
+            "name": "...",
+            "slug": "...",
+            "description": "...",
+            "author": "...",
+            "categories": [
+                {
+                    "id": "...",
+                    "name": "...",
+                    "description": "...",
+                    "slug": "...",
+                    "position": "...",
+                    "child": "..."
+                }
+            ],
+            "created_at": "...",
+            "download_count": "...",
+            "is_premium": "...",
+            "nsfw": "...",
+            "position": "...",
+            "tags": [
+                {
+                    "id": "...",
+                    "name": "..."
+                }
+            ],
+            "hot_rank": "...",
+            "thumbnail": "..."
+        }
+    ]
+}
+
+ 
+
+Request      
+
+GET api/wallpaper/{wallpaper_id}/get-similar
+Headers
+Content-Type        
+
+Example: application/json
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+URL Parameters
+wallpaper_id   integer     
+
+The ID of the wallpaper. Example: 1
+Query Parameters
+nsfwContent   boolean  optional    
+
+Allows NSFW (sensitive content wallpapers). false by default. Example: false
+POST api/wallpaper/store
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/wallpaper/store"
+);
+
+const headers = {
+    "Content-Type": "multipart/form-data",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+const body = new FormData();
+body.append('name', 'ccbybnxgllabfgk');
+body.append('description', 'Vel magni accusantium quo.');
+body.append('author', 'uahdtcne');
+body.append('visibility_country_list[]', 'dolor');
+body.append('country_visibility_mode', '');
+body.append('hidden', '');
+body.append('is_premium', '');
+body.append('nsfw', '');
+body.append('cover_id', '3');
+body.append('tags', '["eaque","non"]');
+body.append('rating_boost', '30414.6');
+body.append('ios_clock_settings', '["aut","quo"]');
+body.append('show_clock_thumbnail', '');
+body.append('wallpaper', document.querySelector('input[name="wallpaper"]').files[0]);
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body,
+}).then(response => response.json());
+
+Request      
+
+POST api/wallpaper/store
+Headers
+Content-Type        
+
+Example: multipart/form-data
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+name   string  optional    
+
+Must not be greater than 150 characters. Example: ccbybnxgllabfgk
+description   string  optional    
+
+Example: Vel magni accusantium quo.
+author   string  optional    
+
+Must not be greater than 150 characters. Example: uahdtcne
+category_ids   string[]  optional    
+
+The id of an existing record in the category table.
+discover_section_ids   string[]  optional    
+
+The id of an existing record in the discover_sections table.
+visibility_country_list   string[]  optional    
+country_visibility_mode   boolean  optional    
+
+Example: false
+hidden   boolean  optional    
+
+Example: false
+is_premium   boolean  optional    
+
+Example: false
+nsfw   boolean  optional    
+
+Example: false
+cover_id   integer  optional    
+
+Cover ID to associate with (or 0 to not add any cover). Example: 3
+tags   string  optional    
+
+Must be a valid JSON string. Example: ["eaque","non"]
+rating_boost   number  optional    
+
+Example: 30414.6
+ios_clock_settings   string  optional    
+
+Must be a valid JSON string. Example: ["aut","quo"]
+wallpaper   file     
+
+Must be a file. Must not be greater than 16384 kilobytes. Example: /tmp/phpfrgovvau6k358TEUQPy
+show_clock_thumbnail   boolean  optional    
+
+Example: false
+POST api/live-wallpaper/store
+
+    Example request:
+
+const url = new URL(
+    "https://backend.wallpics.app/api/live-wallpaper/store"
+);
+
+const headers = {
+    "Content-Type": "multipart/form-data",
+    "Accept": "application/json",
+    "x-auth": "1770914110",
+    "x-token": "5a0aa41e5e62dabd28fee1fb1292bfc8",
+    "x-guest-id": "c7b22624-95a6-49f4-bc03-d33f4f2d39d5",
+    "x-get-guest-id": "1",
+};
+
+const body = new FormData();
+body.append('name', 'i');
+body.append('description', 'Vitae perspiciatis sint illum cumque voluptatem quae consequatur.');
+body.append('author', 'ryxkgiktdkgijyxlmlyqy');
+body.append('new_categories', '["aut","saepe"]');
+body.append('visibility_country_list[]', 'explicabo');
+body.append('country_visibility_mode', '1');
+body.append('hidden', '');
+body.append('is_premium', '1');
+body.append('nsfw', '1');
+body.append('cover_id', '3');
+body.append('tags', '["quia","labore"]');
+body.append('rating_boost', '592.3');
+body.append('ios_clock_settings', '["quisquam","hic"]');
+body.append('cm_time', '14');
+body.append('show_clock_thumbnail', '1');
+body.append('video', document.querySelector('input[name="video"]').files[0]);
+body.append('ios_video', document.querySelector('input[name="ios_video"]').files[0]);
+
+fetch(url, {
+    method: "POST",
+    headers,
+    body,
+}).then(response => response.json());
+
+Request      
+
+POST api/live-wallpaper/store
+Headers
+Content-Type        
+
+Example: multipart/form-data
+Accept        
+
+Example: application/json
+x-auth        
+
+Example: 1770914110
+x-token        
+
+Example: 5a0aa41e5e62dabd28fee1fb1292bfc8
+x-guest-id        
+
+Example: c7b22624-95a6-49f4-bc03-d33f4f2d39d5
+x-get-guest-id        
+
+Example: 1
+Body Parameters
+name   string  optional    
+
+Must not be greater than 150 characters. Example: i
+description   string  optional    
+
+Example: Vitae perspiciatis sint illum cumque voluptatem quae consequatur.
+author   string  optional    
+
+Must not be greater than 150 characters. Example: ryxkgiktdkgijyxlmlyqy
+category_ids   string[]  optional    
+
+The id of an existing record in the category table.
+new_categories   string  optional    
+
+Must be a valid JSON string. Example: ["aut","saepe"]
+discover_section_ids   string[]  optional    
+
+The id of an existing record in the discover_sections table.
+visibility_country_list   string[]  optional    
+country_visibility_mode   boolean  optional    
+
+Example: true
+hidden   boolean  optional    
+
+Example: false
+is_premium   boolean  optional    
+
+Example: true
+nsfw   boolean  optional    
+
+Example: true
+cover_id   integer  optional    
+
+Cover ID to associate with (or 0 to not add any cover). Example: 3
+tags   string  optional    
+
+Must be a valid JSON string. Example: ["quia","labore"]
+rating_boost   number  optional    
+
+Example: 592.3
+ios_clock_settings   string  optional    
+
+Must be a valid JSON string. Example: ["quisquam","hic"]
+video   file     
+
+Must be a file. Example: /tmp/phpvjvke021ka22cphQwSp
+ios_video   file  optional    
+
+Must be a file. Example: /tmp/phpchr83segjf6n2qrEszO
+boomerang   string  optional    
+cm_time   integer  optional    
+
+Example: 14
+show_clock_thumbnail   boolean  optional    
+
+Example: true

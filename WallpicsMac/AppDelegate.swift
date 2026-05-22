@@ -4343,10 +4343,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Sample every 10th pixel for performance
         for x in stride(from: 0, to: width, by: 10) {
             for y in stride(from: 0, to: height, by: 10) {
-                guard let color = bitmap.colorAt(x: x, y: y) else { continue }
-                totalRed += color.redComponent
-                totalGreen += color.greenComponent
-                totalBlue += color.blueComponent
+                guard let color = bitmap.colorAt(x: x, y: y),
+                      let rgbColor = color.usingColorSpace(.deviceRGB) else { continue }
+                totalRed += rgbColor.redComponent
+                totalGreen += rgbColor.greenComponent
+                totalBlue += rgbColor.blueComponent
                 pixelCount += 1
             }
         }
