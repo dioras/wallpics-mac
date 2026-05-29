@@ -1,11 +1,14 @@
 import Cocoa
 
-// Keep delegate as a global to prevent deallocation
-let delegate = AppDelegate()
-
-autoreleasepool {
+@MainActor
+func bootstrap() -> AppDelegate {
+    let delegate = AppDelegate()
     let app = NSApplication.shared
     app.delegate = delegate
-    app.run()
+    return delegate
 }
 
+autoreleasepool {
+    let _ = MainActor.assumeIsolated { bootstrap() }
+    NSApplication.shared.run()
+}

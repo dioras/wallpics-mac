@@ -11,6 +11,41 @@
 		A1000002000000000000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002000000000000001 /* main.swift */; };
 		A1000003000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000003000000000000001 /* Assets.xcassets */; };
 		A1000004000000000000001 /* RiveRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = A1000005000000000000001 /* RiveRuntime */; };
+		AC000001000000000000001 /* Wallpaper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000001000000000000001 /* Wallpaper.swift */; };
+		AC000002000000000000001 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000002000000000000001 /* AppSettings.swift */; };
+		AC000003000000000000001 /* SubscriptionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000003000000000000001 /* SubscriptionState.swift */; };
+		AC000004000000000000001 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000004000000000000001 /* Logger.swift */; };
+		AC000005000000000000001 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000005000000000000001 /* KeychainStore.swift */; };
+		AC000006000000000000001 /* WallpaperAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000006000000000000001 /* WallpaperAPI.swift */; };
+		AC000007000000000000001 /* CacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000007000000000000001 /* CacheManager.swift */; };
+		AC000008000000000000001 /* PowerMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000008000000000000001 /* PowerMonitor.swift */; };
+		AC000009000000000000001 /* WallpaperRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000009000000000000001 /* WallpaperRenderer.swift */; };
+		AC00000A000000000000001 /* WatermarkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD00000A000000000000001 /* WatermarkService.swift */; };
+		AC00000B000000000000001 /* StoreKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD00000B000000000000001 /* StoreKitService.swift */; };
+		AC00000C000000000000001 /* WallpaperWindows.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD00000C000000000000001 /* WallpaperWindows.swift */; };
+		AC000010000000000000001 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000010000000000000001 /* MainWindowController.swift */; };
+		AC000011000000000000001 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000011000000000000001 /* AppEnvironment.swift */; };
+		AC000020000000000000001 /* BrowseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000020000000000000001 /* BrowseViewModel.swift */; };
+		AC000021000000000000001 /* FavoritesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000021000000000000001 /* FavoritesViewModel.swift */; };
+		AC000030000000000000001 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000030000000000000001 /* AppColors.swift */; };
+		AC000031000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000031000000000000001 /* ContentView.swift */; };
+		AC000032000000000000001 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000032000000000000001 /* SidebarView.swift */; };
+		AC000033000000000000001 /* BrowseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000033000000000000001 /* BrowseView.swift */; };
+		AC000034000000000000001 /* WallpaperCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000034000000000000001 /* WallpaperCard.swift */; };
+		AC000035000000000000001 /* FavoritesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000035000000000000001 /* FavoritesView.swift */; };
+		AC000036000000000000001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000036000000000000001 /* SettingsView.swift */; };
+		AC000037000000000000001 /* PreviewPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000037000000000000001 /* PreviewPanel.swift */; };
+		AC000040000000000000001 /* OnboardingPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000040000000000000001 /* OnboardingPresenter.swift */; };
+		AC000041000000000000001 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000041000000000000001 /* OnboardingFlow.swift */; };
+		AC000050000000000000001 /* PaywallPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000050000000000000001 /* PaywallPresenter.swift */; };
+		AC000051000000000000001 /* PaywallScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000051000000000000001 /* PaywallScreen.swift */; };
+		AC000060000000000000001 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000060000000000000001 /* CrashReporter.swift */; };
+		AC000061000000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AD000061000000000000001 /* PrivacyInfo.xcprivacy */; };
+		AC000062000000000000001 /* StoreKitTesting.storekit in Resources */ = {isa = PBXBuildFile; fileRef = AD000062000000000000001 /* StoreKitTesting.storekit */; };
+		AC000070000000000000001 /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000070000000000000001 /* ImageLoader.swift */; };
+		AC000071000000000000001 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AD000071000000000000001 /* Localizable.xcstrings */; };
+		AC000080000000000000001 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000080000000000000001 /* DesignSystem.swift */; };
+		AC000090000000000000001 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000090000000000000001 /* AppLanguage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +55,41 @@
 		A2000004000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A2000006000000000000001 /* WallpicsMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WallpicsMac.entitlements; sourceTree = "<group>"; };
 		A3000001000000000000001 /* WallpicsMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WallpicsMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AD000001000000000000001 /* Wallpaper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wallpaper.swift; sourceTree = "<group>"; };
+		AD000002000000000000001 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		AD000003000000000000001 /* SubscriptionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionState.swift; sourceTree = "<group>"; };
+		AD000004000000000000001 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		AD000005000000000000001 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		AD000006000000000000001 /* WallpaperAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperAPI.swift; sourceTree = "<group>"; };
+		AD000007000000000000001 /* CacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManager.swift; sourceTree = "<group>"; };
+		AD000008000000000000001 /* PowerMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerMonitor.swift; sourceTree = "<group>"; };
+		AD000009000000000000001 /* WallpaperRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperRenderer.swift; sourceTree = "<group>"; };
+		AD00000A000000000000001 /* WatermarkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatermarkService.swift; sourceTree = "<group>"; };
+		AD00000B000000000000001 /* StoreKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitService.swift; sourceTree = "<group>"; };
+		AD00000C000000000000001 /* WallpaperWindows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperWindows.swift; sourceTree = "<group>"; };
+		AD000010000000000000001 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		AD000011000000000000001 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		AD000020000000000000001 /* BrowseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseViewModel.swift; sourceTree = "<group>"; };
+		AD000021000000000000001 /* FavoritesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesViewModel.swift; sourceTree = "<group>"; };
+		AD000030000000000000001 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
+		AD000031000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AD000032000000000000001 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		AD000033000000000000001 /* BrowseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
+		AD000034000000000000001 /* WallpaperCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperCard.swift; sourceTree = "<group>"; };
+		AD000035000000000000001 /* FavoritesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoritesView.swift; sourceTree = "<group>"; };
+		AD000036000000000000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AD000037000000000000001 /* PreviewPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPanel.swift; sourceTree = "<group>"; };
+		AD000040000000000000001 /* OnboardingPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingPresenter.swift; sourceTree = "<group>"; };
+		AD000041000000000000001 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
+		AD000050000000000000001 /* PaywallPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallPresenter.swift; sourceTree = "<group>"; };
+		AD000051000000000000001 /* PaywallScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallScreen.swift; sourceTree = "<group>"; };
+		AD000060000000000000001 /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
+		AD000061000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		AD000062000000000000001 /* StoreKitTesting.storekit */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = StoreKitTesting.storekit; sourceTree = "<group>"; };
+		AD000070000000000000001 /* ImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoader.swift; sourceTree = "<group>"; };
+		AD000071000000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		AD000080000000000000001 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		AD000090000000000000001 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +120,16 @@
 				A2000003000000000000001 /* Assets.xcassets */,
 				A2000004000000000000001 /* Info.plist */,
 				A2000006000000000000001 /* WallpicsMac.entitlements */,
+				AE000001000000000000001 /* App */,
+				AE000002000000000000001 /* Models */,
+				AE000003000000000000001 /* Services */,
+				AE000004000000000000001 /* WallpaperEngine */,
+				AE000005000000000000001 /* ViewControllers */,
+				AE000006000000000000001 /* ViewModels */,
+				AE000007000000000000001 /* Views */,
+				AE000008000000000000001 /* Onboarding */,
+				AE000009000000000000001 /* Paywall */,
+				AE00000A000000000000001 /* Resources */,
 			);
 			path = WallpicsMac;
 			sourceTree = "<group>";
@@ -60,6 +140,111 @@
 				A3000001000000000000001 /* WallpicsMac.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AE000001000000000000001 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				AD000010000000000000001 /* MainWindowController.swift */,
+				AD000011000000000000001 /* AppEnvironment.swift */,
+				AD000090000000000000001 /* AppLanguage.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AE000002000000000000001 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AD000001000000000000001 /* Wallpaper.swift */,
+				AD000002000000000000001 /* AppSettings.swift */,
+				AD000003000000000000001 /* SubscriptionState.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AE000003000000000000001 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AD000004000000000000001 /* Logger.swift */,
+				AD000005000000000000001 /* KeychainStore.swift */,
+				AD000006000000000000001 /* WallpaperAPI.swift */,
+				AD000007000000000000001 /* CacheManager.swift */,
+				AD000008000000000000001 /* PowerMonitor.swift */,
+				AD000009000000000000001 /* WallpaperRenderer.swift */,
+				AD00000A000000000000001 /* WatermarkService.swift */,
+				AD00000B000000000000001 /* StoreKitService.swift */,
+				AD000060000000000000001 /* CrashReporter.swift */,
+				AD000070000000000000001 /* ImageLoader.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		AE000004000000000000001 /* WallpaperEngine */ = {
+			isa = PBXGroup;
+			children = (
+				AD00000C000000000000001 /* WallpaperWindows.swift */,
+			);
+			path = WallpaperEngine;
+			sourceTree = "<group>";
+		};
+		AE000005000000000000001 /* ViewControllers */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewControllers;
+			sourceTree = "<group>";
+		};
+		AE000006000000000000001 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				AD000020000000000000001 /* BrowseViewModel.swift */,
+				AD000021000000000000001 /* FavoritesViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		AE000007000000000000001 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AD000030000000000000001 /* AppColors.swift */,
+				AD000031000000000000001 /* ContentView.swift */,
+				AD000032000000000000001 /* SidebarView.swift */,
+				AD000033000000000000001 /* BrowseView.swift */,
+				AD000034000000000000001 /* WallpaperCard.swift */,
+				AD000035000000000000001 /* FavoritesView.swift */,
+				AD000036000000000000001 /* SettingsView.swift */,
+				AD000037000000000000001 /* PreviewPanel.swift */,
+				AD000080000000000000001 /* DesignSystem.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		AE000008000000000000001 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				AD000040000000000000001 /* OnboardingPresenter.swift */,
+				AD000041000000000000001 /* OnboardingFlow.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		AE000009000000000000001 /* Paywall */ = {
+			isa = PBXGroup;
+			children = (
+				AD000050000000000000001 /* PaywallPresenter.swift */,
+				AD000051000000000000001 /* PaywallScreen.swift */,
+			);
+			path = Paywall;
+			sourceTree = "<group>";
+		};
+		AE00000A000000000000001 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AD000061000000000000001 /* PrivacyInfo.xcprivacy */,
+				AD000062000000000000001 /* StoreKitTesting.storekit */,
+				AD000071000000000000001 /* Localizable.xcstrings */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -93,7 +278,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					A6000001000000000000001 = {
 						CreatedOnToolsVersion = 15.0;
@@ -107,6 +292,13 @@
 			knownRegions = (
 				en,
 				Base,
+				ru,
+				es,
+				"zh-Hans",
+				de,
+				fr,
+				ja,
+				"pt-BR",
 			);
 			mainGroup = A5000001000000000000001;
 			packageReferences = (
@@ -127,6 +319,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000003000000000000001 /* Assets.xcassets in Resources */,
+				AC000061000000000000001 /* PrivacyInfo.xcprivacy in Resources */,
+				AC000062000000000000001 /* StoreKitTesting.storekit in Resources */,
+				AC000071000000000000001 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -139,6 +334,38 @@
 			files = (
 				A1000001000000000000001 /* AppDelegate.swift in Sources */,
 				A1000002000000000000001 /* main.swift in Sources */,
+				AC000001000000000000001 /* Wallpaper.swift in Sources */,
+				AC000002000000000000001 /* AppSettings.swift in Sources */,
+				AC000003000000000000001 /* SubscriptionState.swift in Sources */,
+				AC000004000000000000001 /* Logger.swift in Sources */,
+				AC000005000000000000001 /* KeychainStore.swift in Sources */,
+				AC000006000000000000001 /* WallpaperAPI.swift in Sources */,
+				AC000007000000000000001 /* CacheManager.swift in Sources */,
+				AC000008000000000000001 /* PowerMonitor.swift in Sources */,
+				AC000009000000000000001 /* WallpaperRenderer.swift in Sources */,
+				AC00000A000000000000001 /* WatermarkService.swift in Sources */,
+				AC00000B000000000000001 /* StoreKitService.swift in Sources */,
+				AC00000C000000000000001 /* WallpaperWindows.swift in Sources */,
+				AC000010000000000000001 /* MainWindowController.swift in Sources */,
+				AC000011000000000000001 /* AppEnvironment.swift in Sources */,
+				AC000020000000000000001 /* BrowseViewModel.swift in Sources */,
+				AC000021000000000000001 /* FavoritesViewModel.swift in Sources */,
+				AC000030000000000000001 /* AppColors.swift in Sources */,
+				AC000031000000000000001 /* ContentView.swift in Sources */,
+				AC000032000000000000001 /* SidebarView.swift in Sources */,
+				AC000033000000000000001 /* BrowseView.swift in Sources */,
+				AC000034000000000000001 /* WallpaperCard.swift in Sources */,
+				AC000035000000000000001 /* FavoritesView.swift in Sources */,
+				AC000036000000000000001 /* SettingsView.swift in Sources */,
+				AC000037000000000000001 /* PreviewPanel.swift in Sources */,
+				AC000040000000000000001 /* OnboardingPresenter.swift in Sources */,
+				AC000041000000000000001 /* OnboardingFlow.swift in Sources */,
+				AC000050000000000000001 /* PaywallPresenter.swift in Sources */,
+				AC000051000000000000001 /* PaywallScreen.swift in Sources */,
+				AC000060000000000000001 /* CrashReporter.swift in Sources */,
+				AC000070000000000000001 /* ImageLoader.swift in Sources */,
+				AC000080000000000000001 /* DesignSystem.swift in Sources */,
+				AC000090000000000000001 /* AppLanguage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -150,6 +377,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -179,7 +407,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = Y2QL97Z4A6;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -198,11 +428,12 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -213,6 +444,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -242,7 +474,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = Y2QL97Z4A6;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -255,10 +489,11 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -266,14 +501,13 @@
 		A7000005000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_ENTITLEMENTS = WallpicsMac/WallpicsMac.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QE3Q29UECT;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WallpicsMac;
@@ -294,17 +528,13 @@
 		A7000006000000000000001 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					arm64,
-					x86_64,
-				);
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "";
+				CODE_SIGN_ENTITLEMENTS = WallpicsMac/WallpicsMac.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = QE3Q29UECT;
+				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WallpicsMac;

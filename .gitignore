@@ -7,3 +7,11 @@
 # Xcode user-specific state
 **/xcuserdata/
 *.xcuserstate
+
+# MCP local DBs
+sqlite_mcp_server.db
+sqlite_mcp_server*.db
+
+# Legacy reference (pre-refactor monolith)
+WallpicsMac/App/AppDelegate_legacy_reference.txt
+
