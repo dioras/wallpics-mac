@@ -8,6 +8,10 @@ struct BrowseView: View {
 
     var body: some View {
         ScrollView {
+            if !model.imported.isEmpty && !model.isSearching {
+                uploadsSection
+            }
+
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
                 ForEach(model.filteredWallpapers) { wallpaper in
                     WallpaperCard(wallpaper: wallpaper, isSelected: env.selectedWallpaper?.id == wallpaper.id)
@@ -47,9 +51,56 @@ struct BrowseView: View {
         .scrollContentBackground(.hidden)
         .background(Color(nsColor: .windowBackgroundColor))
         .refreshable { await model.reload() }
+        .task { await model.loadImports() }
         .safeAreaInset(edge: .top, spacing: 0) {
-            BrowseToolbar(query: $model.query, sortOrder: model.sortOrder, onSort: model.setSort)
+            BrowseToolbar(
+                query: $model.query,
+                sortOrder: model.sortOrder,
+                onSort: model.setSort,
+                isImporting: model.isImporting,
+                onImport: importWallpaper
+            )
         }
+    }
+
+    private func importWallpaper() {
+        Task {
+            if let wp = await model.importWallpaper() {
+                withAnimation(Motion.transition) { env.selectedWallpaper = wp }
+            }
+        }
+    }
+
+    private var uploadsSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            Text("Your Uploads")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, Theme.Space.l)
+            LazyVGrid(columns: columns, spacing: Theme.Space.l) {
+                ForEach(model.imported) { wallpaper in
+                    WallpaperCard(wallpaper: wallpaper, isSelected: env.selectedWallpaper?.id == wallpaper.id)
+                        .onTapGesture {
+                            withAnimation(Motion.transition) { env.selectedWallpaper = wallpaper }
+                        }
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                Task {
+                                    if env.selectedWallpaper?.id == wallpaper.id { env.selectedWallpaper = nil }
+                                    await model.removeImport(wallpaper)
+                                }
+                            } label: {
+                                Label("Remove Upload", systemImage: "trash")
+                            }
+                        }
+                }
+            }
+            .padding(.horizontal, Theme.Space.l)
+            .animation(Motion.reward, value: model.imported.map(\.id))
+
+            Divider().padding(.horizontal, Theme.Space.l).padding(.top, Theme.Space.s)
+        }
+        .padding(.top, Theme.Space.l)
     }
 
     private var emptyState: some View {
@@ -92,6 +143,8 @@ private struct BrowseToolbar: View {
     @Binding var query: String
     let sortOrder: SortOrder
     let onSort: (SortOrder) -> Void
+    let isImporting: Bool
+    let onImport: () -> Void
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -111,12 +164,30 @@ private struct BrowseToolbar: View {
             }
             .padding(.horizontal, Theme.Space.m)
             .padding(.vertical, 7)
-            .frame(maxWidth: 360, alignment: .leading)
+            .frame(minWidth: 80, maxWidth: 280, alignment: .leading)
             .liquidGlass(in: Capsule())
             .overlay(Capsule().strokeBorder(searchFocused ? Theme.accent.opacity(0.6) : .clear, lineWidth: 1.5))
             .animation(Motion.hover, value: searchFocused)
 
-            Spacer()
+            Spacer(minLength: Theme.Space.s)
+
+            Button(action: onImport) {
+                HStack(spacing: Theme.Space.s) {
+                    if isImporting {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    Text("Upload").lineLimit(1)
+                }
+                .font(.callout.weight(.medium))
+                .fixedSize()
+            }
+            .buttonStyle(.plain)
+            .disabled(isImporting)
+            .padding(.horizontal, Theme.Space.m)
+            .padding(.vertical, 7)
+            .liquidGlass(in: Capsule())
 
             Menu {
                 ForEach(SortOrder.allCases, id: \.self) { order in

@@ -4,10 +4,10 @@ import Observation
 
 
 enum ProductIDs {
-    static let monthly = "com.wallpics.mac.pro.monthly"
-    static let yearly = "com.wallpics.mac.pro.yearly"
-    static let lifetime = "com.wallpics.mac.pro.lifetime"
-    static let all: [String] = [monthly, yearly, lifetime]
+    // Exact App Store Connect product IDs. Two auto-renewable subscriptions only.
+    static let weekly = "macos_weekly"
+    static let yearly = "macos_yearly"
+    static let all: [String] = [weekly, yearly]
 }
 
 @MainActor
@@ -35,10 +35,9 @@ final class StoreKitService {
     func loadProducts() async {
         do {
             let fetched = try await Product.products(for: ProductIDs.all)
-            products = fetched.sorted { lhs, rhs in
-                ProductIDs.all.firstIndex(of: lhs.id) ?? .max <
-                ProductIDs.all.firstIndex(of: rhs.id) ?? .max
-            }
+            // Sort by subscription period, shortest first (weekly → yearly), so the
+            // paywall order is correct no matter which IDs the store actually returns.
+            products = fetched.sorted { Self.periodSeconds($0) < Self.periodSeconds($1) }
             Log.store.info("Loaded \(fetched.count) products")
         } catch {
             lastError = error.localizedDescription
@@ -90,18 +89,31 @@ final class StoreKitService {
         var newState: SubscriptionState = .free
         for await result in Transaction.currentEntitlements {
             guard let transaction = Self.verify(result) else { continue }
-            if ProductIDs.all.contains(transaction.productID) {
-                if transaction.productID == ProductIDs.lifetime {
-                    newState = .pro(expiresAt: nil)
-                    break
-                }
-                if let expires = transaction.expirationDate, expires > Date() {
-                    let isTrial = transaction.offerType == .introductory
-                    newState = isTrial ? .trial(expiresAt: expires) : .pro(expiresAt: expires)
-                }
+            guard ProductIDs.all.contains(transaction.productID) else { continue }
+            // All products are auto-renewable subscriptions (weekly / yearly).
+            if let expires = transaction.expirationDate, expires > Date() {
+                let isTrial = transaction.offerType == .introductory
+                newState = isTrial ? .trial(expiresAt: expires) : .pro(expiresAt: expires)
+            } else if transaction.expirationDate == nil {
+                // Safety net for a non-expiring entitlement, should the catalog ever change.
+                newState = .pro(expiresAt: nil)
             }
         }
         state = newState
+    }
+
+    /// Length of a product's subscription period in seconds (0 if it isn't a subscription).
+    nonisolated static func periodSeconds(_ product: Product) -> Double {
+        guard let period = product.subscription?.subscriptionPeriod else { return 0 }
+        let unit: Double
+        switch period.unit {
+        case .day: unit = 86_400
+        case .week: unit = 604_800
+        case .month: unit = 2_592_000
+        case .year: unit = 31_536_000
+        @unknown default: unit = 0
+        }
+        return unit * Double(period.value)
     }
 
     private func startListeningForUpdates() {

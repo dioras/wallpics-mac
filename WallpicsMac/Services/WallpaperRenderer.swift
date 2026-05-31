@@ -24,6 +24,8 @@ final class WallpaperRenderer {
     private var activeWindows: [NSWindow] = []
     private var currentKind: Kind?
     private var currentAssetURL: URL?
+    private var needsWatermark = false
+    private var watermarkIcon: NSImage?
 
     private(set) var isPaused = false
     private(set) var pauseReasons: Set<PauseReason> = []
@@ -50,22 +52,32 @@ final class WallpaperRenderer {
         applyStaticAcrossScreens(url: url)
     }
 
-    func startAnimated(kind: Kind, url: URL, firstFrameStaticURL: URL?) {
+    func startAnimated(kind: Kind, url: URL, firstFrameStaticURL: URL?, needsWatermark: Bool = false, appIcon: NSImage? = nil) {
         clearWindows()
         currentKind = kind
         currentAssetURL = url
+        self.needsWatermark = needsWatermark
+        self.watermarkIcon = appIcon
 
         if let staticURL = firstFrameStaticURL {
             applyStaticAcrossScreens(url: staticURL)
         }
 
         for screen in NSScreen.screens {
-            let window = makeWindow(kind: kind, url: url, screen: screen)
-            window.orderBack(nil)
-            activeWindows.append(window)
+            addAnimatedWindow(kind: kind, url: url, screen: screen)
         }
 
         applyPauseStateToWindows()
+    }
+
+    /// Create one animated window for a screen, attach the live watermark overlay if needed.
+    private func addAnimatedWindow(kind: Kind, url: URL, screen: NSScreen) {
+        let window = makeWindow(kind: kind, url: url, screen: screen)
+        if needsWatermark {
+            WatermarkOverlay.attach(to: window, appIcon: watermarkIcon)
+        }
+        window.orderBack(nil)
+        activeWindows.append(window)
     }
 
     func clear() {
@@ -109,9 +121,7 @@ final class WallpaperRenderer {
         }
         let coveredScreens = Set(activeWindows.compactMap { $0.screen?.localizedName })
         for screen in NSScreen.screens where !coveredScreens.contains(screen.localizedName) {
-            let window = makeWindow(kind: kind, url: url, screen: screen)
-            window.orderBack(nil)
-            activeWindows.append(window)
+            addAnimatedWindow(kind: kind, url: url, screen: screen)
         }
         applyPauseStateToWindows()
     }

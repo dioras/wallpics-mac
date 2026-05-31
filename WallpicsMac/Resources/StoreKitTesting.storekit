@@ -1,23 +1,7 @@
 {
   "identifier" : "44F5B6E2-0001-4BAC-9E12-AAA000000001",
   "nonRenewingSubscriptions" : [],
-  "products" : [
-    {
-      "displayPrice" : "59.99",
-      "familyShareable" : false,
-      "internalID" : "AAA000000002",
-      "localizations" : [
-        {
-          "description" : "One-time purchase. Removes watermark forever.",
-          "displayName" : "WallPics Pro Lifetime",
-          "locale" : "en_US"
-        }
-      ],
-      "productID" : "com.wallpics.mac.pro.lifetime",
-      "referenceName" : "Pro Lifetime",
-      "type" : "NonConsumable"
-    }
-  ],
+  "products" : [],
   "settings" : {
     "_applicationInternalID" : "AAA000000003",
     "_developerTeamID" : "Y2QL97Z4A6",
@@ -36,25 +20,25 @@
         {
           "adHocOffers" : [],
           "codeOffers" : [],
-          "displayPrice" : "4.99",
+          "displayPrice" : "2.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "AAA000000011",
           "introductoryOffer" : {
             "internalID" : "AAA000000012",
             "paymentMode" : "free",
-            "subscriptionPeriod" : "P1W"
+            "subscriptionPeriod" : "P3D"
           },
           "localizations" : [
             {
-              "description" : "Monthly subscription. Removes watermark.",
-              "displayName" : "WallPics Pro Monthly",
+              "description" : "Weekly access. Removes the watermark.",
+              "displayName" : "Weekly",
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.wallpics.mac.pro.monthly",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Pro Monthly",
+          "productID" : "macos_weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "MacOS Weekly",
           "subscriptionGroupID" : "AAA000000010",
           "type" : "RecurringSubscription"
         },
@@ -72,14 +56,14 @@
           },
           "localizations" : [
             {
-              "description" : "Yearly subscription. Best value.",
-              "displayName" : "WallPics Pro Yearly",
+              "description" : "Best value — everything, all year.",
+              "displayName" : "Yearly",
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.wallpics.mac.pro.yearly",
+          "productID" : "macos_yearly",
           "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "Pro Yearly",
+          "referenceName" : "MacOS Yearly",
           "subscriptionGroupID" : "AAA000000010",
           "type" : "RecurringSubscription"
         }

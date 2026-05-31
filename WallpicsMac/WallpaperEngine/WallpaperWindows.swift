@@ -290,3 +290,52 @@ final class ShaderRenderer: NSObject, MTKViewDelegate {
 extension NSWindow {
     static func makeDesktopLevel(for screen: NSScreen) -> NSWindow { makeDesktopWindow(screen: screen) }
 }
+
+// MARK: - Live watermark overlay
+
+/// A small bottom-left badge pinned over a live (video/gif/shader/Rive) wallpaper window for
+/// free users — the live-content equivalent of the baked-in image watermark. A faint chip
+/// keeps it readable over any moving content.
+@MainActor
+enum WatermarkOverlay {
+    static func attach(to window: NSWindow, appIcon: NSImage?) {
+        guard let content = window.contentView else { return }
+
+        let margin: CGFloat = 28
+        let iconSize: CGFloat = 46
+        let width: CGFloat = 330
+        let height: CGFloat = iconSize + 20
+
+        let badge = NSView(frame: NSRect(x: margin, y: margin, width: width, height: height))
+        badge.wantsLayer = true
+        badge.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.28).cgColor
+        badge.layer?.cornerRadius = 12
+        badge.layer?.cornerCurve = .continuous
+        // Stay pinned to the bottom-left as the wallpaper window resizes.
+        badge.autoresizingMask = [.maxXMargin, .maxYMargin]
+
+        let pad: CGFloat = 10
+        if let appIcon {
+            let iconView = NSImageView(frame: NSRect(x: pad, y: (height - iconSize) / 2, width: iconSize, height: iconSize))
+            iconView.image = appIcon
+            iconView.alphaValue = 0.5
+            iconView.imageScaling = .scaleProportionallyUpOrDown
+            badge.addSubview(iconView)
+        }
+
+        let textX = pad + iconSize + 10
+        let title = NSTextField(labelWithString: "WallPics")
+        title.font = .systemFont(ofSize: 15, weight: .bold)
+        title.textColor = NSColor.white.withAlphaComponent(0.95)
+        title.frame = NSRect(x: textX, y: height / 2, width: width - textX - pad, height: 20)
+        badge.addSubview(title)
+
+        let subtitle = NSTextField(labelWithString: String(localized: "Unlock Pro to remove this watermark"))
+        subtitle.font = .systemFont(ofSize: 11, weight: .medium)
+        subtitle.textColor = NSColor.white.withAlphaComponent(0.8)
+        subtitle.frame = NSRect(x: textX, y: height / 2 - 18, width: width - textX - pad, height: 16)
+        badge.addSubview(subtitle)
+
+        content.addSubview(badge)
+    }
+}

@@ -5,6 +5,8 @@ import Observation
 @Observable
 final class BrowseViewModel {
     var wallpapers: [Wallpaper] = []
+    var imported: [Wallpaper] = []          // user uploads, shown under "Your Uploads"
+    var isImporting = false
     var query: String = ""
     var sortOrder: SortOrder = .newest
     var isLoading = false
@@ -81,5 +83,25 @@ final class BrowseViewModel {
         guard order != sortOrder else { return }
         sortOrder = order
         Task { await reload() }
+    }
+
+    // MARK: - Imports
+
+    func loadImports() async {
+        imported = await CacheManager.shared.importedWallpapers()
+    }
+
+    /// Open the file picker and import; returns the new wallpaper so the caller can preview it.
+    func importWallpaper() async -> Wallpaper? {
+        isImporting = true
+        defer { isImporting = false }
+        guard let wp = await ImportService.pickAndImport() else { return nil }
+        await loadImports()
+        return wp
+    }
+
+    func removeImport(_ wallpaper: Wallpaper) async {
+        await CacheManager.shared.removeImport(wallpaper)
+        await loadImports()
     }
 }

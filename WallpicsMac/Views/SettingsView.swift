@@ -107,6 +107,10 @@ struct SettingsView: View {
             Section("About") {
                 LabeledContent("Version", value: Bundle.main.versionString)
                 LabeledContent("Copyright", value: "© \(Calendar.current.component(.year, from: Date())) IgKnight Technologies Ltd")
+                Button("Replay Onboarding") {
+                    OnboardingPresenter.resetForTesting()
+                    env.showOnboarding = true
+                }
             }
         }
         .formStyle(.grouped)

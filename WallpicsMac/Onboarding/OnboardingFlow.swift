@@ -59,8 +59,9 @@ struct OnboardingFlow: View {
 
     private func loadSamples() async {
         do {
-            let page = try await WallpaperAPI.shared.desktopWallpapers(page: 1, perPage: 8, sortOrder: .popular)
-            samples = Array(page.data.prefix(5))
+            // Enough to fill a scrollable 16:9 grid on the pick step (welcome uses the first 5).
+            let page = try await WallpaperAPI.shared.desktopWallpapers(page: 1, perPage: 12, sortOrder: .popular)
+            samples = page.data
         } catch {
             Log.ui.error("Onboarding samples failed: \(error.localizedDescription, privacy: .public)")
         }
@@ -179,9 +180,11 @@ private struct PickStep: View {
     @Binding var picked: Wallpaper?
     var onContinue: () -> Void
 
+    // 16:9 landscape cards in a vertically-scrolling grid (desktop wallpapers are landscape).
+    private let columns = [GridItem(.adaptive(minimum: 200, maximum: 280), spacing: Theme.Space.m)]
+
     var body: some View {
         VStack(spacing: Theme.Space.l) {
-            Spacer(minLength: 0)
             VStack(spacing: Theme.Space.s) {
                 Text("Pick your first wallpaper")
                     .font(.system(size: 26, weight: .bold))
@@ -189,13 +192,17 @@ private struct PickStep: View {
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
+            .padding(.top, Theme.Space.l)
 
-            HStack(spacing: Theme.Space.l) {
-                ForEach(Array(samples.prefix(3))) { wallpaper in
-                    PickCard(wallpaper: wallpaper, isSelected: picked?.id == wallpaper.id) {
-                        withAnimation(Motion.hover) { picked = wallpaper }
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: Theme.Space.m) {
+                    ForEach(samples) { wallpaper in
+                        PickCard(wallpaper: wallpaper, isSelected: picked?.id == wallpaper.id) {
+                            withAnimation(Motion.hover) { picked = wallpaper }
+                        }
                     }
                 }
+                .padding(.vertical, Theme.Space.s)
             }
             .frame(maxHeight: .infinity)
 
@@ -204,9 +211,8 @@ private struct PickStep: View {
                 .frame(maxWidth: 320)
                 .disabled(picked == nil)
                 .opacity(picked == nil ? 0.5 : 1)
-            Spacer(minLength: 0)
+                .padding(.bottom, Theme.Space.l)
         }
-        .padding(.vertical, Theme.Space.xxl)
     }
 }
 
@@ -220,10 +226,11 @@ private struct PickCard: View {
         Button(action: onTap) {
             ThumbnailView(url: wallpaper.thumbnailURL,
                           placeholderTint: WallpaperCard.tint(for: wallpaper.id))
-                .frame(width: 150, height: 240)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+                .aspectRatio(16.0 / 9.0, contentMode: .fill)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
                         .strokeBorder(isSelected ? Theme.accent : .white.opacity(hovering ? 0.2 : 0.08),
                                       lineWidth: isSelected ? 3 : 1)
                 }
@@ -236,10 +243,10 @@ private struct PickCard: View {
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
-                .scaleEffect(isSelected ? 1.04 : (hovering ? 1.02 : 1))
+                .scaleEffect(isSelected ? 1.03 : (hovering ? 1.015 : 1))
                 .shadow(color: .black.opacity(isSelected ? 0.4 : 0.2), radius: isSelected ? 16 : 8, y: 6)
                 // Whole card is one instant hit/hover target, regardless of image load state.
-                .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         }
         .buttonStyle(.plain)
         .animation(Motion.hover, value: isSelected)

@@ -116,6 +116,13 @@ struct PreviewPanel: View {
         isSetting = true
         resultMessage = nil
         defer { isSetting = false }
+
+        // User-imported wallpaper: the asset is already on disk (file://), no download needed.
+        if wallpaper.isLocal, url.isFileURL {
+            await setLocalWallpaper(wallpaper, assetURL: url)
+            return
+        }
+
         do {
             let downloaded = try await WallpaperAPI.shared.downloadImage(from: url) { p in
                 Task { @MainActor in progress = p }
@@ -141,6 +148,46 @@ struct PreviewPanel: View {
         } catch {
             resultMessage = error.localizedDescription
             Log.ui.error("Set failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Apply a user-imported wallpaper. Images are watermarked + set as the static desktop;
+    /// animated formats play through the live engine with a mandatory watermark overlay (free).
+    private func setLocalWallpaper(_ wallpaper: Wallpaper, assetURL: URL) async {
+        let isPro = store.state.isPro
+        let icon = NSApplication.shared.applicationIconImage
+        let aspects = NSScreen.screens.map { $0.frame.width / max(1, $0.frame.height) }
+        let kind = WallpaperRenderer.Kind.detect(from: assetURL) ?? .image
+        do {
+            if kind == .image {
+                let variant = isPro ? "pro" : "free"
+                await CacheManager.shared.removeCachedImages(for: wallpaper.id)
+                let destination = await CacheManager.shared.folderURL(.images)
+                    .appendingPathComponent("\(wallpaper.id)-\(variant).jpg")
+                try WatermarkService.applyIfNeeded(to: assetURL, destinationURL: destination,
+                                                   isPro: isPro, appIcon: icon, screenAspects: aspects)
+                await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
+                WallpaperRenderer.shared.setStaticImage(destination)
+            } else {
+                // Static first-frame fallback (watermarked) from the generated thumbnail, if any.
+                var firstFrame: URL? = nil
+                if let thumb = wallpaper.thumbnailURL, thumb.isFileURL {
+                    let dest = await CacheManager.shared.folderURL(.firstFrames)
+                        .appendingPathComponent("\(wallpaper.id).jpg")
+                    try? WatermarkService.applyIfNeeded(to: thumb, destinationURL: dest,
+                                                        isPro: isPro, appIcon: icon, screenAspects: aspects)
+                    firstFrame = dest
+                }
+                // Pin so the cache sweep can't evict the first-frame fallback while it's active.
+                await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
+                WallpaperRenderer.shared.startAnimated(kind: kind, url: assetURL,
+                                                       firstFrameStaticURL: firstFrame,
+                                                       needsWatermark: !isPro, appIcon: icon)
+            }
+            resultMessage = String(localized: "Wallpaper set.")
+        } catch {
+            resultMessage = error.localizedDescription
+            Log.ui.error("Local set failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

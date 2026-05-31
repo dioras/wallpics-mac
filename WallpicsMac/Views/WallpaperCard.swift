@@ -54,7 +54,7 @@ struct WallpaperCard: View {
                 .font(.callout.weight(.semibold))
                 .foregroundStyle(.white)
                 .lineLimit(1)
-            Text("\(wallpaper.width) × \(wallpaper.height)")
+            Text(verbatim: "\(wallpaper.width) × \(wallpaper.height)")
                 .font(.caption2)
                 .foregroundStyle(.white.opacity(0.75))
         }

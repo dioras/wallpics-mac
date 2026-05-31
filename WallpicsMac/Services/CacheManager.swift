@@ -22,6 +22,8 @@ actor CacheManager {
         case firstFrames = "FirstFrames"
         case favorites = "Favorites"
         case downloaded = "Downloaded"
+        case imports = "Imports"          // user-uploaded asset files
+        case importMeta = "ImportMeta"    // JSON metadata for each import
     }
 
     init(maxSize: Int64 = 500 * 1024 * 1024) {
@@ -34,7 +36,7 @@ actor CacheManager {
     private static func bootstrapFolders(rootURL: URL) {
         let fm = FileManager.default
         try? fm.createDirectory(at: rootURL, withIntermediateDirectories: true)
-        for folder in [Folder.images, .videos, .shaders, .animations, .firstFrames, .favorites, .downloaded] {
+        for folder in [Folder.images, .videos, .shaders, .animations, .firstFrames, .favorites, .downloaded, .imports, .importMeta] {
             try? fm.createDirectory(at: rootURL.appendingPathComponent(folder.rawValue, isDirectory: true), withIntermediateDirectories: true)
         }
     }
@@ -49,7 +51,7 @@ actor CacheManager {
 
     func createIfNeeded() throws {
         try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
-        for folder in [Folder.images, .videos, .shaders, .animations, .firstFrames, .favorites, .downloaded] {
+        for folder in [Folder.images, .videos, .shaders, .animations, .firstFrames, .favorites, .downloaded, .imports, .importMeta] {
             try fileManager.createDirectory(at: folderURL(folder), withIntermediateDirectories: true)
         }
     }
@@ -106,10 +108,15 @@ actor CacheManager {
         return Set(markers.compactMap(Int.init))
     }
 
-    /// Leading integer of a media filename, e.g. "36547-free.jpg" -> 36547, "12.jpg" -> 12.
+    /// Leading integer of a media filename, e.g. "36547-free.jpg" -> 36547, "12.jpg" -> 12,
+    /// "-840-free.jpg" -> -840 (imported wallpapers use negative ids).
     private func leadingID(of filename: String) -> Int? {
-        let digits = filename.prefix { $0.isNumber }
-        return digits.isEmpty ? nil : Int(digits)
+        var s = Substring(filename)
+        let negative = s.first == "-"
+        if negative { s = s.dropFirst() }
+        let digits = s.prefix { $0.isNumber }
+        guard let n = Int(digits) else { return nil }
+        return negative ? -n : n
     }
 
     private func mediaEntries() -> [(url: URL, id: Int?, size: Int64, accessed: Date)] {
@@ -172,6 +179,56 @@ actor CacheManager {
 
     private func favoriteFileURL(_ id: Int) -> URL {
         folderURL(.favorites).appendingPathComponent("\(id).json")
+    }
+
+    // MARK: - Imports (user-uploaded wallpapers)
+    //
+    // The asset file lives in Imports/<id>.<ext>; its metadata (a local Wallpaper) in
+    // ImportMeta/<id>.json. Both persist across relaunch and are independent of the API.
+
+    var importsFolder: URL { folderURL(.imports) }
+
+    func saveImport(_ wallpaper: Wallpaper) {
+        let url = folderURL(.importMeta).appendingPathComponent("\(wallpaper.id).json")
+        if let data = try? JSONEncoder().encode(wallpaper) {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    /// All imported wallpapers, most-recently-added first.
+    func importedWallpapers() -> [Wallpaper] {
+        let keys: Set<URLResourceKey> = [.creationDateKey]
+        guard let files = try? fileManager.contentsOfDirectory(
+            at: folderURL(.importMeta), includingPropertiesForKeys: Array(keys)
+        ) else { return [] }
+        let decoder = JSONDecoder()
+        return files
+            .filter { $0.pathExtension == "json" }
+            .compactMap { url -> (Wallpaper, Date)? in
+                guard let data = try? Data(contentsOf: url),
+                      let wp = try? decoder.decode(Wallpaper.self, from: data) else { return nil }
+                let created = (try? url.resourceValues(forKeys: keys))?.creationDate ?? .distantPast
+                return (wp, created)
+            }
+            .sorted { $0.1 > $1.1 }
+            .map(\.0)
+    }
+
+    /// Remove an import completely: metadata, asset file, thumbnail, favorite marker, AND the
+    /// watermarked copies / first-frame / downloaded-pin it produced when set as wallpaper —
+    /// otherwise those stay pinned forever and leak disk.
+    func removeImport(_ wallpaper: Wallpaper) {
+        try? fileManager.removeItem(at: folderURL(.importMeta).appendingPathComponent("\(wallpaper.id).json"))
+        if let asset = wallpaper.wallpaperURL, asset.isFileURL {
+            try? fileManager.removeItem(at: asset)
+        }
+        if let thumb = wallpaper.thumbnailURL, thumb.isFileURL {
+            try? fileManager.removeItem(at: thumb)
+        }
+        try? fileManager.removeItem(at: favoriteFileURL(wallpaper.id))
+        removeCachedImages(for: wallpaper.id)
+        try? fileManager.removeItem(at: folderURL(.firstFrames).appendingPathComponent("\(wallpaper.id).jpg"))
+        markDownloaded(wallpaper.id, downloaded: false)
     }
 
     /// Remove any cached image files for a wallpaper id (all watermark variants), so

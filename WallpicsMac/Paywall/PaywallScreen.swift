@@ -70,7 +70,7 @@ struct PaywallScreen: View {
                     ProductRow(
                         product: product,
                         isSelected: selectedProductID == product.id,
-                        isYearly: product.id == ProductIDs.yearly
+                        isBestValue: product.id == bestValueID
                     ) {
                         withAnimation(Motion.hover) { selectedProductID = product.id }
                     }
@@ -149,8 +149,13 @@ struct PaywallScreen: View {
         .background(.thinMaterial)
     }
 
+    /// The longest-period product (e.g. yearly) gets the "Best value" badge and is preselected.
+    private var bestValueID: String? {
+        store.products.max { StoreKitService.periodSeconds($0) < StoreKitService.periodSeconds($1) }?.id
+    }
+
     private func selectProduct() {
-        selectedProductID = store.products.first { $0.id == ProductIDs.yearly }?.id ?? store.products.first?.id
+        selectedProductID = bestValueID ?? store.products.first?.id
     }
 
     private var selectedProduct: Product? {
@@ -159,21 +164,35 @@ struct PaywallScreen: View {
 
     private var subscribeButtonTitle: String {
         guard let product = selectedProduct else { return String(localized: "Continue") }
-        if product.id == ProductIDs.lifetime {
-            return String(localized: "Buy \(product.displayPrice)")
-        }
-        if product.subscription?.introductoryOffer?.paymentMode == .freeTrial {
+        if hasFreeTrial(product) {
             return String(localized: "Start Free Trial")
         }
         return String(localized: "Subscribe for \(product.displayPrice)")
     }
 
     private var renewalNote: String? {
-        guard let product = selectedProduct, product.id != ProductIDs.lifetime else { return nil }
-        if product.subscription?.introductoryOffer?.paymentMode == .freeTrial {
-            return String(localized: "7 days free, then \(product.displayPrice). Cancel anytime.")
+        guard let product = selectedProduct else { return nil }
+        if hasFreeTrial(product), let trial = trialDescription(product) {
+            return String(localized: "\(trial) free, then \(product.displayPrice). Cancel anytime.")
         }
         return String(localized: "\(product.displayPrice), auto-renews. Cancel anytime.")
+    }
+
+    private func hasFreeTrial(_ product: Product) -> Bool {
+        product.subscription?.introductoryOffer?.paymentMode == .freeTrial
+    }
+
+    /// Human-readable trial length, e.g. "3 days" / "1 week".
+    private func trialDescription(_ product: Product) -> String? {
+        guard let offer = product.subscription?.introductoryOffer else { return nil }
+        let n = offer.period.value
+        switch offer.period.unit {
+        case .day: return n == 1 ? String(localized: "1 day") : String(localized: "\(n) days")
+        case .week: return n == 1 ? String(localized: "1 week") : String(localized: "\(n) weeks")
+        case .month: return n == 1 ? String(localized: "1 month") : String(localized: "\(n) months")
+        case .year: return n == 1 ? String(localized: "1 year") : String(localized: "\(n) years")
+        @unknown default: return nil
+        }
     }
 
     private func subscribe() {
@@ -210,8 +229,20 @@ private struct Benefit: View {
 private struct ProductRow: View {
     let product: Product
     let isSelected: Bool
-    let isYearly: Bool
+    let isBestValue: Bool
     var onSelect: () -> Void
+
+    /// Per-period suffix shown next to the price, e.g. "/ week", "/ year".
+    private var periodSuffix: String {
+        guard let unit = product.subscription?.subscriptionPeriod.unit else { return "" }
+        switch unit {
+        case .day: return String(localized: "/ day")
+        case .week: return String(localized: "/ week")
+        case .month: return String(localized: "/ month")
+        case .year: return String(localized: "/ year")
+        @unknown default: return ""
+        }
+    }
 
     var body: some View {
         Button(action: onSelect) {
@@ -220,7 +251,7 @@ private struct ProductRow: View {
                     HStack(spacing: Theme.Space.s) {
                         Text(product.displayName)
                             .font(.headline)
-                        if isYearly {
+                        if isBestValue {
                             Text("Best value")
                                 .font(.caption2.weight(.bold))
                                 .padding(.horizontal, 7)
@@ -234,8 +265,13 @@ private struct ProductRow: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text(product.displayPrice)
-                    .font(.headline.monospacedDigit())
+                HStack(spacing: 2) {
+                    Text(product.displayPrice)
+                        .font(.headline.monospacedDigit())
+                    Text(periodSuffix)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
                 Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                     .font(.title3)
                     .foregroundStyle(isSelected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))

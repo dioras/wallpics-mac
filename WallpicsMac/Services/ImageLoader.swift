@@ -30,6 +30,11 @@ actor ImageLoader {
         if let task = inflight[url] { return try await task.value }
 
         let task = Task<NSImage, Error> { [session] in
+            // Local imports use file:// URLs, which URLSession won't load — read from disk.
+            if url.isFileURL {
+                guard let image = NSImage(contentsOf: url) else { throw ImageLoaderError.decodeFailed }
+                return image
+            }
             let (data, response) = try await session.data(from: url)
             if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
                 throw ImageLoaderError.invalidResponse
