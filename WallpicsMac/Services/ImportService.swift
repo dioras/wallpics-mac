@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 enum ImportService {
     /// All formats accepted, matching the previously-shipped version.
     static let allowedExtensions: [String] = [
-        "png", "jpg", "jpeg", "heic", "heif", "bmp", "tiff", "gif",   // images / gif
+    "png", "jpg", "jpeg", "heic", "heif", "bmp", "tiff", "gif",   // images / gif
         "mp4", "mov", "m4v", "avi", "mkv", "webm",                    // video
         "msl", "metal",                                               // shaders
         "riv"                                                         // rive animations
@@ -62,7 +62,7 @@ enum ImportService {
                 return nil
             }
 
-            let (thumbData, size) = makeThumbnail(for: assetURL, ext: ext)
+            let (thumbData, size) = await makeThumbnail(for: assetURL, ext: ext)
             var resolvedThumb: URL? = nil
             if let thumbData {
                 try? thumbData.write(to: thumbURL, options: .atomic)
@@ -90,7 +90,7 @@ enum ImportService {
 
     /// Returns a downscaled JPEG thumbnail (nil for formats we can't rasterize cheaply, e.g.
     /// shaders/Rive) and the source pixel size (zero when unknown).
-    nonisolated private static func makeThumbnail(for url: URL, ext: String) -> (Data?, CGSize) {
+    nonisolated private static func makeThumbnail(for url: URL, ext: String) async -> (Data?, CGSize) {
         let maxDim: CGFloat = 1280
         switch ext {
         case "png", "jpg", "jpeg", "heic", "heif", "bmp", "tiff", "gif":
@@ -110,11 +110,12 @@ enum ImportService {
             gen.appliesPreferredTrackTransform = true
             gen.maximumSize = CGSize(width: maxDim, height: maxDim)
             var size = CGSize.zero
-            if let track = asset.tracks(withMediaType: .video).first {
-                let t = track.naturalSize.applying(track.preferredTransform)
+            if let track = try? await asset.loadTracks(withMediaType: .video).first,
+               let (natural, transform) = try? await track.load(.naturalSize, .preferredTransform) {
+                let t = natural.applying(transform)
                 size = CGSize(width: abs(t.width), height: abs(t.height))
             }
-            if let cg = try? gen.copyCGImage(at: CMTime(seconds: 0.2, preferredTimescale: 600), actualTime: nil) {
+            if let cg = try? await gen.image(at: CMTime(seconds: 0.2, preferredTimescale: 600)).image {
                 return (jpeg(from: cg), size)
             }
             return (nil, size)

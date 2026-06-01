@@ -9,6 +9,10 @@ struct PaywallScreen: View {
     @State private var selectedProductID: String?
     @State private var appeared = false
     @State private var didAttemptLoad = false
+    // Soft paywall: the dismiss (✕) is withheld for a few seconds so the offer is seen first,
+    // then fades in. Lets the user close the screen without committing.
+    @State private var showCloseButton = false
+    private let closeButtonDelay: Duration = .seconds(3)
 
     // Replace with the real privacy + terms URLs from App Store Connect before submission.
     // App Store review requires both links to be reachable from the paywall.
@@ -30,11 +34,35 @@ struct PaywallScreen: View {
             footer
         }
         .background(AmbientBackdrop())
+        .overlay(alignment: .topTrailing) { closeButton }
         .task {
             withAnimation(Motion.transition) { appeared = true }
             await store.loadProducts()
             selectProduct()
             didAttemptLoad = true
+        }
+        .task {
+            try? await Task.sleep(for: closeButtonDelay)
+            withAnimation(.easeInOut(duration: 0.35)) { showCloseButton = true }
+        }
+    }
+
+    @ViewBuilder
+    private var closeButton: some View {
+        if showCloseButton {
+            Button(action: onSkip) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .background(.regularMaterial, in: Circle())
+                    .overlay(Circle().strokeBorder(.separator, lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
+            .padding(Theme.Space.l)
+            .transition(.opacity.combined(with: .scale(scale: 0.8)))
+            .help(String(localized: "Close"))
+            .accessibilityLabel(String(localized: "Close"))
         }
     }
 
@@ -233,8 +261,19 @@ private struct ProductRow: View {
     var onSelect: () -> Void
 
     /// Per-period suffix shown next to the price, e.g. "/ week", "/ year".
+    ///
+    /// App Store Connect can encode the same duration different ways — a weekly plan may come
+    /// back as "1 week" *or* "7 days". We normalize so a 7-day period reads "/ week" (and 30-day
+    /// → "/ month", 365-day → "/ year") instead of the misleading "/ day" the client reported.
     private var periodSuffix: String {
-        guard let unit = product.subscription?.subscriptionPeriod.unit else { return "" }
+        guard let period = product.subscription?.subscriptionPeriod else { return "" }
+        let unit: Product.SubscriptionPeriod.Unit
+        switch (period.unit, period.value) {
+        case (.day, 7):   unit = .week
+        case (.day, 30):  unit = .month
+        case (.day, 365): unit = .year
+        default:          unit = period.unit
+        }
         switch unit {
         case .day: return String(localized: "/ day")
         case .week: return String(localized: "/ week")
@@ -280,7 +319,8 @@ private struct ProductRow: View {
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .strokeBorder(isSelected ? Theme.accent : .white.opacity(0.06), lineWidth: isSelected ? 2 : 1)
+                    .strokeBorder(isSelected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.separator),
+                                  lineWidth: isSelected ? 2 : 1)
             }
             .shadow(color: isSelected ? Theme.accent.opacity(0.25) : .clear, radius: 10, y: 4)
         }

@@ -169,7 +169,7 @@ private struct FloatingCollage: View {
 
     private var placeholder: some View {
         RoundedRectangle(cornerRadius: Theme.Radius.card)
-            .fill(.white.opacity(0.06))
+            .fill(Color.primary.opacity(0.08))
     }
 }
 
@@ -359,7 +359,7 @@ private struct StepIndicator: View {
         HStack(spacing: Theme.Space.s) {
             ForEach(OnboardingFlow.Step.allCases, id: \.rawValue) { s in
                 Capsule()
-                    .fill(s == current ? Theme.accent : Color.white.opacity(0.2))
+                    .fill(s == current ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.tertiary))
                     .frame(width: s == current ? 22 : 8, height: 8)
                     .animation(Motion.hover, value: current)
             }

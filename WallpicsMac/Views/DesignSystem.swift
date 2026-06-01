@@ -137,18 +137,25 @@ struct AppIconView: View {
 
 // MARK: - Ambient backdrop
 
-/// Soft, dark, depth-y backdrop used behind onboarding and the paywall.
-/// Two offset radial glows over a near-black base read more expensive than a flat gradient.
+/// Soft, depth-y backdrop used behind onboarding and the paywall. Two offset radial glows
+/// over a solid base read more expensive than a flat gradient. Adapts to the system
+/// appearance: a near-black base in Dark Mode, a near-white base in Light Mode — so the
+/// `.primary`/`.secondary` text on these screens always has contrast (fixes the black-on-dark
+/// text reported in Light Mode).
 struct AmbientBackdrop: View {
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
         ZStack {
-            Color(red: 0.05, green: 0.05, blue: 0.07)
+            (scheme == .dark
+                ? Color(red: 0.05, green: 0.05, blue: 0.07)
+                : Color(red: 0.95, green: 0.95, blue: 0.97))
             RadialGradient(
-                colors: [Theme.accent.opacity(0.28), .clear],
+                colors: [Theme.accent.opacity(scheme == .dark ? 0.28 : 0.16), .clear],
                 center: .topLeading, startRadius: 0, endRadius: 520
             )
             RadialGradient(
-                colors: [Color(red: 0.5, green: 0.2, blue: 0.7).opacity(0.22), .clear],
+                colors: [Color(red: 0.5, green: 0.2, blue: 0.7).opacity(scheme == .dark ? 0.22 : 0.12), .clear],
                 center: .bottomTrailing, startRadius: 0, endRadius: 560
             )
         }
