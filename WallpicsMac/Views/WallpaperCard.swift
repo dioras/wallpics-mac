@@ -23,6 +23,7 @@ struct WallpaperCard: View {
         .clipped()
         .overlay { hoverScrim }
         .overlay(alignment: .bottomLeading) { caption }
+        .overlay(alignment: .topLeading) { kindBadge }
         .overlay(alignment: .topTrailing) { premiumBadge }
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .overlay {
@@ -61,6 +62,20 @@ struct WallpaperCard: View {
         .padding(12)
         .opacity(isHovering ? 1 : 0)
         .offset(y: isHovering ? 0 : 6)
+    }
+
+    /// Marks live/shader wallpapers so the kind is obvious at a glance in the grid.
+    @ViewBuilder
+    private var kindBadge: some View {
+        if wallpaper.mediaType != .photo {
+            Image(systemName: wallpaper.mediaType == .live ? "play.fill" : "sparkles")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(6)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 0.5))
+                .padding(8)
+        }
     }
 
     @ViewBuilder

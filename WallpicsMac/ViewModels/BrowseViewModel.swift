@@ -9,6 +9,7 @@ final class BrowseViewModel {
     var isImporting = false
     var query: String = ""
     var sortOrder: SortOrder = .newest
+    var collection: WallpaperCollection = .normal
     var isLoading = false
     var errorMessage: String?
     var currentPage = 1
@@ -63,6 +64,7 @@ final class BrowseViewModel {
         defer { if gen == generation { isLoading = false } }
         do {
             let page = try await WallpaperAPI.shared.desktopWallpapers(
+                collection: collection,
                 page: currentPage,
                 perPage: 24,
                 sortOrder: sortOrder
@@ -82,6 +84,13 @@ final class BrowseViewModel {
     func setSort(_ order: SortOrder) {
         guard order != sortOrder else { return }
         sortOrder = order
+        Task { await reload() }
+    }
+
+    func setCollection(_ newValue: WallpaperCollection) {
+        guard newValue != collection else { return }
+        collection = newValue
+        query = ""   // a search from the previous collection no longer applies
         Task { await reload() }
     }
 

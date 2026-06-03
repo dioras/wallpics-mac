@@ -1582,6 +1582,9 @@
         }
       }
     },
+    "Couldn't read this shader." : {
+
+    },
     "Downloads" : {
       "localizations" : {
         "de" : {
@@ -2134,6 +2137,9 @@
           }
         }
       }
+    },
+    "Live" : {
+
     },
     "Load more wallpapers" : {
       "localizations" : {
@@ -2917,6 +2923,9 @@
           }
         }
       }
+    },
+    "Photos" : {
+
     },
     "Pick a wallpaper to preview it." : {
       "localizations" : {
@@ -3982,6 +3991,9 @@
         }
       }
     },
+    "Shaders" : {
+
+    },
     "Show WallPics" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4397,6 +4409,9 @@
           }
         }
       }
+    },
+    "This wallpaper isn't available right now." : {
+
     },
     "Try Again" : {
       "localizations" : {

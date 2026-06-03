@@ -57,6 +57,8 @@ struct BrowseView: View {
                 query: $model.query,
                 sortOrder: model.sortOrder,
                 onSort: model.setSort,
+                collection: model.collection,
+                onCollection: model.setCollection,
                 isImporting: model.isImporting,
                 onImport: importWallpaper
             )
@@ -143,12 +145,16 @@ private struct BrowseToolbar: View {
     @Binding var query: String
     let sortOrder: SortOrder
     let onSort: (SortOrder) -> Void
+    let collection: WallpaperCollection
+    let onCollection: (WallpaperCollection) -> Void
     let isImporting: Bool
     let onImport: () -> Void
     @FocusState private var searchFocused: Bool
 
     var body: some View {
         HStack(spacing: Theme.Space.m) {
+            CollectionFilter(selection: collection, onSelect: onCollection)
+
             HStack(spacing: Theme.Space.s) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
@@ -164,12 +170,13 @@ private struct BrowseToolbar: View {
             }
             .padding(.horizontal, Theme.Space.m)
             .padding(.vertical, 7)
-            .frame(minWidth: 80, maxWidth: 280, alignment: .leading)
+            // Flex to fill the space between the filter and the actions so it grows with the
+            // window instead of staying a small fixed pill beside empty space. minWidth keeps
+            // the "Search wallpapers" placeholder from ever truncating.
+            .frame(minWidth: 170, maxWidth: .infinity, alignment: .leading)
             .liquidGlass(in: Capsule())
             .overlay(Capsule().strokeBorder(searchFocused ? Theme.accent.opacity(0.6) : .clear, lineWidth: 1.5))
             .animation(Motion.hover, value: searchFocused)
-
-            Spacer(minLength: Theme.Space.s)
 
             Button(action: onImport) {
                 HStack(spacing: Theme.Space.s) {
@@ -211,6 +218,43 @@ private struct BrowseToolbar: View {
         .padding(.horizontal, Theme.Space.l)
         .padding(.vertical, Theme.Space.m)
         .background(.thinMaterial)
+    }
+}
+
+/// Primary mode switch between the three wallpaper collections (Photos / Live / Shaders).
+/// A capsule of segments matching the toolbar's liquid-glass language; active segment fills accent.
+private struct CollectionFilter: View {
+    let selection: WallpaperCollection
+    let onSelect: (WallpaperCollection) -> Void
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(WallpaperCollection.allCases) { item in
+                let active = item == selection
+                Button { onSelect(item) } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: item.systemImage)
+                        Text(item.label).lineLimit(1)
+                    }
+                    .font(.callout.weight(.medium))
+                    .padding(.horizontal, Theme.Space.m)
+                    .padding(.vertical, 6)
+                    .foregroundStyle(active ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                    .background {
+                        if active {
+                            Capsule().fill(Theme.accent)
+                                .shadow(color: Theme.accent.opacity(0.35), radius: 6, y: 2)
+                        }
+                    }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .liquidGlass(in: Capsule())
+        .fixedSize()
+        .animation(Motion.hover, value: selection)
     }
 }
 

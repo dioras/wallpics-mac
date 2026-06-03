@@ -112,19 +112,33 @@ struct PreviewPanel: View {
     }
 
     private func setAsWallpaper(_ wallpaper: Wallpaper) async {
-        guard let url = wallpaper.wallpaperURL else { return }
         isSetting = true
         resultMessage = nil
+        progress = 0
         defer { isSetting = false }
 
         // User-imported wallpaper: the asset is already on disk (file://), no download needed.
-        if wallpaper.isLocal, url.isFileURL {
+        if wallpaper.isLocal, let url = wallpaper.wallpaperURL, url.isFileURL {
             await setLocalWallpaper(wallpaper, assetURL: url)
             return
         }
 
+        guard let assetURL = wallpaper.assetURL else {
+            resultMessage = String(localized: "This wallpaper isn't available right now.")
+            return
+        }
+
+        switch wallpaper.mediaType {
+        case .photo:  await setRemoteImage(wallpaper, imageURL: assetURL)
+        case .live:   await setRemoteAnimated(wallpaper, kind: .video, assetURL: assetURL)
+        case .shader: await setRemoteShader(wallpaper, zipURL: assetURL)
+        }
+    }
+
+    /// Static image: download, bake the watermark for free users, set as the desktop image.
+    private func setRemoteImage(_ wallpaper: Wallpaper, imageURL: URL) async {
         do {
-            let downloaded = try await WallpaperAPI.shared.downloadImage(from: url) { p in
+            let downloaded = try await WallpaperAPI.shared.downloadImage(from: imageURL) { p in
                 Task { @MainActor in progress = p }
             }
             // Filename varies by watermark state so a Pro upgrade produces a new URL and
@@ -148,6 +162,83 @@ struct PreviewPanel: View {
         } catch {
             resultMessage = error.localizedDescription
             Log.ui.error("Set failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Live (video) wallpaper: download the clip, play it through the live engine with the
+    /// mandatory free-tier watermark overlay (dropped only once the user is Pro).
+    private func setRemoteAnimated(_ wallpaper: Wallpaper, kind: WallpaperRenderer.Kind, assetURL: URL) async {
+        let isPro = store.state.isPro
+        let icon = NSApplication.shared.applicationIconImage
+        do {
+            let downloaded = try await WallpaperAPI.shared.downloadImage(from: assetURL) { p in
+                Task { @MainActor in progress = p }
+            }
+            let ext = assetURL.pathExtension.isEmpty ? "mp4" : assetURL.pathExtension
+            let dest = await CacheManager.shared.folderURL(.videos)
+                .appendingPathComponent("\(wallpaper.id).\(ext)")
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: downloaded, to: dest)
+
+            let firstFrame = await makeRemotePoster(wallpaper, isPro: isPro, icon: icon)
+            // Pin so the cache sweep can't evict the clip / first-frame while it's live.
+            await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
+            WallpaperRenderer.shared.startAnimated(kind: kind, url: dest,
+                                                   firstFrameStaticURL: firstFrame,
+                                                   needsWatermark: !isPro, appIcon: icon)
+            await WallpaperAPI.shared.recordDownload(wallpaperID: wallpaper.id)
+            resultMessage = String(localized: "Wallpaper set.")
+        } catch {
+            resultMessage = error.localizedDescription
+            Log.ui.error("Live set failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Shader wallpaper: the backend ships a .zip containing a single .msl; unzip it, then drive
+    /// the Metal shader engine (same free-tier watermark rules as live wallpapers).
+    private func setRemoteShader(_ wallpaper: Wallpaper, zipURL: URL) async {
+        let isPro = store.state.isPro
+        let icon = NSApplication.shared.applicationIconImage
+        do {
+            let downloaded = try await WallpaperAPI.shared.downloadImage(from: zipURL) { p in
+                Task { @MainActor in progress = p }
+            }
+            let zipData = try Data(contentsOf: downloaded)
+            let shadersDir = await CacheManager.shared.folderURL(.shaders)
+            guard let shaderURL = ZipExtractor.extractFirstFile(
+                from: zipData, extensions: ["msl", "metal"], to: shadersDir, baseName: "\(wallpaper.id)"
+            ) else {
+                resultMessage = String(localized: "Couldn't read this shader.")
+                return
+            }
+            let firstFrame = await makeRemotePoster(wallpaper, isPro: isPro, icon: icon)
+            await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
+            WallpaperRenderer.shared.startAnimated(kind: .shader, url: shaderURL,
+                                                   firstFrameStaticURL: firstFrame,
+                                                   needsWatermark: !isPro, appIcon: icon)
+            await WallpaperAPI.shared.recordDownload(wallpaperID: wallpaper.id)
+            resultMessage = String(localized: "Wallpaper set.")
+        } catch {
+            resultMessage = error.localizedDescription
+            Log.ui.error("Shader set failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Download the poster (static_thumbnail/thumbnail) and bake the free-tier watermark into it,
+    /// so the still first frame behind an animated/shader wallpaper is never watermark-free.
+    private func makeRemotePoster(_ wallpaper: Wallpaper, isPro: Bool, icon: NSImage?) async -> URL? {
+        guard let posterURL = wallpaper.posterURL else { return nil }
+        do {
+            let image = try await WallpaperAPI.shared.downloadImage(from: posterURL)
+            let dest = await CacheManager.shared.folderURL(.firstFrames)
+                .appendingPathComponent("\(wallpaper.id).jpg")
+            try WatermarkService.applyIfNeeded(
+                to: image, destinationURL: dest, isPro: isPro, appIcon: icon,
+                screenAspects: NSScreen.screens.map { $0.frame.width / max(1, $0.frame.height) }
+            )
+            return dest
+        } catch {
+            return nil
         }
     }
 

@@ -69,10 +69,10 @@ actor WallpaperAPI {
 
     // MARK: - Wallpapers
 
-    func desktopWallpapers(page: Int, perPage: Int = 24, sortOrder: SortOrder = .newest, categorySlug: String? = nil) async throws -> WallpaperPage {
+    func desktopWallpapers(collection: WallpaperCollection = .normal, page: Int, perPage: Int = 24, sortOrder: SortOrder = .newest, categorySlug: String? = nil) async throws -> WallpaperPage {
         _ = try await ensureGuestID()
 
-        var components = URLComponents(url: baseURL.appendingPathComponent("api/wallpapers/desktop"), resolvingAgainstBaseURL: false)!
+        var components = URLComponents(url: baseURL.appendingPathComponent(collection.path), resolvingAgainstBaseURL: false)!
         var items: [URLQueryItem] = [
             URLQueryItem(name: "paginated", value: "1"),
             URLQueryItem(name: "page", value: String(page)),
@@ -155,6 +155,40 @@ actor WallpaperAPI {
     private func transport<T>(_ work: () async throws -> T) async throws -> T {
         do { return try await work() }
         catch let urlError as URLError { throw APIError.transport(urlError) }
+    }
+}
+
+/// The three desktop wallpaper collections served by the backend. Each maps to its own
+/// endpoint but returns the identical `WallpaperPage` shape.
+enum WallpaperCollection: String, CaseIterable, Identifiable, Sendable {
+    case normal
+    case live
+    case shader
+
+    var id: String { rawValue }
+
+    var path: String {
+        switch self {
+        case .normal: return "api/wallpapers/desktop"
+        case .live: return "api/wallpapers/live-desktop"
+        case .shader: return "api/wallpapers/shader-desktop"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .normal: return String(localized: "Photos")
+        case .live: return String(localized: "Live")
+        case .shader: return String(localized: "Shaders")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .normal: return "photo"
+        case .live: return "play.circle"
+        case .shader: return "sparkles"
+        }
     }
 }
 
