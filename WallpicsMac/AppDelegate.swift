@@ -162,7 +162,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func installStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "photo.on.rectangle", accessibilityDescription: "WallPics")
+            // Palm tree from the app icon, rendered as a monochrome template so it adapts to
+            // the menu bar (light/dark) like the other status items.
+            let icon = NSImage(named: "MenuBarIcon") ?? NSImage(systemSymbolName: "photo.on.rectangle", accessibilityDescription: "WallPics")
+            icon?.isTemplate = true
+            button.image = icon
+            button.image?.accessibilityDescription = "WallPics"
         }
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Show WallPics", action: #selector(showMainWindow), keyEquivalent: "o"))
