@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct PreviewPanel: View {
     @Environment(AppEnvironment.self) private var env
@@ -117,26 +118,27 @@ struct PreviewPanel: View {
         progress = 0
         defer { isSetting = false }
 
+        let didSet: Bool
         // User-imported wallpaper: the asset is already on disk (file://), no download needed.
         if wallpaper.isLocal, let url = wallpaper.wallpaperURL, url.isFileURL {
-            await setLocalWallpaper(wallpaper, assetURL: url)
-            return
-        }
-
-        guard let assetURL = wallpaper.assetURL else {
+            didSet = await setLocalWallpaper(wallpaper, assetURL: url)
+        } else if let assetURL = wallpaper.assetURL {
+            switch wallpaper.mediaType {
+            case .photo:  didSet = await setRemoteImage(wallpaper, imageURL: assetURL)
+            case .live:   didSet = await setRemoteAnimated(wallpaper, kind: .video, assetURL: assetURL)
+            case .shader: didSet = await setRemoteShader(wallpaper, zipURL: assetURL)
+            }
+        } else {
             resultMessage = String(localized: "This wallpaper isn't available right now.")
-            return
+            didSet = false
         }
 
-        switch wallpaper.mediaType {
-        case .photo:  await setRemoteImage(wallpaper, imageURL: assetURL)
-        case .live:   await setRemoteAnimated(wallpaper, kind: .video, assetURL: assetURL)
-        case .shader: await setRemoteShader(wallpaper, zipURL: assetURL)
-        }
+        if didSet { maybeOfferAutostart() }
     }
 
     /// Static image: download, bake the watermark for free users, set as the desktop image.
-    private func setRemoteImage(_ wallpaper: Wallpaper, imageURL: URL) async {
+    @discardableResult
+    private func setRemoteImage(_ wallpaper: Wallpaper, imageURL: URL) async -> Bool {
         do {
             let downloaded = try await WallpaperAPI.shared.downloadImage(from: imageURL) { p in
                 Task { @MainActor in progress = p }
@@ -159,15 +161,18 @@ struct PreviewPanel: View {
             WallpaperRenderer.shared.setStaticImage(destination)
             await WallpaperAPI.shared.recordDownload(wallpaperID: wallpaper.id)
             resultMessage = String(localized: "Wallpaper set.")
+            return true
         } catch {
             resultMessage = error.localizedDescription
             Log.ui.error("Set failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
     /// Live (video) wallpaper: download the clip, play it through the live engine with the
     /// mandatory free-tier watermark overlay (dropped only once the user is Pro).
-    private func setRemoteAnimated(_ wallpaper: Wallpaper, kind: WallpaperRenderer.Kind, assetURL: URL) async {
+    @discardableResult
+    private func setRemoteAnimated(_ wallpaper: Wallpaper, kind: WallpaperRenderer.Kind, assetURL: URL) async -> Bool {
         let isPro = store.state.isPro
         let icon = NSApplication.shared.applicationIconImage
         do {
@@ -180,7 +185,12 @@ struct PreviewPanel: View {
             try? FileManager.default.removeItem(at: dest)
             try FileManager.default.moveItem(at: downloaded, to: dest)
 
-            let firstFrame = await makeRemotePoster(wallpaper, isPro: isPro, icon: icon)
+            // Full-resolution first frame extracted from the 4K video — NOT the tiny thumbnail —
+            // so the still shown the instant playback stops/relaunches isn't a pixelated 300px poster.
+            var firstFrame = await makeVideoPoster(dest, id: wallpaper.id, isPro: isPro, icon: icon)
+            if firstFrame == nil {
+                firstFrame = await makeRemotePoster(wallpaper, isPro: isPro, icon: icon)
+            }
             // Pin so the cache sweep can't evict the clip / first-frame while it's live.
             await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
             WallpaperRenderer.shared.startAnimated(kind: kind, url: dest,
@@ -188,15 +198,18 @@ struct PreviewPanel: View {
                                                    needsWatermark: !isPro, appIcon: icon)
             await WallpaperAPI.shared.recordDownload(wallpaperID: wallpaper.id)
             resultMessage = String(localized: "Wallpaper set.")
+            return true
         } catch {
             resultMessage = error.localizedDescription
             Log.ui.error("Live set failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
     /// Shader wallpaper: the backend ships a .zip containing a single .msl; unzip it, then drive
     /// the Metal shader engine (same free-tier watermark rules as live wallpapers).
-    private func setRemoteShader(_ wallpaper: Wallpaper, zipURL: URL) async {
+    @discardableResult
+    private func setRemoteShader(_ wallpaper: Wallpaper, zipURL: URL) async -> Bool {
         let isPro = store.state.isPro
         let icon = NSApplication.shared.applicationIconImage
         do {
@@ -209,42 +222,89 @@ struct PreviewPanel: View {
                 from: zipData, extensions: ["msl", "metal"], to: shadersDir, baseName: "\(wallpaper.id)"
             ) else {
                 resultMessage = String(localized: "Couldn't read this shader.")
-                return
+                return false
             }
-            let firstFrame = await makeRemotePoster(wallpaper, isPro: isPro, icon: icon)
+            // Render a full-resolution still of the shader itself for the desktop image — this is
+            // what shows on the lock/login screen and when the app isn't running, where the live
+            // Metal view can't draw. Falls back to the thumbnail only if the offscreen render fails.
+            let shaderSource = (try? String(contentsOf: shaderURL, encoding: .utf8)) ?? ""
+            var firstFrame = await makeShaderPoster(shaderSource: shaderSource, id: wallpaper.id, isPro: isPro, icon: icon)
+            if firstFrame == nil {
+                firstFrame = await makeRemotePoster(wallpaper, isPro: isPro, icon: icon)
+            }
             await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
             WallpaperRenderer.shared.startAnimated(kind: .shader, url: shaderURL,
                                                    firstFrameStaticURL: firstFrame,
                                                    needsWatermark: !isPro, appIcon: icon)
             await WallpaperAPI.shared.recordDownload(wallpaperID: wallpaper.id)
             resultMessage = String(localized: "Wallpaper set.")
+            return true
         } catch {
             resultMessage = error.localizedDescription
             Log.ui.error("Shader set failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
-    /// Download the poster (static_thumbnail/thumbnail) and bake the free-tier watermark into it,
-    /// so the still first frame behind an animated/shader wallpaper is never watermark-free.
+    /// Poster from a video's first frame — composited at the display's backing resolution so it's
+    /// a pixel-faithful freeze-frame of the live wallpaper (used on the lock/login screen).
+    private func makeVideoPoster(_ videoURL: URL, id: Int, isPro: Bool, icon: NSImage?) async -> URL? {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: videoURL))
+        generator.appliesPreferredTrackTransform = true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = CMTime(seconds: 1, preferredTimescale: 600)
+        guard let cg = try? await generator.image(at: CMTime(seconds: 0.1, preferredTimescale: 600)).image else { return nil }
+        return await writePoster(cg, id: id, isPro: isPro, icon: icon)
+    }
+
+    /// Poster from a shader, rendered offscreen at the display's backing resolution — so on the
+    /// lock screen it looks exactly like the live shader, just paused.
+    private func makeShaderPoster(shaderSource: String, id: Int, isPro: Bool, icon: NSImage?) async -> URL? {
+        guard !shaderSource.isEmpty,
+              let cg = ShaderSnapshot.render(shaderSource: shaderSource, pixelSize: posterTarget().size)
+        else { return nil }
+        return await writePoster(cg, id: id, isPro: isPro, icon: icon)
+    }
+
+    /// Fallback poster from the remote thumbnail when a frame/shader render isn't available.
     private func makeRemotePoster(_ wallpaper: Wallpaper, isPro: Bool, icon: NSImage?) async -> URL? {
-        guard let posterURL = wallpaper.posterURL else { return nil }
-        do {
-            let image = try await WallpaperAPI.shared.downloadImage(from: posterURL)
-            let dest = await CacheManager.shared.folderURL(.firstFrames)
-                .appendingPathComponent("\(wallpaper.id).jpg")
-            try WatermarkService.applyIfNeeded(
-                to: image, destinationURL: dest, isPro: isPro, appIcon: icon,
-                screenAspects: NSScreen.screens.map { $0.frame.width / max(1, $0.frame.height) }
-            )
-            return dest
-        } catch {
-            return nil
+        guard let posterURL = wallpaper.posterURL,
+              let file = try? await WallpaperAPI.shared.downloadImage(from: posterURL),
+              let cg = NSImage(contentsOf: file)?.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        else { return nil }
+        return await writePoster(cg, id: wallpaper.id, isPro: isPro, icon: icon)
+    }
+
+    /// Compose `content` into a display-resolution, watermark-matched, lossless PNG desktop poster.
+    private func writePoster(_ content: CGImage, id: Int, isPro: Bool, icon: NSImage?) async -> URL? {
+        let target = posterTarget()
+        let folder = await CacheManager.shared.folderURL(.firstFrames)
+        // Drop any legacy JPEG poster for this id so we don't keep both around.
+        try? FileManager.default.removeItem(at: folder.appendingPathComponent("\(id).jpg"))
+        let dest = folder.appendingPathComponent("\(id).png")
+        let ok = WallpaperPoster.write(content: content, targetSize: target.size, scale: target.scale,
+                                       isPro: isPro, appIcon: icon, to: dest)
+        return ok ? dest : nil
+    }
+
+    /// The largest connected display's backing pixel size and its scale (pixels per point). The
+    /// poster is built at this resolution so it matches what's actually shown on screen.
+    private func posterTarget() -> (size: CGSize, scale: CGFloat) {
+        let best = NSScreen.screens.max {
+            ($0.frame.width * $0.backingScaleFactor * $0.frame.height) <
+            ($1.frame.width * $1.backingScaleFactor * $1.frame.height)
         }
+        if let s = best {
+            return (CGSize(width: s.frame.width * s.backingScaleFactor, height: s.frame.height * s.backingScaleFactor),
+                    s.backingScaleFactor)
+        }
+        return (CGSize(width: 3840, height: 2160), 2)
     }
 
     /// Apply a user-imported wallpaper. Images are watermarked + set as the static desktop;
     /// animated formats play through the live engine with a mandatory watermark overlay (free).
-    private func setLocalWallpaper(_ wallpaper: Wallpaper, assetURL: URL) async {
+    @discardableResult
+    private func setLocalWallpaper(_ wallpaper: Wallpaper, assetURL: URL) async -> Bool {
         let isPro = store.state.isPro
         let icon = NSApplication.shared.applicationIconImage
         let aspects = NSScreen.screens.map { $0.frame.width / max(1, $0.frame.height) }
@@ -260,14 +320,18 @@ struct PreviewPanel: View {
                 await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
                 WallpaperRenderer.shared.setStaticImage(destination)
             } else {
-                // Static first-frame fallback (watermarked) from the generated thumbnail, if any.
+                // Display-resolution first frame from the video/shader when possible; thumbnail only
+                // as a fallback. Same poster pipeline as remote wallpapers (matched watermark, PNG).
                 var firstFrame: URL? = nil
-                if let thumb = wallpaper.thumbnailURL, thumb.isFileURL {
-                    let dest = await CacheManager.shared.folderURL(.firstFrames)
-                        .appendingPathComponent("\(wallpaper.id).jpg")
-                    try? WatermarkService.applyIfNeeded(to: thumb, destinationURL: dest,
-                                                        isPro: isPro, appIcon: icon, screenAspects: aspects)
-                    firstFrame = dest
+                if kind == .video {
+                    firstFrame = await makeVideoPoster(assetURL, id: wallpaper.id, isPro: isPro, icon: icon)
+                } else if kind == .shader {
+                    let source = (try? String(contentsOf: assetURL, encoding: .utf8)) ?? ""
+                    firstFrame = await makeShaderPoster(shaderSource: source, id: wallpaper.id, isPro: isPro, icon: icon)
+                }
+                if firstFrame == nil, let thumb = wallpaper.thumbnailURL, thumb.isFileURL,
+                   let cg = NSImage(contentsOf: thumb)?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                    firstFrame = await writePoster(cg, id: wallpaper.id, isPro: isPro, icon: icon)
                 }
                 // Pin so the cache sweep can't evict the first-frame fallback while it's active.
                 await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
@@ -276,10 +340,22 @@ struct PreviewPanel: View {
                                                        needsWatermark: !isPro, appIcon: icon)
             }
             resultMessage = String(localized: "Wallpaper set.")
+            return true
         } catch {
             resultMessage = error.localizedDescription
             Log.ui.error("Local set failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
+    }
+
+    /// After the user sets their first wallpaper from the app (NOT onboarding — that uses a
+    /// different code path), offer once to add WallPics to Login Items so live wallpapers survive
+    /// a restart. We record that we asked and never nag again, even if they decline.
+    private func maybeOfferAutostart() {
+        guard !env.settings.didAskAutostart else { return }
+        env.settings.didAskAutostart = true          // ask exactly once, ever
+        if LoginItemService.isEnabled { return }     // already enabled → nothing to ask
+        env.showAutostartPrompt = true
     }
 }
 

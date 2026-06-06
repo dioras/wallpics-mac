@@ -228,6 +228,7 @@ actor CacheManager {
         try? fileManager.removeItem(at: favoriteFileURL(wallpaper.id))
         removeCachedImages(for: wallpaper.id)
         try? fileManager.removeItem(at: folderURL(.firstFrames).appendingPathComponent("\(wallpaper.id).jpg"))
+        try? fileManager.removeItem(at: folderURL(.firstFrames).appendingPathComponent("\(wallpaper.id).png"))
         markDownloaded(wallpaper.id, downloaded: false)
     }
 

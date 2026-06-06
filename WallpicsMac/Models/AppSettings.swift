@@ -7,28 +7,33 @@ struct AppSettings: Codable, Equatable {
     var respectSystemAppearance: Bool
     /// nil = follow the system language.
     var languageCode: String?
+    /// Whether we've already offered (once) to add WallPics to Login Items after the user set
+    /// their first wallpaper. Stays true forever so we never nag them again.
+    var didAskAutostart: Bool
 
     static let `default` = AppSettings(
         cacheRecentWallpapers: true,
         playOnBatteryPower: true,
         pauseOnLowPowerMode: true,
         respectSystemAppearance: true,
-        languageCode: nil
+        languageCode: nil,
+        didAskAutostart: false
     )
 
     enum CodingKeys: String, CodingKey {
-        case cacheRecentWallpapers, playOnBatteryPower, pauseOnLowPowerMode, respectSystemAppearance, languageCode
+        case cacheRecentWallpapers, playOnBatteryPower, pauseOnLowPowerMode, respectSystemAppearance, languageCode, didAskAutostart
     }
 
-    init(cacheRecentWallpapers: Bool, playOnBatteryPower: Bool, pauseOnLowPowerMode: Bool, respectSystemAppearance: Bool, languageCode: String?) {
+    init(cacheRecentWallpapers: Bool, playOnBatteryPower: Bool, pauseOnLowPowerMode: Bool, respectSystemAppearance: Bool, languageCode: String?, didAskAutostart: Bool) {
         self.cacheRecentWallpapers = cacheRecentWallpapers
         self.playOnBatteryPower = playOnBatteryPower
         self.pauseOnLowPowerMode = pauseOnLowPowerMode
         self.respectSystemAppearance = respectSystemAppearance
         self.languageCode = languageCode
+        self.didAskAutostart = didAskAutostart
     }
 
-    // Tolerant decode so an older settings.json (without languageCode) still loads.
+    // Tolerant decode so an older settings.json (without newer keys) still loads.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         cacheRecentWallpapers = (try? c.decode(Bool.self, forKey: .cacheRecentWallpapers)) ?? true
@@ -36,6 +41,7 @@ struct AppSettings: Codable, Equatable {
         pauseOnLowPowerMode = (try? c.decode(Bool.self, forKey: .pauseOnLowPowerMode)) ?? true
         respectSystemAppearance = (try? c.decode(Bool.self, forKey: .respectSystemAppearance)) ?? true
         languageCode = try? c.decodeIfPresent(String.self, forKey: .languageCode)
+        didAskAutostart = (try? c.decode(Bool.self, forKey: .didAskAutostart)) ?? false
     }
 
     static var fileURL: URL? {

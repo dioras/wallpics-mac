@@ -20,6 +20,8 @@ final class AppEnvironment {
     // Sheet presentation flags. Driven from anywhere via AppEnvironment.shared.
     var showOnboarding = false
     var showPaywall = false
+    /// One-time alert offering to add WallPics to Login Items (set after the first wallpaper).
+    var showAutostartPrompt = false
 
     enum Section: String, CaseIterable, Identifiable {
         case favorites, browse, settings

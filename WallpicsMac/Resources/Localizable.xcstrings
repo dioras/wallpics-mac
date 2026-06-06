@@ -705,6 +705,9 @@
         }
       }
     },
+    "Add to Login Items" : {
+
+    },
     "All set." : {
       "localizations" : {
         "de" : {
@@ -2092,6 +2095,12 @@
         }
       }
     },
+    "Keep your wallpaper running?" : {
+
+    },
+    "Keeps live & shader wallpapers running after a restart. WallPics launches in the background — close its window and it stays out of your way in the menu bar." : {
+
+    },
     "Language" : {
       "localizations" : {
         "de" : {
@@ -2139,6 +2148,9 @@
       }
     },
     "Live" : {
+
+    },
+    "Live and shader wallpapers only play while WallPics is running. Add it to Login Items so it starts automatically and your wallpaper keeps going after a restart — otherwise the desktop falls back to a still image." : {
 
     },
     "Load more wallpapers" : {
@@ -2647,6 +2659,9 @@
         }
       }
     },
+    "Not Now" : {
+
+    },
     "Nothing here yet" : {
       "localizations" : {
         "de" : {
@@ -2830,6 +2845,9 @@
           }
         }
       }
+    },
+    "Open WallPics at login" : {
+
     },
     "Pause in Low Power Mode" : {
       "localizations" : {
@@ -4086,6 +4104,9 @@
           }
         }
       }
+    },
+    "Startup" : {
+
     },
     "Stunning 4K wallpapers, hand-picked and refreshed daily." : {
       "localizations" : {

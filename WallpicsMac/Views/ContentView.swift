@@ -53,6 +53,12 @@ struct ContentView: View {
             .frame(minWidth: 560, minHeight: 680)
             .environment(StoreKitService.shared)
         }
+        .alert("Keep your wallpaper running?", isPresented: $env.showAutostartPrompt) {
+            Button("Add to Login Items") { LoginItemService.enable() }
+            Button("Not Now", role: .cancel) { }
+        } message: {
+            Text("Live and shader wallpapers only play while WallPics is running. Add it to Login Items so it starts automatically and your wallpaper keeps going after a restart — otherwise the desktop falls back to a still image.")
+        }
     }
 
     @ViewBuilder

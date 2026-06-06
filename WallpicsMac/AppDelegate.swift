@@ -79,6 +79,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         installStatusItem()
 
+        // Bring back the last live/shader wallpaper after a relaunch (e.g. login/restart), so it
+        // keeps running instead of leaving the low-res still on the desktop. Paired with the
+        // optional Login Item so the app actually relaunches.
+        WallpaperRenderer.shared.restoreLast()
+
         // Onboarding presentation is now driven from ContentView .task — it triggers the
         // sheet only after the main window mounts, so the user sees it on top of the app.
     }

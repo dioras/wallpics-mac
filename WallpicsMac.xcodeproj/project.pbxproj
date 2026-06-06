@@ -48,6 +48,10 @@
 		AC000090000000000000001 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000090000000000000001 /* AppLanguage.swift */; };
 		AC0000A0000000000000001 /* ImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A0000000000000001 /* ImportService.swift */; };
 		AC0000A0000000000000002 /* ZipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A0000000000000002 /* ZipExtractor.swift */; };
+		AC0000A000000000000006 /* WallpaperPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000006 /* WallpaperPoster.swift */; };
+		AC0000A000000000000005 /* ShaderSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000005 /* ShaderSnapshot.swift */; };
+		AC0000A000000000000004 /* ActiveWallpaperStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000004 /* ActiveWallpaperStore.swift */; };
+		AC0000A000000000000003 /* LoginItemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000003 /* LoginItemService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -94,6 +98,10 @@
 		AD000090000000000000001 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
 		AD0000A0000000000000001 /* ImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportService.swift; sourceTree = "<group>"; };
 		AD0000A0000000000000002 /* ZipExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipExtractor.swift; sourceTree = "<group>"; };
+		AD0000A000000000000006 /* WallpaperPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperPoster.swift; sourceTree = "<group>"; };
+		AD0000A000000000000005 /* ShaderSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderSnapshot.swift; sourceTree = "<group>"; };
+		AD0000A000000000000004 /* ActiveWallpaperStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWallpaperStore.swift; sourceTree = "<group>"; };
+		AD0000A000000000000003 /* LoginItemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -181,6 +189,10 @@
 				AD000070000000000000001 /* ImageLoader.swift */,
 				AD0000A0000000000000001 /* ImportService.swift */,
 				AD0000A0000000000000002 /* ZipExtractor.swift */,
+				AD0000A000000000000006 /* WallpaperPoster.swift */,
+				AD0000A000000000000005 /* ShaderSnapshot.swift */,
+				AD0000A000000000000004 /* ActiveWallpaperStore.swift */,
+				AD0000A000000000000003 /* LoginItemService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -374,6 +386,10 @@
 				AC000090000000000000001 /* AppLanguage.swift in Sources */,
 				AC0000A0000000000000001 /* ImportService.swift in Sources */,
 				AC0000A0000000000000002 /* ZipExtractor.swift in Sources */,
+				AC0000A000000000000006 /* WallpaperPoster.swift in Sources */,
+				AC0000A000000000000005 /* ShaderSnapshot.swift in Sources */,
+				AC0000A000000000000004 /* ActiveWallpaperStore.swift in Sources */,
+				AC0000A000000000000003 /* LoginItemService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

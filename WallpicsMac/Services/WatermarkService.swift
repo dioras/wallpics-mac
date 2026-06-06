@@ -1,12 +1,7 @@
 import AppKit
 
 enum WatermarkService {
-    // Proportional sizing keeps the badge consistent across every resolution.
-    private static let marginRatio: CGFloat = 0.022
-    private static let iconRatio: CGFloat = 0.052   // app-icon size relative to the short side
-    private static let iconAlpha: CGFloat = 0.5
-
-    /// Composite a tasteful bottom-left watermark badge (app icon + short "go Pro" message)
+    /// Composite a large, dock-clearing watermark badge (app icon + "go Pro" message)
     /// for free users. Pro just copies the clean image through. `appIcon` is passed in by the
     /// caller (it must be read on the main thread). `screenAspects` are the width/height ratios
     /// of the user's displays — the badge is placed inside the area that survives macOS's
@@ -28,12 +23,12 @@ enum WatermarkService {
         let width = cg.width
         let height = cg.height
         let minSide = CGFloat(min(width, height))
-        let margin = minSide * marginRatio
-        let iconSize = max(44, minSide * iconRatio)
-        let gap = iconSize * 0.32
+        // Visible but compact badge (~6% of the short side) — sits low, just above the Dock.
+        let iconSize = max(56, minSide * 0.06)
+        let gap = iconSize * 0.30
+        let innerPad = iconSize * 0.30
 
-        // Region of the image guaranteed visible after macOS center-crops it to fill the
-        // screens. The badge's bottom-left anchor lives inside this safe rect.
+        // Region of the image guaranteed visible after macOS center-crops it to fill the screens.
         let safe = safeVisibleRect(width: CGFloat(width), height: CGFloat(height), aspects: screenAspects)
 
         guard let context = CGContext(
@@ -51,44 +46,50 @@ enum WatermarkService {
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = nsContext
 
-        // Two-line text block: brand + a soft upgrade nudge.
-        let titleFont = NSFont.systemFont(ofSize: iconSize * 0.40, weight: .bold)
-        let subFont = NSFont.systemFont(ofSize: iconSize * 0.30, weight: .medium)
-        let shadow = NSShadow()
-        shadow.shadowColor = NSColor.black.withAlphaComponent(0.55)
-        shadow.shadowBlurRadius = iconSize * 0.18
-        shadow.shadowOffset = NSSize(width: 0, height: -1)
-
+        // Two-line text block: brand + an upgrade nudge.
+        let titleFont = NSFont.systemFont(ofSize: iconSize * 0.44, weight: .bold)
+        let subFont = NSFont.systemFont(ofSize: iconSize * 0.34, weight: .medium)
         let title = NSAttributedString(string: "WallPics", attributes: [
-            .font: titleFont,
-            .foregroundColor: NSColor.white.withAlphaComponent(0.92),
-            .shadow: shadow
+            .font: titleFont, .foregroundColor: NSColor.white.withAlphaComponent(0.98)
         ])
         let subtitle = NSAttributedString(string: String(localized: "Unlock Pro to remove this watermark"), attributes: [
-            .font: subFont,
-            .foregroundColor: NSColor.white.withAlphaComponent(0.78),
-            .shadow: shadow
+            .font: subFont, .foregroundColor: NSColor.white.withAlphaComponent(0.88)
         ])
 
         let titleSize = title.size()
         let subSize = subtitle.size()
-        let textHeight = titleSize.height + subSize.height + iconSize * 0.04
+        let textWidth = max(titleSize.width, subSize.width)
+        let textHeight = titleSize.height + subSize.height + iconSize * 0.05
 
-        // Anchor the badge to the bottom-left of the safe (always-visible) rect.
-        let originX = safe.minX + margin
-        let originY = safe.minY + margin
-        let textX = originX + iconSize + gap
+        // Pill badge: centered horizontally in the safe rect and lifted ~13% off the bottom so it
+        // clears the Dock and is genuinely noticeable (the old small bottom-left mark hid behind it).
+        let badgeWidth = innerPad + iconSize + gap + textWidth + innerPad
+        let badgeHeight = max(iconSize, textHeight) + innerPad * 1.4
+        // Left-aligned (with a small inset), low above the bottom.
+        let badgeX = safe.minX + max(innerPad, minSide * 0.022)
+        let badgeY = safe.minY + safe.height * 0.07
 
-        // Vertically center the text block against the icon (origin is bottom-left).
-        let blockBottom = originY + max(0, (iconSize - textHeight) / 2)
-        subtitle.draw(at: CGPoint(x: textX, y: blockBottom))
-        title.draw(at: CGPoint(x: textX, y: blockBottom + subSize.height + iconSize * 0.04))
+        let pill = NSBezierPath(roundedRect: NSRect(x: badgeX, y: badgeY, width: badgeWidth, height: badgeHeight),
+                                xRadius: badgeHeight * 0.30, yRadius: badgeHeight * 0.30)
+        NSColor.black.withAlphaComponent(0.5).setFill()
+        pill.fill()
+        pill.lineWidth = max(1, minSide * 0.001)
+        NSColor.white.withAlphaComponent(0.14).setStroke()
+        pill.stroke()
 
-        // App icon at reduced alpha.
+        // App icon.
+        let iconX = badgeX + innerPad
+        let iconY = badgeY + (badgeHeight - iconSize) / 2
         if let appIcon {
-            let iconRect = NSRect(x: originX, y: originY, width: iconSize, height: iconSize)
-            appIcon.draw(in: iconRect, from: .zero, operation: .sourceOver, fraction: iconAlpha)
+            appIcon.draw(in: NSRect(x: iconX, y: iconY, width: iconSize, height: iconSize),
+                         from: .zero, operation: .sourceOver, fraction: 0.9)
         }
+
+        // Text, vertically centered against the badge.
+        let textX = iconX + iconSize + gap
+        let blockBottom = badgeY + (badgeHeight - textHeight) / 2
+        subtitle.draw(at: CGPoint(x: textX, y: blockBottom))
+        title.draw(at: CGPoint(x: textX, y: blockBottom + subSize.height + iconSize * 0.05))
 
         NSGraphicsContext.restoreGraphicsState()
 

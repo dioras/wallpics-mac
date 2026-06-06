@@ -209,11 +209,28 @@ final class ShaderRenderer: NSObject, MTKViewDelegate {
     private var isPaused = false
     private var pausedElapsed: Float = 0
 
-    private struct Uniforms {
+    struct Uniforms {
         var iResolution: SIMD2<Float>
         var iTime: Float
         var padding: Float
     }
+
+    /// The vertex stage + Uniforms declaration prepended to every backend fragment shader. Shared
+    /// with ShaderSnapshot so an offscreen still renders identically to the live wallpaper.
+    static let vertexPreamble = """
+    #include <metal_stdlib>
+    using namespace metal;
+    struct VertexOut { float4 position [[position]]; float2 uv; };
+    struct Uniforms { float2 iResolution; float iTime; };
+    vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {
+        VertexOut out;
+        float2 positions[6] = { float2(-1,-1), float2(1,-1), float2(-1,1), float2(-1,1), float2(1,-1), float2(1,1) };
+        float2 uvs[6] = { float2(0,1), float2(1,1), float2(0,0), float2(0,0), float2(1,1), float2(1,0) };
+        out.position = float4(positions[vertexID], 0, 1);
+        out.uv = uvs[vertexID];
+        return out;
+    }
+    """
 
     init(device: MTLDevice, shaderSource: String) {
         self.device = device
@@ -223,22 +240,8 @@ final class ShaderRenderer: NSObject, MTKViewDelegate {
     }
 
     private func compile(shaderSource: String) {
-        let vertexShader = """
-        #include <metal_stdlib>
-        using namespace metal;
-        struct VertexOut { float4 position [[position]]; float2 uv; };
-        struct Uniforms { float2 iResolution; float iTime; };
-        vertex VertexOut vertexShader(uint vertexID [[vertex_id]]) {
-            VertexOut out;
-            float2 positions[6] = { float2(-1,-1), float2(1,-1), float2(-1,1), float2(-1,1), float2(1,-1), float2(1,1) };
-            float2 uvs[6] = { float2(0,1), float2(1,1), float2(0,0), float2(0,0), float2(1,1), float2(1,0) };
-            out.position = float4(positions[vertexID], 0, 1);
-            out.uv = uvs[vertexID];
-            return out;
-        }
-        """
         do {
-            let library = try device.makeLibrary(source: vertexShader + "\n" + shaderSource, options: nil)
+            let library = try device.makeLibrary(source: Self.vertexPreamble + "\n" + shaderSource, options: nil)
             guard let vfn = library.makeFunction(name: "vertexShader"),
                   let ffn = library.makeFunction(name: "fragmentShader") else { return }
             let desc = MTLRenderPipelineDescriptor()
@@ -300,40 +303,46 @@ extension NSWindow {
 enum WatermarkOverlay {
     static func attach(to window: NSWindow, appIcon: NSImage?) {
         guard let content = window.contentView else { return }
+        let bounds = content.bounds
 
-        let margin: CGFloat = 28
-        let iconSize: CGFloat = 46
-        let width: CGFloat = 330
-        let height: CGFloat = iconSize + 20
+        // Visible badge, left-aligned and sitting just above the Dock (low, not mid-screen). The
+        // Dock floats over the desktop-level wallpaper window, so we lift it a small amount.
+        let iconSize: CGFloat = 53
+        let width: CGFloat = 420
+        let height: CGFloat = iconSize + 30
+        let pad: CGFloat = 13
 
-        let badge = NSView(frame: NSRect(x: margin, y: margin, width: width, height: height))
+        let x = max(bounds.width * 0.025, 28)
+        let y = max(bounds.height * 0.07, 28)
+        let badge = NSView(frame: NSRect(x: x, y: y, width: width, height: height))
         badge.wantsLayer = true
-        badge.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.28).cgColor
-        badge.layer?.cornerRadius = 12
+        badge.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.5).cgColor
+        badge.layer?.cornerRadius = 14
         badge.layer?.cornerCurve = .continuous
-        // Stay pinned to the bottom-left as the wallpaper window resizes.
+        badge.layer?.borderWidth = 1
+        badge.layer?.borderColor = NSColor.white.withAlphaComponent(0.14).cgColor
+        // Pinned to the bottom-left as the screen/window changes.
         badge.autoresizingMask = [.maxXMargin, .maxYMargin]
 
-        let pad: CGFloat = 10
         if let appIcon {
             let iconView = NSImageView(frame: NSRect(x: pad, y: (height - iconSize) / 2, width: iconSize, height: iconSize))
             iconView.image = appIcon
-            iconView.alphaValue = 0.5
+            iconView.alphaValue = 0.85
             iconView.imageScaling = .scaleProportionallyUpOrDown
             badge.addSubview(iconView)
         }
 
-        let textX = pad + iconSize + 10
+        let textX = pad + iconSize + 11
         let title = NSTextField(labelWithString: "WallPics")
-        title.font = .systemFont(ofSize: 15, weight: .bold)
-        title.textColor = NSColor.white.withAlphaComponent(0.95)
-        title.frame = NSRect(x: textX, y: height / 2, width: width - textX - pad, height: 20)
+        title.font = .systemFont(ofSize: 18, weight: .bold)
+        title.textColor = NSColor.white.withAlphaComponent(0.98)
+        title.frame = NSRect(x: textX, y: height / 2 + 1, width: width - textX - pad, height: 22)
         badge.addSubview(title)
 
         let subtitle = NSTextField(labelWithString: String(localized: "Unlock Pro to remove this watermark"))
         subtitle.font = .systemFont(ofSize: 11, weight: .medium)
-        subtitle.textColor = NSColor.white.withAlphaComponent(0.8)
-        subtitle.frame = NSRect(x: textX, y: height / 2 - 18, width: width - textX - pad, height: 16)
+        subtitle.textColor = NSColor.white.withAlphaComponent(0.88)
+        subtitle.frame = NSRect(x: textX, y: height / 2 - 21, width: width - textX - pad, height: 18)
         badge.addSubview(subtitle)
 
         content.addSubview(badge)

@@ -5,6 +5,19 @@ struct SettingsView: View {
     @Environment(StoreKitService.self) private var store
     @State private var isRestoring = false
     @State private var restoreMessage: String?
+    @State private var openAtLogin = LoginItemService.isEnabled
+
+    /// Reads/writes the macOS Login Item registration. Reflects the real system state (the user
+    /// can also toggle it in System Settings), and falls back if registration is refused.
+    private var openAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { openAtLogin },
+            set: { newValue in
+                let ok = newValue ? LoginItemService.enable() : LoginItemService.disable()
+                openAtLogin = ok ? newValue : LoginItemService.isEnabled
+            }
+        )
+    }
 
     /// Persists the language choice (via AppSettings.didSet) and applies it for AppKit/system.
     private var languageBinding: Binding<String?> {
@@ -84,6 +97,13 @@ struct SettingsView: View {
                     }
             }
 
+            Section("Startup") {
+                Toggle("Open WallPics at login", isOn: openAtLoginBinding)
+                Text("Keeps live & shader wallpapers running after a restart. WallPics launches in the background — close its window and it stays out of your way in the menu bar.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Appearance") {
                 Toggle("Follow system appearance", isOn: $env.settings.respectSystemAppearance)
                     .onChange(of: env.settings.respectSystemAppearance) { _, newValue in
@@ -115,6 +135,7 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
+        .onAppear { openAtLogin = LoginItemService.isEnabled }
     }
 }
 
