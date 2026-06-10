@@ -9,7 +9,13 @@ final class BrowseViewModel {
     var isImporting = false
     var query: String = ""
     var sortOrder: SortOrder = .newest
-    var collection: WallpaperCollection = .normal
+    /// Live is the default collection — it's the product's hero content.
+    var collection: WallpaperCollection = .live
+
+    // Two-level category filter (roots + subcategories from api/category-list).
+    var categories: [WallpaperCategory] = []
+    var selectedCategory: WallpaperCategory?
+    var selectedSubcategory: WallpaperCategory?
     var isLoading = false
     var errorMessage: String?
     var currentPage = 1
@@ -67,7 +73,8 @@ final class BrowseViewModel {
                 collection: collection,
                 page: currentPage,
                 perPage: 24,
-                sortOrder: sortOrder
+                sortOrder: sortOrder,
+                categorySlug: (selectedSubcategory ?? selectedCategory)?.slug
             )
             guard gen == generation else { return } // a newer reload superseded this request
             wallpapers.append(contentsOf: page.data)
@@ -90,7 +97,36 @@ final class BrowseViewModel {
     func setCollection(_ newValue: WallpaperCollection) {
         guard newValue != collection else { return }
         collection = newValue
-        query = ""   // a search from the previous collection no longer applies
+        query = ""               // a search from the previous collection no longer applies
+        selectedCategory = nil   // …and neither does a category filter
+        selectedSubcategory = nil
+        Task { await reload() }
+    }
+
+    // MARK: - Categories
+
+    func loadCategoriesIfNeeded() async {
+        guard categories.isEmpty else { return }
+        do {
+            categories = try await WallpaperAPI.shared.categoryList()
+        } catch {
+            // Non-fatal: the grid still works without filter chips; they appear on next visit.
+            Log.api.error("Category list failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Select a root category (nil = All). Resets any subcategory choice.
+    func selectCategory(_ category: WallpaperCategory?) {
+        guard category?.id != selectedCategory?.id else { return }
+        selectedCategory = category
+        selectedSubcategory = nil
+        Task { await reload() }
+    }
+
+    /// Select a subcategory within the current root (nil = the whole root).
+    func selectSubcategory(_ sub: WallpaperCategory?) {
+        guard sub?.id != selectedSubcategory?.id else { return }
+        selectedSubcategory = sub
         Task { await reload() }
     }
 

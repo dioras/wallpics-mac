@@ -31,15 +31,31 @@ actor ImageLoader {
 
         let task = Task<NSImage, Error> { [session] in
             // Local imports use file:// URLs, which URLSession won't load — read from disk.
+            let data: Data
             if url.isFileURL {
-                guard let image = NSImage(contentsOf: url) else { throw ImageLoaderError.decodeFailed }
-                return image
+                data = try Data(contentsOf: url)
+            } else {
+                let (remote, response) = try await session.data(from: url)
+                if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+                    throw ImageLoaderError.invalidResponse
+                }
+                data = remote
             }
-            let (data, response) = try await session.data(from: url)
-            if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                throw ImageLoaderError.invalidResponse
-            }
-            guard let image = NSImage(data: data) else { throw ImageLoaderError.decodeFailed }
+            // Pre-decode + downsample off the main thread. NSImage(data:) defers decoding to
+            // first draw — which lands on the main thread mid-scroll and janks the grid;
+            // a thumbnail-sized, immediately-cached bitmap renders instantly instead.
+            let image = await Task.detached(priority: .utility) { () -> NSImage? in
+                guard let src = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+                let opts: [CFString: Any] = [
+                    kCGImageSourceCreateThumbnailFromImageAlways: true,
+                    kCGImageSourceCreateThumbnailWithTransform: true,
+                    kCGImageSourceShouldCacheImmediately: true,
+                    kCGImageSourceThumbnailMaxPixelSize: 720
+                ]
+                guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
+                return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+            }.value
+            guard let image else { throw ImageLoaderError.decodeFailed }
             return image
         }
         inflight[url] = task

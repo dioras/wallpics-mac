@@ -100,6 +100,21 @@ actor WallpaperAPI {
         }
     }
 
+    /// Two-level category tree (roots + `children` subcategories) for the browse filter chips.
+    func categoryList() async throws -> [WallpaperCategory] {
+        _ = try await ensureGuestID()
+        var req = URLRequest(url: baseURL.appendingPathComponent("api/category-list"))
+        applyAuthHeaders(to: &req)
+        let (data, response) = try await transport { try await session.data(for: req) }
+        try ensureOK(response)
+        do {
+            return try decoder.decode(CategoryListResponse.self, from: data).data
+        } catch {
+            Log.api.error("Category list decode failed: \(error.localizedDescription, privacy: .public)")
+            throw APIError.decoding(error)
+        }
+    }
+
     func recordDownload(wallpaperID: Int) async {
         do {
             _ = try await ensureGuestID()

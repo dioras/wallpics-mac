@@ -52,6 +52,12 @@ struct Wallpaper: Codable, Identifiable, Hashable {
         }
     }
 
+    /// Animated grid preview (live wallpapers ship an animated .webp `thumbnail`).
+    var animatedPreviewURL: URL? {
+        guard mediaType == .live, thumbnail.lowercased().hasSuffix(".webp") else { return nil }
+        return URL(string: thumbnail)
+    }
+
     /// A still image used as the first frame behind animated/shader wallpapers.
     var posterURL: URL? {
         if let s = staticThumbnail, !s.isEmpty { return URL(string: s) }

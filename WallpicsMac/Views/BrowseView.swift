@@ -51,18 +51,66 @@ struct BrowseView: View {
         .scrollContentBackground(.hidden)
         .background(Color(nsColor: .windowBackgroundColor))
         .refreshable { await model.reload() }
-        .task { await model.loadImports() }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            BrowseToolbar(
-                query: $model.query,
-                sortOrder: model.sortOrder,
-                onSort: model.setSort,
-                collection: model.collection,
-                onCollection: model.setCollection,
-                isImporting: model.isImporting,
-                onImport: importWallpaper
-            )
+        .task {
+            await model.loadImports()
+            await model.loadCategoriesIfNeeded()
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                BrowseToolbar(
+                    query: $model.query,
+                    sortOrder: model.sortOrder,
+                    onSort: model.setSort,
+                    collection: model.collection,
+                    onCollection: model.setCollection,
+                    isImporting: model.isImporting,
+                    onImport: importWallpaper
+                )
+                if !model.categories.isEmpty && !model.isSearching {
+                    categoryRows
+                }
+            }
+            .background(.thinMaterial)
+        }
+    }
+
+    /// One4Wall-style category chips: a row of root categories, plus a second row of
+    /// subcategories when the selected root has children.
+    private var categoryRows: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Theme.Space.s) {
+                    CategoryChip(title: String(localized: "All"), isSelected: model.selectedCategory == nil) {
+                        model.selectCategory(nil)
+                    }
+                    ForEach(model.categories) { category in
+                        CategoryChip(title: category.name, isSelected: model.selectedCategory?.id == category.id) {
+                            model.selectCategory(category)
+                        }
+                    }
+                }
+                .padding(.horizontal, Theme.Space.l)
+            }
+            if let parent = model.selectedCategory, !parent.children.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Theme.Space.s) {
+                        CategoryChip(title: String(localized: "All \(parent.name)"),
+                                     isSelected: model.selectedSubcategory == nil, isSub: true) {
+                            model.selectSubcategory(nil)
+                        }
+                        ForEach(parent.children) { sub in
+                            CategoryChip(title: sub.name, isSelected: model.selectedSubcategory?.id == sub.id, isSub: true) {
+                                model.selectSubcategory(sub)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, Theme.Space.l)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .padding(.bottom, Theme.Space.m)
+        .animation(Motion.hover, value: model.selectedCategory?.id)
     }
 
     private func importWallpaper() {
@@ -255,6 +303,35 @@ private struct CollectionFilter: View {
         .liquidGlass(in: Capsule())
         .fixedSize()
         .animation(Motion.hover, value: selection)
+    }
+}
+
+/// Capsule filter chip. Root categories are solid-on-select; subcategory chips are slightly
+/// smaller so the two rows read as a hierarchy.
+private struct CategoryChip: View {
+    let title: String
+    let isSelected: Bool
+    var isSub: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(isSub ? .caption.weight(.medium) : .callout.weight(.medium))
+                .lineLimit(1)
+                .padding(.horizontal, isSub ? Theme.Space.m : 14)
+                .padding(.vertical, isSub ? 4 : 6)
+                .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                .background {
+                    if isSelected {
+                        Capsule().fill(Theme.accent)
+                    } else {
+                        Capsule().fill(.quaternary.opacity(0.5))
+                    }
+                }
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 

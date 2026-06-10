@@ -14,10 +14,7 @@ struct WallpaperCard: View {
     }
 
     var body: some View {
-        ThumbnailView(
-            url: wallpaper.thumbnailURL,
-            placeholderTint: Self.tint(for: wallpaper.id)
-        )
+        thumbnail
         .aspectRatio(16.0 / 10.0, contentMode: .fill)
         .frame(minHeight: 140)
         .clipped()
@@ -64,30 +61,61 @@ struct WallpaperCard: View {
         .offset(y: isHovering ? 0 : 6)
     }
 
-    /// Marks live/shader wallpapers so the kind is obvious at a glance in the grid.
+    /// Live wallpapers play their animated preview right in the grid; everything else shows
+    /// the static thumbnail.
+    @ViewBuilder
+    private var thumbnail: some View {
+        if let animated = wallpaper.animatedPreviewURL {
+            AnimatedWebPView(url: animated, fallbackURL: wallpaper.thumbnailURL)
+        } else {
+            ThumbnailView(
+                url: wallpaper.thumbnailURL,
+                placeholderTint: Self.tint(for: wallpaper.id)
+            )
+        }
+    }
+
+    /// "● LIVE" / "SHADER" pill marking animated content (One4Wall-style badge language).
     @ViewBuilder
     private var kindBadge: some View {
-        if wallpaper.mediaType != .photo {
-            Image(systemName: wallpaper.mediaType == .live ? "play.fill" : "sparkles")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.white)
-                .padding(6)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 0.5))
-                .padding(8)
+        switch wallpaper.mediaType {
+        case .photo:
+            EmptyView()
+        case .live:
+            BadgePill(background: .black.opacity(0.65)) {
+                Circle().fill(.red).frame(width: 5, height: 5)
+                Text(verbatim: "LIVE")
+            }
+        case .shader:
+            BadgePill(background: .black.opacity(0.65)) {
+                Image(systemName: "sparkles").font(.system(size: 7, weight: .bold))
+                Text(verbatim: "SHADER")
+            }
         }
     }
 
     @ViewBuilder
     private var premiumBadge: some View {
         if wallpaper.isPremiumContent {
-            Image(systemName: "crown.fill")
-                .font(.caption)
-                .foregroundStyle(.white)
-                .padding(7)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 0.5))
-                .padding(8)
+            BadgePill(background: .orange) {
+                Text(verbatim: "PRO")
+            }
         }
+    }
+}
+
+/// Compact corner badge in the One4Wall idiom: bold mini-caps on a solid rounded chip.
+struct BadgePill<Content: View>: View {
+    let background: Color
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        HStack(spacing: 4) { content }
+            .font(.system(size: 9, weight: .heavy))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(background, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .padding(8)
     }
 }

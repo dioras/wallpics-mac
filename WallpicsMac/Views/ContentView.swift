@@ -7,10 +7,8 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var env = env
-        NavigationSplitView {
-            SidebarView(selection: $env.selectedSection)
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
-        } detail: {
+        VStack(spacing: 0) {
+            TopNavBar(selection: $env.selectedSection)
             HStack(spacing: 0) {
                 detailContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -24,6 +22,7 @@ struct ContentView: View {
             .environment(favoritesModel) // shared so the preview's star updates the grid live
             .animation(.easeInOut(duration: 0.25), value: env.selectedWallpaper?.id)
         }
+        .background(Color(nsColor: .windowBackgroundColor))
         .navigationTitle("WallPics")
         .environment(\.locale, LanguageController.locale(for: env.settings.languageCode))
         .task {
@@ -68,5 +67,94 @@ struct ContentView: View {
         case .favorites: FavoritesView(model: favoritesModel)
         case .settings: SettingsView()
         }
+    }
+}
+
+/// One4Wall-style chrome: brand mark left, a centered pill nav for the main sections, and
+/// quick actions (Go Pro, settings gear) on the right — replaces the old sidebar.
+private struct TopNavBar: View {
+    @Binding var selection: AppEnvironment.Section
+    @Environment(StoreKitService.self) private var store
+
+    var body: some View {
+        HStack(spacing: Theme.Space.m) {
+            HStack(spacing: Theme.Space.s) {
+                AppIconView(size: 26)
+                Text(verbatim: "WallPics")
+                    .font(.system(size: 15, weight: .bold))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Centered section pills (Browse / Favorites). Settings lives on the gear.
+            HStack(spacing: 2) {
+                navPill(.browse)
+                navPill(.favorites)
+            }
+            .padding(3)
+            .liquidGlass(in: Capsule())
+
+            HStack(spacing: Theme.Space.s) {
+                if !store.state.isPro {
+                    Button {
+                        PaywallPresenter.show()
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "crown.fill").font(.system(size: 10, weight: .bold))
+                            Text("Go Pro").font(.callout.weight(.semibold))
+                        }
+                        .padding(.horizontal, Theme.Space.m)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(.white)
+                        .background(Theme.accent.gradient, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                Button {
+                    selection = .settings
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(selection == .settings ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                        .frame(width: 30, height: 30)
+                        .background {
+                            if selection == .settings {
+                                Circle().fill(Theme.accent)
+                            }
+                        }
+                        .liquidGlass(in: Circle())
+                }
+                .buttonStyle(.plain)
+                .help(String(localized: "Settings"))
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, Theme.Space.l)
+        .padding(.vertical, 9)
+        .background(.thinMaterial)
+        .animation(Motion.hover, value: selection)
+    }
+
+    private func navPill(_ section: AppEnvironment.Section) -> some View {
+        let active = selection == section
+        return Button {
+            selection = section
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: section.symbol)
+                Text(section.label).lineLimit(1)
+            }
+            .font(.callout.weight(.medium))
+            .padding(.horizontal, Theme.Space.l)
+            .padding(.vertical, 6)
+            .foregroundStyle(active ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+            .background {
+                if active {
+                    Capsule().fill(Theme.accent)
+                        .shadow(color: Theme.accent.opacity(0.35), radius: 6, y: 2)
+                }
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
