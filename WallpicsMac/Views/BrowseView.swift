@@ -6,10 +6,30 @@ struct BrowseView: View {
 
     private let columns = [GridItem(.adaptive(minimum: 230, maximum: 340), spacing: Theme.Space.l)]
 
+    /// The hero shows the user's pick, falling back to the freshest wallpaper of the page.
+    private var featuredWallpaper: Wallpaper? {
+        env.selectedWallpaper ?? model.filteredWallpapers.first
+    }
+
     var body: some View {
+        GeometryReader { geo in
         ScrollView {
-            if !model.imported.isEmpty && !model.isSearching {
-                uploadsSection
+            VStack(spacing: 0) {
+            ZStack(alignment: .bottom) {
+                FeaturedHero(wallpaper: featuredWallpaper, bottomInset: 132)
+                heroCarousel
+            }
+            .frame(height: max(520, geo.size.height))
+
+            BrowseToolbar(
+                query: $model.query,
+                sortOrder: model.sortOrder,
+                onSort: model.setSort,
+                collection: model.collection,
+                onCollection: model.setCollection
+            )
+            if !model.categories.isEmpty && !model.isSearching {
+                categoryRows
             }
 
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
@@ -47,31 +67,43 @@ struct BrowseView: View {
                     emptyState.padding(.top, 80)
                 }
             }
+            }
         }
         .scrollContentBackground(.hidden)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(.black)
         .refreshable { await model.reload() }
-        .task {
-            await model.loadImports()
-            await model.loadCategoriesIfNeeded()
+        .task { await model.loadCategoriesIfNeeded() }
         }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                BrowseToolbar(
-                    query: $model.query,
-                    sortOrder: model.sortOrder,
-                    onSort: model.setSort,
-                    collection: model.collection,
-                    onCollection: model.setCollection,
-                    isImporting: model.isImporting,
-                    onImport: importWallpaper
-                )
-                if !model.categories.isEmpty && !model.isSearching {
-                    categoryRows
+        .ignoresSafeArea(edges: .top)
+    }
+
+    /// Quick-pick strip under the hero — tapping a card features it above, One4Wall style.
+    private var heroCarousel: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Space.m) {
+                ForEach(model.filteredWallpapers.prefix(14)) { wp in
+                    let active = featuredWallpaper?.id == wp.id
+                    Button {
+                        withAnimation(Motion.transition) { env.selectedWallpaper = wp }
+                    } label: {
+                        ThumbnailView(url: wp.thumbnailURL, placeholderTint: WallpaperCard.tint(for: wp.id))
+                            .frame(width: 152, height: 94)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(active ? .white : .white.opacity(0.12),
+                                                  lineWidth: active ? 2.5 : 1)
+                            }
+                            .scaleEffect(active ? 1.04 : 1)
+                            .shadow(color: .black.opacity(active ? 0.5 : 0.2), radius: active ? 12 : 5, y: 4)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .background(.thinMaterial)
+            .padding(.horizontal, Theme.Space.l)
+            .padding(.vertical, Theme.Space.l)
         }
+        .animation(Motion.hover, value: featuredWallpaper?.id)
     }
 
     /// One4Wall-style category chips: a row of root categories, plus a second row of
@@ -91,14 +123,14 @@ struct BrowseView: View {
                 }
                 .padding(.horizontal, Theme.Space.l)
             }
-            if let parent = model.selectedCategory, !parent.children.isEmpty {
+            if let parent = model.selectedCategory, !model.availableSubcategories.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Theme.Space.s) {
                         CategoryChip(title: String(localized: "All \(parent.name)"),
                                      isSelected: model.selectedSubcategory == nil, isSub: true) {
                             model.selectSubcategory(nil)
                         }
-                        ForEach(parent.children) { sub in
+                        ForEach(model.availableSubcategories) { sub in
                             CategoryChip(title: sub.name, isSelected: model.selectedSubcategory?.id == sub.id, isSub: true) {
                                 model.selectSubcategory(sub)
                             }
@@ -111,46 +143,6 @@ struct BrowseView: View {
         }
         .padding(.bottom, Theme.Space.m)
         .animation(Motion.hover, value: model.selectedCategory?.id)
-    }
-
-    private func importWallpaper() {
-        Task {
-            if let wp = await model.importWallpaper() {
-                withAnimation(Motion.transition) { env.selectedWallpaper = wp }
-            }
-        }
-    }
-
-    private var uploadsSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.s) {
-            Text("Your Uploads")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, Theme.Space.l)
-            LazyVGrid(columns: columns, spacing: Theme.Space.l) {
-                ForEach(model.imported) { wallpaper in
-                    WallpaperCard(wallpaper: wallpaper, isSelected: env.selectedWallpaper?.id == wallpaper.id)
-                        .onTapGesture {
-                            withAnimation(Motion.transition) { env.selectedWallpaper = wallpaper }
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                Task {
-                                    if env.selectedWallpaper?.id == wallpaper.id { env.selectedWallpaper = nil }
-                                    await model.removeImport(wallpaper)
-                                }
-                            } label: {
-                                Label("Remove Upload", systemImage: "trash")
-                            }
-                        }
-                }
-            }
-            .padding(.horizontal, Theme.Space.l)
-            .animation(Motion.reward, value: model.imported.map(\.id))
-
-            Divider().padding(.horizontal, Theme.Space.l).padding(.top, Theme.Space.s)
-        }
-        .padding(.top, Theme.Space.l)
     }
 
     private var emptyState: some View {
@@ -195,8 +187,6 @@ private struct BrowseToolbar: View {
     let onSort: (SortOrder) -> Void
     let collection: WallpaperCollection
     let onCollection: (WallpaperCollection) -> Void
-    let isImporting: Bool
-    let onImport: () -> Void
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -226,24 +216,6 @@ private struct BrowseToolbar: View {
             .overlay(Capsule().strokeBorder(searchFocused ? Theme.accent.opacity(0.6) : .clear, lineWidth: 1.5))
             .animation(Motion.hover, value: searchFocused)
 
-            Button(action: onImport) {
-                HStack(spacing: Theme.Space.s) {
-                    if isImporting {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    Text("Upload").lineLimit(1)
-                }
-                .font(.callout.weight(.medium))
-                .fixedSize()
-            }
-            .buttonStyle(.plain)
-            .disabled(isImporting)
-            .padding(.horizontal, Theme.Space.m)
-            .padding(.vertical, 7)
-            .liquidGlass(in: Capsule())
-
             Menu {
                 ForEach(SortOrder.allCases, id: \.self) { order in
                     Button {
@@ -254,18 +226,20 @@ private struct BrowseToolbar: View {
                     }
                 }
             } label: {
-                Label(sortOrder.label, systemImage: "arrow.up.arrow.down")
-                    .font(.callout.weight(.medium))
+                Image(systemName: "arrow.up.arrow.down")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 34, height: 34)
             }
             .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .fixedSize()
-            .padding(.horizontal, Theme.Space.m)
-            .padding(.vertical, 7)
-            .liquidGlass(in: Capsule())
+            .liquidGlass(in: Circle())
+            .help(sortOrder.label)
         }
         .padding(.horizontal, Theme.Space.l)
-        .padding(.vertical, Theme.Space.m)
-        .background(.thinMaterial)
+        .padding(.top, Theme.Space.l)
+        .padding(.bottom, Theme.Space.m)
     }
 }
 
@@ -319,14 +293,19 @@ private struct CategoryChip: View {
             Text(title)
                 .font(isSub ? .caption.weight(.medium) : .callout.weight(.medium))
                 .lineLimit(1)
-                .padding(.horizontal, isSub ? Theme.Space.m : 14)
-                .padding(.vertical, isSub ? 4 : 6)
-                .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                .padding(.horizontal, isSub ? Theme.Space.m : 15)
+                .padding(.vertical, isSub ? 5 : 7)
+                .foregroundStyle(isSelected ? AnyShapeStyle(.black) : AnyShapeStyle(.white.opacity(0.75)))
                 .background {
                     if isSelected {
-                        Capsule().fill(Theme.accent)
+                        Capsule().fill(.white)
                     } else {
-                        Capsule().fill(.quaternary.opacity(0.5))
+                        Capsule().fill(.white.opacity(0.07))
+                    }
+                }
+                .overlay {
+                    if !isSelected {
+                        Capsule().strokeBorder(.white.opacity(0.08), lineWidth: 1)
                     }
                 }
                 .contentShape(Capsule())

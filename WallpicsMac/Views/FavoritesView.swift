@@ -23,7 +23,11 @@ struct FavoritesView: View {
                         ForEach(model.wallpapers) { wallpaper in
                             WallpaperCard(wallpaper: wallpaper, isSelected: env.selectedWallpaper?.id == wallpaper.id)
                                 .onTapGesture {
-                                    withAnimation(Motion.transition) { env.selectedWallpaper = wallpaper }
+                                    // Feature it in the Browse hero (the side preview is gone).
+                                    withAnimation(Motion.transition) {
+                                        env.selectedWallpaper = wallpaper
+                                        env.selectedSection = .browse
+                                    }
                                 }
                                 .transition(.asymmetric(
                                     insertion: .scale(scale: 0.85).combined(with: .opacity),

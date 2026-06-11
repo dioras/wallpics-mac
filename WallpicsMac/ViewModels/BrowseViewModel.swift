@@ -12,10 +12,15 @@ final class BrowseViewModel {
     /// Live is the default collection — it's the product's hero content.
     var collection: WallpaperCollection = .live
 
-    // Two-level category filter (roots + subcategories from api/category-list).
+    // Two-level category filter, curated at runtime: only categories that actually return
+    // content for the current collection are shown (probed concurrently, cached per session).
     var categories: [WallpaperCategory] = []
+    var availableSubcategories: [WallpaperCategory] = []
     var selectedCategory: WallpaperCategory?
     var selectedSubcategory: WallpaperCategory?
+    private var allCategories: [WallpaperCategory] = []
+    private var curatedCache: [WallpaperCollection: [WallpaperCategory]] = [:]
+    private var curatedSubsCache: [String: [WallpaperCategory]] = [:]
     var isLoading = false
     var errorMessage: String?
     var currentPage = 1
@@ -97,33 +102,85 @@ final class BrowseViewModel {
     func setCollection(_ newValue: WallpaperCollection) {
         guard newValue != collection else { return }
         collection = newValue
-        query = ""               // a search from the previous collection no longer applies
-        selectedCategory = nil   // …and neither does a category filter
+        query = ""
+        selectedCategory = nil
         selectedSubcategory = nil
+        availableSubcategories = []
+        categories = curatedCache[newValue] ?? []
         Task { await reload() }
+        Task { await curateCategories() }
     }
 
     // MARK: - Categories
 
     func loadCategoriesIfNeeded() async {
-        guard categories.isEmpty else { return }
-        do {
-            categories = try await WallpaperAPI.shared.categoryList()
-        } catch {
-            // Non-fatal: the grid still works without filter chips; they appear on next visit.
-            Log.api.error("Category list failed: \(error.localizedDescription, privacy: .public)")
+        if allCategories.isEmpty {
+            do {
+                allCategories = try await WallpaperAPI.shared.categoryList()
+            } catch {
+                Log.api.error("Category list failed: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+        }
+        await curateCategories()
+    }
+
+    private func curateCategories() async {
+        let col = collection
+        if let cached = curatedCache[col] {
+            if collection == col { categories = cached }
+            return
+        }
+        guard !allCategories.isEmpty else { return }
+        let curated = await Self.nonEmpty(allCategories, in: col)
+        curatedCache[col] = curated
+        if collection == col { categories = curated }
+    }
+
+    private func curateSubcategories(of parent: WallpaperCategory) async {
+        let col = collection
+        let key = "\(col.rawValue)|\(parent.slug)"
+        if let cached = curatedSubsCache[key] {
+            if selectedCategory?.id == parent.id { availableSubcategories = cached }
+            return
+        }
+        let curated = await Self.nonEmpty(parent.children, in: col)
+        curatedSubsCache[key] = curated
+        if selectedCategory?.id == parent.id, collection == col {
+            availableSubcategories = curated
         }
     }
 
-    /// Select a root category (nil = All). Resets any subcategory choice.
+    private nonisolated static func nonEmpty(
+        _ candidates: [WallpaperCategory], in collection: WallpaperCollection
+    ) async -> [WallpaperCategory] {
+        guard !candidates.isEmpty else { return [] }
+        return await withTaskGroup(of: (Int, Bool).self) { group in
+            for (index, category) in candidates.enumerated() {
+                group.addTask {
+                    let page = try? await WallpaperAPI.shared.desktopWallpapers(
+                        collection: collection, page: 1, perPage: 1, categorySlug: category.slug
+                    )
+                    return (index, page?.data.isEmpty == false)
+                }
+            }
+            var keep = Set<Int>()
+            for await (index, hasContent) in group where hasContent { keep.insert(index) }
+            return candidates.enumerated().filter { keep.contains($0.offset) }.map(\.element)
+        }
+    }
+
     func selectCategory(_ category: WallpaperCategory?) {
         guard category?.id != selectedCategory?.id else { return }
         selectedCategory = category
         selectedSubcategory = nil
+        availableSubcategories = []
         Task { await reload() }
+        if let category, !category.children.isEmpty {
+            Task { await curateSubcategories(of: category) }
+        }
     }
 
-    /// Select a subcategory within the current root (nil = the whole root).
     func selectSubcategory(_ sub: WallpaperCategory?) {
         guard sub?.id != selectedSubcategory?.id else { return }
         selectedSubcategory = sub

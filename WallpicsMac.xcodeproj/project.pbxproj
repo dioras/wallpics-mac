@@ -49,6 +49,7 @@
 		AC0000A0000000000000001 /* ImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A0000000000000001 /* ImportService.swift */; };
 		AC0000A0000000000000002 /* ZipExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A0000000000000002 /* ZipExtractor.swift */; };
 		AC0000A000000000000008 /* AnimatedWebPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000008 /* AnimatedWebPView.swift */; };
+		AC0000A000000000000009 /* UploadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000009 /* UploadsView.swift */; };
 		AC0000A000000000000007 /* WallpaperCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000007 /* WallpaperCategory.swift */; };
 		AC0000A000000000000006 /* WallpaperPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000006 /* WallpaperPoster.swift */; };
 		AC0000A000000000000005 /* ShaderSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000005 /* ShaderSnapshot.swift */; };
@@ -101,6 +102,7 @@
 		AD0000A0000000000000001 /* ImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportService.swift; sourceTree = "<group>"; };
 		AD0000A0000000000000002 /* ZipExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipExtractor.swift; sourceTree = "<group>"; };
 		AD0000A000000000000008 /* AnimatedWebPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedWebPView.swift; sourceTree = "<group>"; };
+		AD0000A000000000000009 /* UploadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadsView.swift; sourceTree = "<group>"; };
 		AD0000A000000000000007 /* WallpaperCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperCategory.swift; sourceTree = "<group>"; };
 		AD0000A000000000000006 /* WallpaperPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperPoster.swift; sourceTree = "<group>"; };
 		AD0000A000000000000005 /* ShaderSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderSnapshot.swift; sourceTree = "<group>"; };
@@ -235,6 +237,7 @@
 				AD000033000000000000001 /* BrowseView.swift */,
 				AD000034000000000000001 /* WallpaperCard.swift */,
 				AD0000A000000000000008 /* AnimatedWebPView.swift */,
+				AD0000A000000000000009 /* UploadsView.swift */,
 				AD000035000000000000001 /* FavoritesView.swift */,
 				AD000036000000000000001 /* SettingsView.swift */,
 				AD000037000000000000001 /* PreviewPanel.swift */,
@@ -393,6 +396,7 @@
 				AC0000A0000000000000001 /* ImportService.swift in Sources */,
 				AC0000A0000000000000002 /* ZipExtractor.swift in Sources */,
 				AC0000A000000000000008 /* AnimatedWebPView.swift in Sources */,
+				AC0000A000000000000009 /* UploadsView.swift in Sources */,
 				AC0000A000000000000007 /* WallpaperCategory.swift in Sources */,
 				AC0000A000000000000006 /* WallpaperPoster.swift in Sources */,
 				AC0000A000000000000005 /* ShaderSnapshot.swift in Sources */,

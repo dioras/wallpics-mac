@@ -377,6 +377,9 @@
         }
       }
     },
+    "%lld wallpapers ready to use." : {
+
+    },
     "%lld weeks" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -943,6 +946,9 @@
           }
         }
       }
+    },
+    "Bring your own images, videos, GIFs or shaders." : {
+
     },
     "Browse" : {
       "localizations" : {
@@ -1595,6 +1601,7 @@
 
     },
     "Downloads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1732,6 +1739,9 @@
         }
       }
     },
+    "Free includes a small watermark — remove" : {
+
+    },
     "Free Plan" : {
       "localizations" : {
         "de" : {
@@ -1825,6 +1835,7 @@
       }
     },
     "Free wallpapers include a small watermark." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2204,6 +2215,9 @@
           }
         }
       }
+    },
+    "Make any file your wallpaper" : {
+
     },
     "Make it yours" : {
       "localizations" : {
@@ -2951,7 +2965,11 @@
     "Photos" : {
 
     },
+    "Photos, videos, GIFs, Metal shaders and Rive animations — they all work, watermark-free with Pro." : {
+
+    },
     "Pick a wallpaper to preview it." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3413,6 +3431,7 @@
       }
     },
     "Remove" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3601,6 +3620,7 @@
 
     },
     "Resolution" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3878,6 +3898,7 @@
       }
     },
     "Set as Wallpaper" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3922,6 +3943,9 @@
           }
         }
       }
+    },
+    "Set Wallpaper" : {
+
     },
     "Setting…" : {
       "localizations" : {
@@ -4670,6 +4694,9 @@
           }
         }
       }
+    },
+    "Uploads" : {
+
     },
     "Version" : {
       "localizations" : {

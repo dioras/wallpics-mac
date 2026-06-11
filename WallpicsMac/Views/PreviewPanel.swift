@@ -1,7 +1,12 @@
 import SwiftUI
 import AVFoundation
 
-struct PreviewPanel: View {
+/// One4Wall-style full-bleed featured hero: the selected wallpaper IS the preview, drawn
+/// edge-to-edge with the title + Set Wallpaper overlaid. Replaces the old side panel (and its
+/// long descriptions) so the artwork gets the whole window.
+struct FeaturedHero: View {
+    let wallpaper: Wallpaper?
+    var bottomInset: CGFloat = 0
     @Environment(AppEnvironment.self) private var env
     @Environment(StoreKitService.self) private var store
     @Environment(FavoritesViewModel.self) private var favorites
@@ -10,106 +15,106 @@ struct PreviewPanel: View {
     @State private var resultMessage: String?
 
     var body: some View {
-        Group {
-            if let wallpaper = env.selectedWallpaper {
-                content(for: wallpaper)
-            } else {
-                EmptyPreview()
+        ZStack(alignment: .bottomLeading) {
+            // Artwork, full bleed. Crossfades when the featured wallpaper changes.
+            Group {
+                if let wallpaper {
+                    ZStack {
+                        ThumbnailView(
+                            url: wallpaper.thumbnailURL,
+                            placeholderTint: WallpaperCard.tint(for: wallpaper.id)
+                        )
+                        if wallpaper.mediaType == .live, let video = wallpaper.assetURL {
+                            HeroVideoPlayer(url: video)
+                        }
+                    }
+                    .id(wallpaper.id)
+                    .transition(.opacity)
+                } else {
+                    Rectangle().fill(.black.opacity(0.4))
+                }
             }
-        }
-        .background(.regularMaterial)
-    }
-
-    @ViewBuilder
-    private func content(for wallpaper: Wallpaper) -> some View {
-        VStack(spacing: 0) {
-            ThumbnailView(
-                url: wallpaper.thumbnailURL,
-                placeholderTint: WallpaperCard.tint(for: wallpaper.id)
-            )
-            .frame(height: 220)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(wallpaper.name)
-                                .font(.title3.weight(.semibold))
-                            Text(String(localized: "by \(wallpaper.safeAuthor)"))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+            // Legibility scrims: dark feather at the bottom for the title block, and a faint
+            // top wash so the floating nav stays readable over bright skies.
+            LinearGradient(colors: [.black.opacity(0.78), .black.opacity(0.25), .clear, .clear],
+                           startPoint: .bottom, endPoint: .top)
+            LinearGradient(colors: [.black.opacity(0.45), .clear],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: 110)
+                .frame(maxHeight: .infinity, alignment: .top)
+
+            if let wallpaper {
+                VStack(alignment: .leading, spacing: Theme.Space.s) {
+                    Text(verbatim: "FEATURED")
+                        .font(.system(size: 11, weight: .heavy))
+                        .kerning(2.2)
+                        .foregroundStyle(.white.opacity(0.65))
+                    Text(wallpaper.name)
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .shadow(color: .black.opacity(0.4), radius: 8, y: 2)
+
+                    HStack(spacing: Theme.Space.m) {
+                        Button(action: { Task { await setAsWallpaper(wallpaper) } }) {
+                            HStack(spacing: 7) {
+                                if isSetting {
+                                    ProgressView().controlSize(.small)
+                                } else {
+                                    Image(systemName: "macwindow.on.rectangle")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                                Text(isSetting ? String(localized: "Setting…") : String(localized: "Set Wallpaper"))
+                                    .font(.callout.weight(.semibold))
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 9)
+                            .foregroundStyle(.black)
+                            .background(.white, in: Capsule())
                         }
-                        Spacer()
+                        .buttonStyle(.plain)
+                        .disabled(isSetting)
+
                         let fav = favorites.isFavorite(wallpaper)
                         Button {
                             Task { await favorites.toggle(wallpaper) }
                         } label: {
-                            Image(systemName: fav ? "star.fill" : "star")
-                                .foregroundStyle(fav ? .yellow : .secondary)
-                                .font(.title3)
+                            Image(systemName: fav ? "heart.fill" : "heart")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(fav ? AnyShapeStyle(.red) : AnyShapeStyle(.white))
+                                .frame(width: 36, height: 36)
+                                .background(.white.opacity(0.16), in: Circle())
+                                .overlay(Circle().strokeBorder(.white.opacity(0.2), lineWidth: 1))
                                 .symbolEffectBounce(value: fav)
-                                .scaleEffect(fav ? 1.1 : 1.0)
                                 .animation(Motion.reward, value: fav)
                         }
                         .buttonStyle(.plain)
-                    }
 
-                    if !wallpaper.safeDescription.isEmpty {
-                        Text(wallpaper.safeDescription)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    HStack(spacing: 16) {
-                        InfoChip(label: String(localized: "Resolution"), value: "\(wallpaper.width)×\(wallpaper.height)")
-                        InfoChip(label: String(localized: "Downloads"), value: wallpaper.safeDownloadCount.formatted())
-                    }
-
-                    if !wallpaper.safeTags.isEmpty {
-                        WrappingTagList(tags: wallpaper.safeTags.map(\.name))
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .padding(20)
-            }
-
-            VStack(spacing: 10) {
-                if let message = resultMessage {
-                    Text(message)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .transition(.opacity)
-                }
-                Button(action: { Task { await setAsWallpaper(wallpaper) } }) {
-                    HStack {
-                        if isSetting {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(.white)
+                        if let message = resultMessage {
+                            Text(message)
+                                .font(.callout.weight(.medium))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .transition(.opacity)
+                        } else if !store.state.isPro {
+                            Button { PaywallPresenter.show() } label: {
+                                Text("Free includes a small watermark — remove")
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.6))
+                                    .underline()
+                            }
+                            .buttonStyle(.plain)
                         }
-                        Text(isSetting ? String(localized: "Setting…") : String(localized: "Set as Wallpaper"))
                     }
+                    .padding(.top, 2)
                 }
-                .buttonStyle(.primaryCTA)
-                .disabled(isSetting)
-
-                if !store.state.isPro {
-                    HStack(spacing: 6) {
-                        Image(systemName: "drop.degreesign")
-                        Text("Free wallpapers include a small watermark.")
-                        Button("Remove") { PaywallPresenter.show() }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(Theme.accent)
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
+                .padding(Theme.Space.xxl)
+                .padding(.bottom, bottomInset)
             }
-            .padding(Theme.Space.l)
-            .background(.regularMaterial)
         }
+        .animation(Motion.transition, value: wallpaper?.id)
     }
 
     private func setAsWallpaper(_ wallpaper: Wallpaper) async {
@@ -359,71 +364,66 @@ struct PreviewPanel: View {
     }
 }
 
-private struct EmptyPreview: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "photo.artframe")
-                .font(.system(size: 36))
-                .foregroundStyle(.secondary)
-            Text("Pick a wallpaper to preview it.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(40)
+struct HeroVideoPlayer: NSViewRepresentable {
+    let url: URL
+
+    func makeNSView(context: Context) -> HeroVideoView { HeroVideoView() }
+
+    func updateNSView(_ view: HeroVideoView, context: Context) {
+        view.play(url: url)
+    }
+
+    static func dismantleNSView(_ view: HeroVideoView, coordinator: ()) {
+        view.stop()
     }
 }
 
-private struct InfoChip: View {
-    let label: String
-    let value: String
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label.uppercased())
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.callout.weight(.semibold))
-        }
+final class HeroVideoView: NSView {
+    private let playerLayer = AVPlayerLayer()
+    private var player: AVQueuePlayer?
+    private var looper: AVPlayerLooper?
+    private var currentURL: URL?
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        playerLayer.videoGravity = .resizeAspectFill
+        layer?.addSublayer(playerLayer)
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        playerLayer.frame = bounds
+        CATransaction.commit()
+    }
+
+    func play(url: URL) {
+        guard url != currentURL else { return }
+        currentURL = url
+        teardownPlayer()
+        let queue = AVQueuePlayer()
+        queue.isMuted = true
+        queue.preventsDisplaySleepDuringVideoPlayback = false
+        looper = AVPlayerLooper(player: queue, templateItem: AVPlayerItem(url: url))
+        playerLayer.player = queue
+        queue.play()
+        player = queue
+    }
+
+    func stop() {
+        teardownPlayer()
+        currentURL = nil
+    }
+
+    private func teardownPlayer() {
+        player?.pause()
+        looper = nil
+        playerLayer.player = nil
+        player = nil
     }
 }
 
-private struct WrappingTagList: View {
-    let tags: [String]
-    var body: some View {
-        FlowLayout(spacing: 6) {
-            ForEach(tags.prefix(12), id: \.self) { tag in
-                Text(tag)
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.quaternary, in: Capsule())
-            }
-        }
-    }
-}
-
-private struct FlowLayout: Layout {
-    var spacing: CGFloat
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var (x, y, lineHeight): (CGFloat, CGFloat, CGFloat) = (0, 0, 0)
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > maxWidth { x = 0; y += lineHeight + spacing; lineHeight = 0 }
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
-        }
-        return CGSize(width: maxWidth, height: y + lineHeight)
-    }
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var (x, y, lineHeight): (CGFloat, CGFloat, CGFloat) = (bounds.minX, bounds.minY, 0)
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x + size.width > bounds.maxX { x = bounds.minX; y += lineHeight + spacing; lineHeight = 0 }
-            subview.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
-            x += size.width + spacing
-            lineHeight = max(lineHeight, size.height)
-        }
-    }
-}

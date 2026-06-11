@@ -33,7 +33,17 @@ struct PaywallScreen: View {
             }
             footer
         }
-        .background(AmbientBackdrop())
+        .background {
+            ZStack {
+                Color.black
+                RadialGradient(colors: [Theme.accent.opacity(0.22), .clear],
+                               center: .topLeading, startRadius: 0, endRadius: 620)
+                RadialGradient(colors: [Color(red: 0.5, green: 0.2, blue: 0.7).opacity(0.16), .clear],
+                               center: .bottomTrailing, startRadius: 0, endRadius: 660)
+            }
+            .ignoresSafeArea()
+        }
+        .environment(\.colorScheme, .dark)
         .overlay(alignment: .topTrailing) { closeButton }
         .task {
             withAnimation(Motion.transition) { appeared = true }
@@ -68,9 +78,16 @@ struct PaywallScreen: View {
 
     private var header: some View {
         VStack(spacing: Theme.Space.m) {
-            AppIconView(size: 88)
+            AppIconView(size: 84)
+            Text(verbatim: "PRO")
+                .font(.system(size: 10, weight: .heavy))
+                .kerning(2.5)
+                .foregroundStyle(.black)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3)
+                .background(.white, in: Capsule())
             Text("Unlock WallPics Pro")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 30, weight: .bold))
             Text("Remove the watermark and support a small, independent team.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -143,17 +160,10 @@ struct PaywallScreen: View {
     private var footer: some View {
         VStack(spacing: Theme.Space.m) {
             if selectedProduct == nil && didAttemptLoad {
-                // No store products available — let the user proceed on the free tier.
-                Button("Continue with Free", action: onSkip)
-                    .buttonStyle(.primaryCTA)
-                    .frame(maxWidth: 420)
+                whitePill(String(localized: "Continue with Free"), action: onSkip)
             } else {
-                Button(action: subscribe) {
-                    Text(subscribeButtonTitle)
-                }
-                .buttonStyle(.primaryCTA)
-                .frame(maxWidth: 420)
-                .disabled(selectedProductID == nil || store.isPurchasing)
+                whitePill(subscribeButtonTitle, busy: store.isPurchasing, action: subscribe)
+                    .disabled(selectedProductID == nil || store.isPurchasing)
             }
 
             if let renewalNote {
@@ -174,7 +184,24 @@ struct PaywallScreen: View {
             .foregroundStyle(.secondary)
         }
         .padding(Theme.Space.xl)
-        .background(.thinMaterial)
+        .background(.black.opacity(0.45))
+        .overlay(alignment: .top) {
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
+        }
+    }
+
+    private func whitePill(_ title: String, busy: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if busy { ProgressView().controlSize(.small) }
+                Text(title).font(.headline)
+            }
+            .frame(maxWidth: 420)
+            .padding(.vertical, 13)
+            .foregroundStyle(.black)
+            .background(.white, in: Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     /// The longest-period product (e.g. yearly) gets the "Best value" badge and is preselected.
@@ -242,9 +269,10 @@ private struct Benefit: View {
         HStack(spacing: Theme.Space.m) {
             Image(systemName: symbol)
                 .font(.body.weight(.semibold))
-                .frame(width: 28, height: 28)
-                .foregroundStyle(Theme.accent)
-                .background(Theme.accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+                .frame(width: 30, height: 30)
+                .foregroundStyle(.white)
+                .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.white.opacity(0.10), lineWidth: 1))
             Text(text).font(.callout)
             Spacer()
         }
@@ -311,19 +339,22 @@ private struct ProductRow: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(isSelected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
             }
             .padding(Theme.Space.l)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+            .background(.white.opacity(isSelected ? 0.10 : 0.05),
+                        in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                    .strokeBorder(isSelected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.separator),
+                RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
+                    .strokeBorder(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.white.opacity(0.10)),
                                   lineWidth: isSelected ? 2 : 1)
             }
-            .shadow(color: isSelected ? Theme.accent.opacity(0.25) : .clear, radius: 10, y: 4)
+            .shadow(color: .black.opacity(isSelected ? 0.45 : 0.15), radius: isSelected ? 14 : 6, y: 5)
+            .scaleEffect(isSelected ? 1.015 : 1)
         }
         .buttonStyle(.plain)
+        .animation(Motion.hover, value: isSelected)
     }
 }

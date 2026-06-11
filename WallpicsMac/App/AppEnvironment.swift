@@ -24,12 +24,13 @@ final class AppEnvironment {
     var showAutostartPrompt = false
 
     enum Section: String, CaseIterable, Identifiable {
-        case favorites, browse, settings
+        case favorites, browse, uploads, settings
         var id: String { rawValue }
         var label: String {
             switch self {
             case .favorites: return String(localized: "Favorites")
             case .browse: return String(localized: "Browse")
+            case .uploads: return String(localized: "Uploads")
             case .settings: return String(localized: "Settings")
             }
         }
@@ -37,6 +38,7 @@ final class AppEnvironment {
             switch self {
             case .favorites: return "star.fill"
             case .browse: return "square.grid.2x2"
+            case .uploads: return "arrow.up.square.fill"
             case .settings: return "gearshape"
             }
         }

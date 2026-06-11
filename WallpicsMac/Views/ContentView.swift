@@ -7,20 +7,12 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var env = env
-        VStack(spacing: 0) {
+        ZStack(alignment: .top) {
+            // Content runs full-bleed under the floating nav (the hero owns the whole top).
+            detailContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .environment(favoritesModel) // shared so the hero's heart updates the grid live
             TopNavBar(selection: $env.selectedSection)
-            HStack(spacing: 0) {
-                detailContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                if env.selectedWallpaper != nil {
-                    Divider()
-                    PreviewPanel()
-                        .frame(width: 360)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
-                }
-            }
-            .environment(favoritesModel) // shared so the preview's star updates the grid live
-            .animation(.easeInOut(duration: 0.25), value: env.selectedWallpaper?.id)
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .navigationTitle("WallPics")
@@ -63,9 +55,17 @@ struct ContentView: View {
     @ViewBuilder
     private var detailContent: some View {
         switch env.selectedSection {
-        case .browse: BrowseView(model: browseModel)
-        case .favorites: FavoritesView(model: favoritesModel)
-        case .settings: SettingsView()
+        case .browse:
+            BrowseView(model: browseModel)
+        case .favorites:
+            FavoritesView(model: favoritesModel)
+                .padding(.top, 54) // clear the floating nav (Browse's hero runs beneath it instead)
+        case .uploads:
+            UploadsView(model: browseModel)
+                .padding(.top, 54)
+        case .settings:
+            SettingsView()
+                .padding(.top, 54)
         }
     }
 }
@@ -79,15 +79,19 @@ private struct TopNavBar: View {
     var body: some View {
         HStack(spacing: Theme.Space.m) {
             HStack(spacing: Theme.Space.s) {
-                AppIconView(size: 26)
+                AppIconView(size: 24)
                 Text(verbatim: "WallPics")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
             }
+            .padding(.horizontal, Theme.Space.m)
+            .padding(.vertical, 5)
+            .liquidGlass(in: Capsule())
             .frame(maxWidth: .infinity, alignment: .leading)
 
             // Centered section pills (Browse / Favorites). Settings lives on the gear.
             HStack(spacing: 2) {
                 navPill(.browse)
+                navPill(.uploads)
                 navPill(.favorites)
             }
             .padding(3)
@@ -130,7 +134,8 @@ private struct TopNavBar: View {
         }
         .padding(.horizontal, Theme.Space.l)
         .padding(.vertical, 9)
-        .background(.thinMaterial)
+        // No bar background — the pills float over the hero, One4Wall style; each cluster
+        // carries its own glass so it stays legible on any artwork.
         .animation(Motion.hover, value: selection)
     }
 
