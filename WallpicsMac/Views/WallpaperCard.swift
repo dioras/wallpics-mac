@@ -51,10 +51,13 @@ struct WallpaperCard: View {
             Text(wallpaper.name)
                 .font(.callout.weight(.semibold))
                 .foregroundStyle(.white)
-                .lineLimit(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
             Text(verbatim: "\(wallpaper.width) × \(wallpaper.height)")
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.75))
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.white.opacity(0.85))
+                .shadow(color: .black.opacity(0.8), radius: 3, y: 1)
         }
         .padding(12)
         .opacity(isHovering ? 1 : 0)
@@ -66,7 +69,7 @@ struct WallpaperCard: View {
     @ViewBuilder
     private var thumbnail: some View {
         if let animated = wallpaper.animatedPreviewURL {
-            AnimatedWebPView(url: animated, fallbackURL: wallpaper.thumbnailURL)
+            AnimatedWebPView(url: animated, fallbackURL: wallpaper.thumbnailURL, isActive: isHovering)
         } else {
             ThumbnailView(
                 url: wallpaper.thumbnailURL,
@@ -75,21 +78,27 @@ struct WallpaperCard: View {
         }
     }
 
-    /// "● LIVE" / "SHADER" pill marking animated content (One4Wall-style badge language).
     @ViewBuilder
     private var kindBadge: some View {
-        switch wallpaper.mediaType {
-        case .photo:
-            EmptyView()
-        case .live:
-            BadgePill(background: .black.opacity(0.65)) {
-                Circle().fill(.red).frame(width: 5, height: 5)
-                Text(verbatim: "LIVE")
+        HStack(spacing: 0) {
+            if wallpaper.isNew {
+                BadgePill(background: .green) {
+                    Text(verbatim: "NEW")
+                }
             }
-        case .shader:
-            BadgePill(background: .black.opacity(0.65)) {
-                Image(systemName: "sparkles").font(.system(size: 7, weight: .bold))
-                Text(verbatim: "SHADER")
+            switch wallpaper.mediaType {
+            case .photo:
+                EmptyView()
+            case .live:
+                BadgePill(background: .black.opacity(0.65)) {
+                    Circle().fill(.red).frame(width: 5, height: 5)
+                    Text(verbatim: "LIVE")
+                }
+            case .shader:
+                BadgePill(background: .black.opacity(0.65)) {
+                    Image(systemName: "sparkles").font(.system(size: 7, weight: .bold))
+                    Text(verbatim: "SHADER")
+                }
             }
         }
     }

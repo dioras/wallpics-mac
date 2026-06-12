@@ -8,16 +8,15 @@ import ImageIO
 /// when the cell scrolls away (LazyVGrid recycles cells, so off-screen cards cost nothing).
 struct AnimatedWebPView: NSViewRepresentable {
     let url: URL
-    /// Static image shown if the animation can't be fetched/decoded (never a blank cell).
     var fallbackURL: URL?
-    /// Longest side of decoded frames, in pixels. Grid cells are ~300pt; 360px keeps frames
-    /// crisp enough while keeping a page of animating cells inside a sane memory budget.
+    var isActive: Bool = true
     var maxPixelSize: CGFloat = 360
 
     func makeNSView(context: Context) -> WebPPlayerView { WebPPlayerView() }
 
     func updateNSView(_ view: WebPPlayerView, context: Context) {
         view.load(url: url, fallbackURL: fallbackURL, maxPixelSize: maxPixelSize)
+        view.setActive(isActive)
     }
 
     static func dismantleNSView(_ view: WebPPlayerView, coordinator: ()) {
@@ -39,11 +38,15 @@ final class WebPPlayerView: NSView {
     private static let decodeGate = AsyncLimiter(limit: 3)
 
     private var currentURL: URL?
+    private var pendingFallbackURL: URL?
+    private var pendingMaxPixelSize: CGFloat = 360
+    private var isActive = false
     private var frames: [CGImage] = []
     private var frameDelay: TimeInterval = 1.0 / 24.0
     private var frameIndex = 0
     private var timer: Timer?
     private var loadTask: Task<Void, Never>?
+    private var animationTask: Task<Void, Never>?
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -57,38 +60,66 @@ final class WebPPlayerView: NSView {
     func load(url: URL, fallbackURL: URL?, maxPixelSize: CGFloat) {
         guard url != currentURL else { return }
         currentURL = url
+        pendingFallbackURL = fallbackURL
+        pendingMaxPixelSize = maxPixelSize
         stop()
         loadTask = Task { [weak self] in
-            let data = try? await Self.session.data(from: url).0
-            guard !Task.isCancelled else { return }
-            var decoded: (frames: [CGImage], delay: TimeInterval) = ([], 0)
-            if let data {
-                // CRITICAL: decode OFF the main actor (a plain `Task {}` here inherits MainActor,
-                // which froze the UI when a page of cells decoded at once) and through the gate
-                // so only a few decodes run simultaneously.
-                await Self.decodeGate.acquire()
-                decoded = await Task.detached(priority: .utility) {
-                    Self.decodeFrames(data: data, maxPixelSize: maxPixelSize)
-                }.value
-                await Self.decodeGate.release()
-            }
-            // Animation unavailable (network/decode failure) → fall back to the static
-            // thumbnail as a single frame so the cell never sits blank.
-            if decoded.frames.isEmpty, let fallbackURL,
-               let fbData = try? await Self.session.data(from: fallbackURL).0 {
-                let fb = await Task.detached(priority: .utility) {
-                    Self.decodeStill(data: fbData, maxPixelSize: maxPixelSize)
-                }.value
-                if let fb { decoded = ([fb], 0) }
-            }
-            guard !Task.isCancelled, !decoded.frames.isEmpty else { return }
+            guard let fallbackURL,
+                  let fbData = try? await Self.session.data(from: fallbackURL).0 else { return }
+            let still = await Task.detached(priority: .userInitiated) {
+                Self.decodeStill(data: fbData, maxPixelSize: maxPixelSize)
+            }.value
+            guard let still, !Task.isCancelled else { return }
             await MainActor.run { [weak self] in
-                guard let self, self.currentURL == url else { return }
+                guard let self, self.currentURL == url, self.frames.isEmpty else { return }
+                self.layer?.contents = still
+            }
+        }
+        if isActive { startAnimationIfNeeded() }
+    }
+
+    func setActive(_ active: Bool) {
+        guard active != isActive else { return }
+        isActive = active
+        if active {
+            if frames.count > 1 {
+                startTimerIfAnimated()
+            } else {
+                startAnimationIfNeeded()
+            }
+        } else {
+            timer?.invalidate()
+            timer = nil
+            if let first = frames.first {
+                frameIndex = 0
+                layer?.contents = first
+            }
+        }
+    }
+
+    private func startAnimationIfNeeded() {
+        guard animationTask == nil, frames.count <= 1, let url = currentURL else { return }
+        let maxPixelSize = pendingMaxPixelSize
+        animationTask = Task { [weak self] in
+            let data = try? await Self.session.data(from: url).0
+            guard !Task.isCancelled, let data else {
+                await MainActor.run { [weak self] in self?.animationTask = nil }
+                return
+            }
+            await Self.decodeGate.acquire()
+            let decoded = await Task.detached(priority: .utility) {
+                Self.decodeFrames(data: data, maxPixelSize: maxPixelSize)
+            }.value
+            await Self.decodeGate.release()
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.animationTask = nil
+                guard self.currentURL == url, !decoded.frames.isEmpty else { return }
                 self.frames = decoded.frames
                 self.frameDelay = decoded.delay
                 self.frameIndex = 0
                 self.layer?.contents = decoded.frames[0]
-                self.startTimerIfAnimated()
+                if self.isActive { self.startTimerIfAnimated() }
             }
         }
     }
@@ -96,16 +127,17 @@ final class WebPPlayerView: NSView {
     func stop() {
         loadTask?.cancel()
         loadTask = nil
+        animationTask?.cancel()
+        animationTask = nil
         timer?.invalidate()
         timer = nil
         frames = []
     }
 
-    /// Full teardown for cell recycling: also forgets the URL so a recycled view re-loads even
-    /// when the next cell happens to show the same wallpaper.
     func reset() {
         stop()
         currentURL = nil
+        isActive = false
         layer?.contents = nil
     }
 

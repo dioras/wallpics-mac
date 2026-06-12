@@ -13,10 +13,13 @@ struct FeaturedHero: View {
     @State private var isSetting = false
     @State private var progress: Double = 0
     @State private var resultMessage: String?
+    @State private var heroVideoURL: URL?
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            // Artwork, full bleed. Crossfades when the featured wallpaper changes.
+            // Artwork, full bleed. The poster shows instantly; for live wallpapers the FULL
+            // video is downloaded to the cache first and only then plays — no mid-stream
+            // stutter or low-quality first seconds. Re-set wallpapers reuse the same file.
             Group {
                 if let wallpaper {
                     ZStack {
@@ -24,8 +27,9 @@ struct FeaturedHero: View {
                             url: wallpaper.thumbnailURL,
                             placeholderTint: WallpaperCard.tint(for: wallpaper.id)
                         )
-                        if wallpaper.mediaType == .live, let video = wallpaper.assetURL {
-                            HeroVideoPlayer(url: video)
+                        if let heroVideoURL {
+                            HeroVideoPlayer(url: heroVideoURL)
+                                .transition(.opacity)
                         }
                     }
                     .id(wallpaper.id)
@@ -36,6 +40,26 @@ struct FeaturedHero: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
+            .task(id: wallpaper?.id) {
+                heroVideoURL = nil
+                guard let wallpaper, wallpaper.mediaType == .live,
+                      let remote = wallpaper.assetURL else { return }
+                if remote.isFileURL {
+                    heroVideoURL = remote
+                    return
+                }
+                let ext = remote.pathExtension.isEmpty ? "mp4" : remote.pathExtension
+                let local = await CacheManager.shared.folderURL(.videos)
+                    .appendingPathComponent("\(wallpaper.id).\(ext)")
+                if !FileManager.default.fileExists(atPath: local.path) {
+                    guard let downloaded = try? await WallpaperAPI.shared.downloadImage(from: remote) else { return }
+                    try? FileManager.default.removeItem(at: local)
+                    try? FileManager.default.moveItem(at: downloaded, to: local)
+                }
+                guard !Task.isCancelled, self.wallpaper?.id == wallpaper.id,
+                      FileManager.default.fileExists(atPath: local.path) else { return }
+                withAnimation(.easeIn(duration: 0.35)) { heroVideoURL = local }
+            }
 
             // Legibility scrims: dark feather at the bottom for the title block, and a faint
             // top wash so the floating nav stays readable over bright skies.
@@ -361,6 +385,84 @@ struct FeaturedHero: View {
         env.settings.didAskAutostart = true          // ask exactly once, ever
         if LoginItemService.isEnabled { return }     // already enabled → nothing to ask
         env.showAutostartPrompt = true
+    }
+}
+
+struct DetailOverlay: View {
+    let wallpaper: Wallpaper
+    let list: [Wallpaper]
+    let onClose: () -> Void
+    let onShow: (Wallpaper) -> Void
+
+    private var index: Int? { list.firstIndex(where: { $0.id == wallpaper.id }) }
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            FeaturedHero(wallpaper: wallpaper)
+                .id(wallpaper.id)
+
+            HStack {
+                arrow("chevron.left", enabled: previousWallpaper != nil) {
+                    if let previousWallpaper { onShow(previousWallpaper) }
+                }
+                Spacer()
+                arrow("chevron.right", enabled: nextWallpaper != nil) {
+                    if let nextWallpaper { onShow(nextWallpaper) }
+                }
+            }
+            .padding(.horizontal, Theme.Space.l)
+
+            VStack {
+                HStack {
+                    Button(action: onClose) {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .background(.white.opacity(0.14), in: Circle())
+                            .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(.escape, modifiers: [])
+                    Spacer()
+                    if let index {
+                        Text(verbatim: "\(index + 1) / \(list.count)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.6))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(.white.opacity(0.10), in: Capsule())
+                    }
+                }
+                .padding(Theme.Space.l)
+                Spacer()
+            }
+        }
+        .onExitCommand(perform: onClose)
+    }
+
+    private var previousWallpaper: Wallpaper? {
+        guard let index, index > 0 else { return nil }
+        return list[index - 1]
+    }
+
+    private var nextWallpaper: Wallpaper? {
+        guard let index, index < list.count - 1 else { return nil }
+        return list[index + 1]
+    }
+
+    private func arrow(_ symbol: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.white.opacity(enabled ? 0.95 : 0.25))
+                .frame(width: 42, height: 42)
+                .background(.white.opacity(0.12), in: Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.16), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
     }
 }
 

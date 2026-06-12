@@ -65,6 +65,20 @@ struct Wallpaper: Codable, Identifiable, Hashable {
     }
 
     var isPremiumContent: Bool { isPremium == 1 }
+
+    private static let isoParser: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    var isNew: Bool {
+        guard let createdAt,
+              let date = Self.isoParser.date(from: createdAt)
+                ?? ISO8601DateFormatter().date(from: createdAt)
+        else { return false }
+        return Date().timeIntervalSince(date) < 14 * 86_400
+    }
     var aspectRatio: CGFloat { height == 0 ? 1 : CGFloat(width) / CGFloat(height) }
     var safeDescription: String { description ?? "" }
     var safeAuthor: String { author ?? "Unknown" }

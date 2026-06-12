@@ -763,6 +763,9 @@
         }
       }
     },
+    "All Wallpapers" : {
+
+    },
     "Appearance" : {
       "localizations" : {
         "de" : {
@@ -3850,6 +3853,9 @@
         }
       }
     },
+    "See all" : {
+
+    },
     "Server returned status %lld." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4789,6 +4795,9 @@
           }
         }
       }
+    },
+    "Wallpapers the community loves" : {
+
     },
     "WallPics" : {
 

@@ -15,7 +15,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
         window.minSize = NSSize(width: 920, height: 560)
-        window.center()
+        window.isRestorable = false
 
         let host = NSHostingController(
             rootView: ContentView()
@@ -35,9 +35,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         }
     }
 
+    private var didMaximizeOnce = false
+
     override func showWindow(_ sender: Any?) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        if !didMaximizeOnce, let screen = NSScreen.main ?? window?.screen {
+            window?.setFrame(screen.visibleFrame, display: true)
+            didMaximizeOnce = true
+        }
         super.showWindow(sender)
     }
 }
