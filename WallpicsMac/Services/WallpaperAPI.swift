@@ -100,10 +100,19 @@ actor WallpaperAPI {
         }
     }
 
-    /// Two-level category tree (roots + `children` subcategories) for the browse filter chips.
-    func categoryList() async throws -> [WallpaperCategory] {
+    /// Two-level category tree for the browse filter chips. Pass `countType` (the wallpaper
+    /// type: 5 desktop / 6 live / 7 shader) to get per-category `wallpapers_count` back.
+    func categoryList(countType: Int? = nil) async throws -> [WallpaperCategory] {
         _ = try await ensureGuestID()
-        var req = URLRequest(url: baseURL.appendingPathComponent("api/category-list"))
+        var components = URLComponents(url: baseURL.appendingPathComponent("api/category-list"), resolvingAgainstBaseURL: false)!
+        if let countType {
+            components.queryItems = [
+                URLQueryItem(name: "withContentCount", value: "1"),
+                URLQueryItem(name: "type", value: String(countType))
+            ]
+        }
+        guard let url = components.url else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
         applyAuthHeaders(to: &req)
         let (data, response) = try await transport { try await session.data(for: req) }
         try ensureOK(response)
@@ -187,6 +196,15 @@ enum WallpaperCollection: String, CaseIterable, Identifiable, Sendable {
         case .normal: return "api/wallpapers/desktop"
         case .live: return "api/wallpapers/live-desktop"
         case .shader: return "api/wallpapers/shader-desktop"
+        }
+    }
+
+    /// Backend wallpaper `type` for this collection (used by category content counts).
+    var apiType: Int {
+        switch self {
+        case .normal: return 5
+        case .live: return 6
+        case .shader: return 7
         }
     }
 

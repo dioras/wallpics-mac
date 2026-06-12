@@ -8,11 +8,31 @@ struct ContentView: View {
     var body: some View {
         @Bindable var env = env
         ZStack(alignment: .top) {
-            // Content runs full-bleed under the floating nav (the hero owns the whole top).
             detailContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .environment(favoritesModel) // shared so the hero's heart updates the grid live
-            TopNavBar(selection: $env.selectedSection)
+                .environment(favoritesModel)
+            LinearGradient(colors: [.black.opacity(0.62), .black.opacity(0.28), .clear],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: 96)
+                .allowsHitTesting(false)
+            TopNavBar(selection: $env.selectedSection, query: $browseModel.query)
+        }
+        .overlay {
+            if let wallpaper = env.detailWallpaper {
+                DetailOverlay(wallpaper: wallpaper, list: browseModel.filteredWallpapers) {
+                    withAnimation(Motion.transition) { env.detailWallpaper = nil }
+                } onShow: { next in
+                    env.detailWallpaper = next
+                }
+                .environment(favoritesModel)
+                .transition(.opacity.combined(with: .scale(scale: 1.03)))
+            }
+        }
+        .animation(Motion.transition, value: env.detailWallpaper?.id)
+        .onChange(of: browseModel.query) { _, newValue in
+            if !newValue.isEmpty && env.selectedSection != .browse {
+                env.selectedSection = .browse
+            }
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .navigationTitle("WallPics")
@@ -74,28 +94,53 @@ struct ContentView: View {
 /// quick actions (Go Pro, settings gear) on the right — replaces the old sidebar.
 private struct TopNavBar: View {
     @Binding var selection: AppEnvironment.Section
+    @Binding var query: String
     @Environment(StoreKitService.self) private var store
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         HStack(spacing: Theme.Space.m) {
-            HStack(spacing: Theme.Space.s) {
-                AppIconView(size: 24)
-                Text(verbatim: "WallPics")
-                    .font(.system(size: 14, weight: .bold))
+            HStack(spacing: Theme.Space.m) {
+                HStack(spacing: Theme.Space.s) {
+                    AppIconView(size: 24)
+                    Text(verbatim: "WallPics")
+                        .font(.system(size: 14, weight: .bold))
+                }
+                .padding(.horizontal, Theme.Space.m)
+                .padding(.vertical, 5)
+                .liquidGlass(in: Capsule())
+
+                HStack(spacing: 2) {
+                    navPill(.browse)
+                    navPill(.uploads)
+                    navPill(.favorites)
+                }
+                .padding(3)
+                .liquidGlass(in: Capsule())
             }
-            .padding(.horizontal, Theme.Space.m)
-            .padding(.vertical, 5)
-            .liquidGlass(in: Capsule())
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Centered section pills (Browse / Favorites). Settings lives on the gear.
-            HStack(spacing: 2) {
-                navPill(.browse)
-                navPill(.uploads)
-                navPill(.favorites)
+            HStack(spacing: Theme.Space.s) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                TextField("Search wallpapers", text: $query)
+                    .textFieldStyle(.plain)
+                    .font(.callout)
+                    .focused($searchFocused)
+                if !query.isEmpty {
+                    Button { query = "" } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .padding(3)
+            .padding(.horizontal, Theme.Space.m)
+            .padding(.vertical, 6)
+            .frame(minWidth: 150, maxWidth: 340)
             .liquidGlass(in: Capsule())
+            .overlay(Capsule().strokeBorder(searchFocused ? Theme.accent.opacity(0.6) : .clear, lineWidth: 1.5))
+            .animation(Motion.hover, value: searchFocused)
 
             HStack(spacing: Theme.Space.s) {
                 if !store.state.isPro {
@@ -144,9 +189,12 @@ private struct TopNavBar: View {
         return Button {
             selection = section
         } label: {
-            HStack(spacing: 5) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 5) {
+                    Image(systemName: section.symbol)
+                    Text(section.label).lineLimit(1).fixedSize()
+                }
                 Image(systemName: section.symbol)
-                Text(section.label).lineLimit(1)
             }
             .font(.callout.weight(.medium))
             .padding(.horizontal, Theme.Space.l)
@@ -161,5 +209,6 @@ private struct TopNavBar: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .help(section.label)
     }
 }

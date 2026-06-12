@@ -16,6 +16,7 @@ final class AppEnvironment {
 
     var selectedSection: Section = .browse
     var selectedWallpaper: Wallpaper?
+    var detailWallpaper: Wallpaper?
 
     // Sheet presentation flags. Driven from anywhere via AppEnvironment.shared.
     var showOnboarding = false

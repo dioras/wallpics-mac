@@ -6,9 +6,20 @@ struct BrowseView: View {
 
     private let columns = [GridItem(.adaptive(minimum: 230, maximum: 340), spacing: Theme.Space.l)]
 
-    /// The hero shows the user's pick, falling back to the freshest wallpaper of the page.
+    private static let carouselCount = 14
+
     private var featuredWallpaper: Wallpaper? {
         env.selectedWallpaper ?? model.filteredWallpapers.first
+    }
+
+    private var gridWallpapers: [Wallpaper] {
+        if model.isSearching { return model.filteredWallpapers }
+        var items = Array(model.filteredWallpapers.dropFirst(Self.carouselCount))
+        if model.selectedCategory == nil {
+            let railIDs = Set(model.popularRail.map(\.id))
+            items.removeAll { railIDs.contains($0.id) }
+        }
+        return items
     }
 
     var body: some View {
@@ -19,10 +30,11 @@ struct BrowseView: View {
                 FeaturedHero(wallpaper: featuredWallpaper, bottomInset: 132)
                 heroCarousel
             }
-            .frame(height: max(520, geo.size.height))
+            // Leave room below the hero so the toolbar, category chips and the
+            // first grid row are visible by default without scrolling.
+            .frame(height: max(360, geo.size.height - 470))
 
             BrowseToolbar(
-                query: $model.query,
                 sortOrder: model.sortOrder,
                 onSort: model.setSort,
                 collection: model.collection,
@@ -32,11 +44,28 @@ struct BrowseView: View {
                 categoryRows
             }
 
+            if !model.popularRail.isEmpty && !model.isSearching && model.selectedCategory == nil {
+                SectionHeader(
+                    title: String(localized: "Most Popular"),
+                    subtitle: String(localized: "Wallpapers the community loves"),
+                    seeAllAction: nil
+                )
+                popularRailView
+            }
+
+            if !model.isSearching {
+                SectionHeader(
+                    title: String(localized: "All Wallpapers"),
+                    subtitle: model.sortOrder.label,
+                    seeAllAction: nil
+                )
+            }
+
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
-                ForEach(model.filteredWallpapers) { wallpaper in
-                    WallpaperCard(wallpaper: wallpaper, isSelected: env.selectedWallpaper?.id == wallpaper.id)
+                ForEach(gridWallpapers) { wallpaper in
+                    WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
                         .onTapGesture {
-                            withAnimation(Motion.transition) { env.selectedWallpaper = wallpaper }
+                            withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
                         }
                         .scrollTransition { content, phase in
                             content
@@ -53,6 +82,7 @@ struct BrowseView: View {
                 }
             }
             .padding(Theme.Space.l)
+            .padding(.bottom, Theme.Space.xxl)
 
             if let error = model.errorMessage {
                 ErrorBanner(message: error) { Task { await model.reload() } }
@@ -72,9 +102,28 @@ struct BrowseView: View {
         .scrollContentBackground(.hidden)
         .background(.black)
         .refreshable { await model.reload() }
-        .task { await model.loadCategoriesIfNeeded() }
+        .task {
+            await model.loadCategoriesIfNeeded()
+            await model.loadPopularRailIfNeeded()
+        }
         }
         .ignoresSafeArea(edges: .top)
+    }
+
+    private var popularRailView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Space.l) {
+                ForEach(model.popularRail) { wallpaper in
+                    WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
+                        .frame(width: 300, height: 188)
+                        .onTapGesture {
+                            withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
+                        }
+                }
+            }
+            .padding(.horizontal, Theme.Space.l)
+            .padding(.vertical, Theme.Space.s)
+        }
     }
 
     /// Quick-pick strip under the hero — tapping a card features it above, One4Wall style.
@@ -116,7 +165,7 @@ struct BrowseView: View {
                         model.selectCategory(nil)
                     }
                     ForEach(model.categories) { category in
-                        CategoryChip(title: category.name, isSelected: model.selectedCategory?.id == category.id) {
+                        CategoryChip(title: category.cleanName, isSelected: model.selectedCategory?.id == category.id) {
                             model.selectCategory(category)
                         }
                     }
@@ -126,12 +175,12 @@ struct BrowseView: View {
             if let parent = model.selectedCategory, !model.availableSubcategories.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Theme.Space.s) {
-                        CategoryChip(title: String(localized: "All \(parent.name)"),
+                        CategoryChip(title: String(localized: "All \(parent.cleanName)"),
                                      isSelected: model.selectedSubcategory == nil, isSub: true) {
                             model.selectSubcategory(nil)
                         }
                         ForEach(model.availableSubcategories) { sub in
-                            CategoryChip(title: sub.name, isSelected: model.selectedSubcategory?.id == sub.id, isSub: true) {
+                            CategoryChip(title: sub.cleanName, isSelected: model.selectedSubcategory?.id == sub.id, isSub: true) {
                                 model.selectSubcategory(sub)
                             }
                         }
@@ -182,39 +231,16 @@ struct BrowseView: View {
 }
 
 private struct BrowseToolbar: View {
-    @Binding var query: String
     let sortOrder: SortOrder
     let onSort: (SortOrder) -> Void
     let collection: WallpaperCollection
     let onCollection: (WallpaperCollection) -> Void
-    @FocusState private var searchFocused: Bool
 
     var body: some View {
         HStack(spacing: Theme.Space.m) {
             CollectionFilter(selection: collection, onSelect: onCollection)
 
-            HStack(spacing: Theme.Space.s) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search wallpapers", text: $query)
-                    .textFieldStyle(.plain)
-                    .focused($searchFocused)
-                if !query.isEmpty {
-                    Button { query = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, Theme.Space.m)
-            .padding(.vertical, 7)
-            // Flex to fill the space between the filter and the actions so it grows with the
-            // window instead of staying a small fixed pill beside empty space. minWidth keeps
-            // the "Search wallpapers" placeholder from ever truncating.
-            .frame(minWidth: 170, maxWidth: .infinity, alignment: .leading)
-            .liquidGlass(in: Capsule())
-            .overlay(Capsule().strokeBorder(searchFocused ? Theme.accent.opacity(0.6) : .clear, lineWidth: 1.5))
-            .animation(Motion.hover, value: searchFocused)
+            Spacer()
 
             Menu {
                 ForEach(SortOrder.allCases, id: \.self) { order in
@@ -277,6 +303,43 @@ private struct CollectionFilter: View {
         .liquidGlass(in: Capsule())
         .fixedSize()
         .animation(Motion.hover, value: selection)
+    }
+}
+
+/// One4Wall-style section header: bold title + muted subtitle on the left, optional
+/// "See all" pill on the right.
+private struct SectionHeader: View {
+    let title: String
+    let subtitle: String
+    let seeAllAction: (() -> Void)?
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.white)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            Spacer()
+            if let seeAllAction {
+                Button(action: seeAllAction) {
+                    Text("See all")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(.white)
+                        .background(.white.opacity(0.10), in: Capsule())
+                        .overlay(Capsule().strokeBorder(.white.opacity(0.10), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, Theme.Space.l)
+        .padding(.top, Theme.Space.xl)
+        .padding(.bottom, Theme.Space.s)
     }
 }
 

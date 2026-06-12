@@ -21,6 +21,33 @@ final class BrowseViewModel {
     private var allCategories: [WallpaperCategory] = []
     private var curatedCache: [WallpaperCollection: [WallpaperCategory]] = [:]
     private var curatedSubsCache: [String: [WallpaperCategory]] = [:]
+
+    // One4Wall-style editorial rail (community favorites, sorted by popularity).
+    var popularRail: [Wallpaper] = []
+    private var popularRailCache: [WallpaperCollection: [Wallpaper]] = [:]
+
+    func loadPopularRailIfNeeded() async {
+        let col = collection
+        if let cached = popularRailCache[col] {
+            if collection == col { popularRail = cached }
+            return
+        }
+        // The backend's sortOrder is only asc/desc, so "popular" must be ranked client-side:
+        // pull a wide newest page, rank by downloads/hot-rank, and exclude the first 14 items
+        // (they're already on screen in the hero carousel) so the rail never repeats it.
+        guard let page = try? await WallpaperAPI.shared.desktopWallpapers(
+            collection: col, page: 1, perPage: 48, sortOrder: .newest
+        ) else { return }
+        let carouselIDs = Set(page.data.prefix(14).map(\.id))
+        let ranked = page.data
+            .filter { !carouselIDs.contains($0.id) }
+            .sorted {
+                ($0.safeDownloadCount, $0.hotRank ?? 0) > ($1.safeDownloadCount, $1.hotRank ?? 0)
+            }
+            .prefix(10)
+        popularRailCache[col] = Array(ranked)
+        if collection == col { popularRail = Array(ranked) }
+    }
     var isLoading = false
     var errorMessage: String?
     var currentPage = 1
@@ -107,8 +134,10 @@ final class BrowseViewModel {
         selectedSubcategory = nil
         availableSubcategories = []
         categories = curatedCache[newValue] ?? []
+        popularRail = popularRailCache[newValue] ?? []
         Task { await reload() }
         Task { await curateCategories() }
+        Task { await loadPopularRailIfNeeded() }
     }
 
     // MARK: - Categories
@@ -119,7 +148,6 @@ final class BrowseViewModel {
                 allCategories = try await WallpaperAPI.shared.categoryList()
             } catch {
                 Log.api.error("Category list failed: \(error.localizedDescription, privacy: .public)")
-                return
             }
         }
         await curateCategories()
@@ -129,6 +157,24 @@ final class BrowseViewModel {
         let col = collection
         if let cached = curatedCache[col] {
             if collection == col { categories = cached }
+            return
+        }
+        // Fast path: the backend reports per-category content counts in one request
+        // (hide count == 0, nil = show). Falls back to per-category probing on backends
+        // that don't support counts yet.
+        if let counted = try? await WallpaperAPI.shared.categoryList(countType: col.apiType),
+           counted.contains(where: { $0.wallpapersCount != nil }) {
+            let curated = counted
+                .filter { $0.wallpapersCount != 0 }
+                .map { parent in
+                    WallpaperCategory(
+                        id: parent.id, name: parent.name, slug: parent.slug,
+                        children: parent.children.filter { $0.wallpapersCount != 0 },
+                        wallpapersCount: parent.wallpapersCount
+                    )
+                }
+            curatedCache[col] = curated
+            if collection == col { categories = curated }
             return
         }
         guard !allCategories.isEmpty else { return }
@@ -142,6 +188,12 @@ final class BrowseViewModel {
         let key = "\(col.rawValue)|\(parent.slug)"
         if let cached = curatedSubsCache[key] {
             if selectedCategory?.id == parent.id { availableSubcategories = cached }
+            return
+        }
+        // Count-curated parents already carry pre-filtered children.
+        if parent.children.contains(where: { $0.wallpapersCount != nil }) || parent.wallpapersCount != nil {
+            curatedSubsCache[key] = parent.children
+            if selectedCategory?.id == parent.id { availableSubcategories = parent.children }
             return
         }
         let curated = await Self.nonEmpty(parent.children, in: col)
