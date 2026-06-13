@@ -159,10 +159,12 @@ final class BrowseViewModel {
             if collection == col { categories = cached }
             return
         }
-        // Fast path: the backend reports per-category content counts in one request
-        // (hide count == 0, nil = show). Falls back to per-category probing on backends
-        // that don't support counts yet.
-        if let counted = try? await WallpaperAPI.shared.categoryList(countType: col.apiType),
+        // Categories are tagged against desktop photo wallpapers (type 5); the live/shader
+        // endpoints aren't tagged on the backend yet, so curating per-tab would empty the
+        // filter on Live/Shader. Always curate against the desktop collection so the full
+        // set of real categories shows on every tab.
+        let source: WallpaperCollection = .normal
+        if let counted = try? await WallpaperAPI.shared.categoryList(countType: source.apiType),
            counted.contains(where: { $0.wallpapersCount != nil }) {
             let curated = counted
                 .filter { $0.wallpapersCount != 0 }
@@ -178,7 +180,7 @@ final class BrowseViewModel {
             return
         }
         guard !allCategories.isEmpty else { return }
-        let curated = await Self.nonEmpty(allCategories, in: col)
+        let curated = await Self.nonEmpty(allCategories, in: source)
         curatedCache[col] = curated
         if collection == col { categories = curated }
     }
