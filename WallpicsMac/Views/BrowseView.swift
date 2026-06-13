@@ -30,9 +30,9 @@ struct BrowseView: View {
                 FeaturedHero(wallpaper: featuredWallpaper, bottomInset: 132)
                 heroCarousel
             }
-            // Leave room below the hero so the toolbar, category chips and the
-            // first grid row are visible by default without scrolling.
-            .frame(height: max(360, geo.size.height - 470))
+            // Cover scales as a share of the window so it stays dominant at every size
+            // (a fixed inset would let the cover shrink out of proportion on small windows).
+            .frame(height: max(420, geo.size.height * 0.74))
 
             BrowseToolbar(
                 sortOrder: model.sortOrder,
@@ -111,7 +111,7 @@ struct BrowseView: View {
     }
 
     private var popularRailView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        HWheelScroll {
             HStack(spacing: Theme.Space.l) {
                 ForEach(model.popularRail) { wallpaper in
                     WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
@@ -124,11 +124,12 @@ struct BrowseView: View {
             .padding(.horizontal, Theme.Space.l)
             .padding(.vertical, Theme.Space.s)
         }
+        .frame(height: 204)
     }
 
     /// Quick-pick strip under the hero — tapping a card features it above, One4Wall style.
     private var heroCarousel: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        HWheelScroll {
             HStack(spacing: Theme.Space.m) {
                 ForEach(model.filteredWallpapers.prefix(14)) { wp in
                     let active = featuredWallpaper?.id == wp.id
@@ -151,8 +152,9 @@ struct BrowseView: View {
             }
             .padding(.horizontal, Theme.Space.l)
             .padding(.vertical, Theme.Space.l)
+            .animation(Motion.hover, value: featuredWallpaper?.id)
         }
-        .animation(Motion.hover, value: featuredWallpaper?.id)
+        .frame(height: 132)
     }
 
     /// One4Wall-style category chips: a row of root categories, plus a second row of

@@ -77,7 +77,7 @@ struct FeaturedHero: View {
                         .kerning(2.2)
                         .foregroundStyle(.white.opacity(0.65))
                     Text(wallpaper.name)
-                        .font(.system(size: 30, weight: .bold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(.white)
                         .lineLimit(2)
                         .shadow(color: .black.opacity(0.4), radius: 8, y: 2)
