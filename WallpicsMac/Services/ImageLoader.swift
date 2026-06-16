@@ -5,8 +5,8 @@ actor ImageLoader {
     static let shared = ImageLoader()
 
     private let session: URLSession
-    private let cache = NSCache<NSURL, NSImage>()
-    private var inflight: [URL: Task<NSImage, Error>] = [:]
+    private let cache = NSCache<NSString, NSImage>()
+    private var inflight: [String: Task<NSImage, Error>] = [:]
 
     enum ImageLoaderError: Error { case decodeFailed, invalidResponse }
 
@@ -25,9 +25,10 @@ actor ImageLoader {
         cache.totalCostLimit = 64 * 1024 * 1024
     }
 
-    func image(for url: URL) async throws -> NSImage {
-        if let cached = cache.object(forKey: url as NSURL) { return cached }
-        if let task = inflight[url] { return try await task.value }
+    func image(for url: URL, maxPixelSize: Int = 720) async throws -> NSImage {
+        let key = "\(url.absoluteString)|\(maxPixelSize)" as NSString
+        if let cached = cache.object(forKey: key) { return cached }
+        if let task = inflight[key as String] { return try await task.value }
 
         let task = Task<NSImage, Error> { [session] in
             // Local imports use file:// URLs, which URLSession won't load — read from disk.
@@ -43,14 +44,16 @@ actor ImageLoader {
             }
             // Pre-decode + downsample off the main thread. NSImage(data:) defers decoding to
             // first draw — which lands on the main thread mid-scroll and janks the grid;
-            // a thumbnail-sized, immediately-cached bitmap renders instantly instead.
+            // a right-sized, immediately-cached bitmap renders instantly instead. Grid cells
+            // request 720px; the featured hero requests the display's pixel size for a crisp,
+            // genuinely full-resolution preview.
             let image = await Task.detached(priority: .utility) { () -> NSImage? in
                 guard let src = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
                 let opts: [CFString: Any] = [
                     kCGImageSourceCreateThumbnailFromImageAlways: true,
                     kCGImageSourceCreateThumbnailWithTransform: true,
                     kCGImageSourceShouldCacheImmediately: true,
-                    kCGImageSourceThumbnailMaxPixelSize: 720
+                    kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
                 ]
                 guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
                 return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
@@ -58,12 +61,12 @@ actor ImageLoader {
             guard let image else { throw ImageLoaderError.decodeFailed }
             return image
         }
-        inflight[url] = task
-        defer { inflight[url] = nil }
+        inflight[key as String] = task
+        defer { inflight[key as String] = nil }
 
         do {
             let image = try await task.value
-            cache.setObject(image, forKey: url as NSURL, cost: data(for: image))
+            cache.setObject(image, forKey: key, cost: data(for: image))
             return image
         } catch {
             throw error
