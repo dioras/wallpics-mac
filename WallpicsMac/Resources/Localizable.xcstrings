@@ -377,6 +377,9 @@
         }
       }
     },
+    "%lld percent" : {
+
+    },
     "%lld wallpapers ready to use." : {
 
     },
@@ -708,6 +711,12 @@
         }
       }
     },
+    "Add" : {
+
+    },
+    "Add photo" : {
+
+    },
     "Add to Login Items" : {
 
     },
@@ -904,6 +913,9 @@
         }
       }
     },
+    "Background" : {
+
+    },
     "Best value" : {
       "localizations" : {
         "de" : {
@@ -998,6 +1010,9 @@
           }
         }
       }
+    },
+    "Browse Gallery" : {
+
     },
     "Buy %@" : {
       "extractionState" : "manual",
@@ -1185,6 +1200,9 @@
         }
       }
     },
+    "Cancel" : {
+
+    },
     "Changes apply right away. Restart the app for the menu bar to switch too." : {
       "localizations" : {
         "de" : {
@@ -1323,6 +1341,18 @@
           }
         }
       }
+    },
+    "Choose Photo" : {
+
+    },
+    "Click to place" : {
+
+    },
+    "Click to place on your desktop" : {
+
+    },
+    "Click to remove" : {
+
     },
     "Close" : {
       "localizations" : {
@@ -1508,6 +1538,9 @@
         }
       }
     },
+    "Could not download this widget's assets." : {
+
+    },
     "Could not initialize session." : {
       "localizations" : {
         "de" : {
@@ -1553,6 +1586,9 @@
           }
         }
       }
+    },
+    "Could not load widgets." : {
+
     },
     "Could not read server response." : {
       "localizations" : {
@@ -1600,7 +1636,22 @@
         }
       }
     },
+    "Couldn't load widgets" : {
+
+    },
     "Couldn't read this shader." : {
+
+    },
+    "Create a widget from your photos" : {
+
+    },
+    "Customize and place live widgets on your desktop." : {
+
+    },
+    "Delete" : {
+
+    },
+    "DIY Animated" : {
 
     },
     "Downloads" : {
@@ -1650,6 +1701,15 @@
         }
       }
     },
+    "Edit" : {
+
+    },
+    "Edit Widget" : {
+
+    },
+    "Elevator" : {
+
+    },
     "Favorites" : {
       "localizations" : {
         "de" : {
@@ -1695,6 +1755,9 @@
           }
         }
       }
+    },
+    "Fill (crop to fit)" : {
+
     },
     "Follow system appearance" : {
       "localizations" : {
@@ -1930,6 +1993,12 @@
         }
       }
     },
+    "Gallery" : {
+
+    },
+    "Garage Door" : {
+
+    },
     "Get Started" : {
       "localizations" : {
         "de" : {
@@ -2021,6 +2090,9 @@
           }
         }
       }
+    },
+    "Image" : {
+
     },
     "Import" : {
       "extractionState" : "manual",
@@ -2167,6 +2239,9 @@
         }
       }
     },
+    "Large" : {
+
+    },
     "Live" : {
 
     },
@@ -2218,6 +2293,12 @@
           }
         }
       }
+    },
+    "Loading full quality" : {
+
+    },
+    "Loading widgets…" : {
+
     },
     "Make any file your wallpaper" : {
 
@@ -2360,6 +2441,9 @@
         }
       }
     },
+    "Medium" : {
+
+    },
     "Most Popular" : {
       "localizations" : {
         "de" : {
@@ -2406,6 +2490,12 @@
         }
       }
     },
+    "My Widgets" : {
+
+    },
+    "Name" : {
+
+    },
     "Network problem. Check your connection." : {
       "localizations" : {
         "de" : {
@@ -2451,6 +2541,12 @@
           }
         }
       }
+    },
+    "New" : {
+
+    },
+    "New %@ Widget" : {
+
     },
     "Newest First" : {
       "localizations" : {
@@ -2682,6 +2778,12 @@
         }
       }
     },
+    "No widgets found" : {
+
+    },
+    "No widgets yet" : {
+
+    },
     "Not Now" : {
 
     },
@@ -2823,6 +2925,9 @@
         }
       }
     },
+    "On your desktop — click to remove" : {
+
+    },
     "Open Browse" : {
       "localizations" : {
         "de" : {
@@ -2870,6 +2975,9 @@
       }
     },
     "Open WallPics at login" : {
+
+    },
+    "Opened Eyes" : {
 
     },
     "Pause in Low Power Mode" : {
@@ -2965,7 +3073,16 @@
         }
       }
     },
+    "Photo" : {
+
+    },
+    "Photo Widget" : {
+
+    },
     "Photos" : {
+
+    },
+    "Photos (carousel)" : {
 
     },
     "Photos, videos, GIFs, Metal shaders and Rive animations — they all work, watermark-free with Pro." : {
@@ -3018,6 +3135,9 @@
         }
       }
     },
+    "Pick one from the Gallery, customize it, then place it on your desktop." : {
+
+    },
     "Pick your first wallpaper" : {
       "localizations" : {
         "de" : {
@@ -3063,6 +3183,9 @@
           }
         }
       }
+    },
+    "Place on Desktop" : {
+
     },
     "Plans couldn't load right now." : {
       "localizations" : {
@@ -3201,6 +3324,12 @@
           }
         }
       }
+    },
+    "Polaroid" : {
+
+    },
+    "Polaroid Widget" : {
+
     },
     "Priority access to new drops" : {
       "localizations" : {
@@ -3480,6 +3609,9 @@
         }
       }
     },
+    "Remove from Desktop" : {
+
+    },
     "Remove the watermark and support a small, independent team." : {
       "localizations" : {
         "de" : {
@@ -3618,6 +3750,9 @@
           }
         }
       }
+    },
+    "Replace" : {
+
     },
     "Replay Onboarding" : {
 
@@ -3807,6 +3942,9 @@
         }
       }
     },
+    "Save Widget" : {
+
+    },
     "Search wallpapers" : {
       "localizations" : {
         "de" : {
@@ -3852,6 +3990,9 @@
           }
         }
       }
+    },
+    "Search widgets" : {
+
     },
     "See all" : {
 
@@ -4094,6 +4235,12 @@
           }
         }
       }
+    },
+    "Size" : {
+
+    },
+    "Small" : {
+
     },
     "Start Free Trial" : {
       "localizations" : {
@@ -4375,6 +4522,12 @@
         }
       }
     },
+    "Tap the preview to flip through photos" : {
+
+    },
+    "Tap the preview to see it open" : {
+
+    },
     "Tap the star on any wallpaper while browsing to save it here." : {
       "localizations" : {
         "de" : {
@@ -4420,6 +4573,9 @@
           }
         }
       }
+    },
+    "Template" : {
+
     },
     "Terms" : {
       "localizations" : {
@@ -4468,6 +4624,12 @@
       }
     },
     "This wallpaper isn't available right now." : {
+
+    },
+    "This widget's image couldn't be found in the downloaded bundle." : {
+
+    },
+    "Try a different category or search." : {
 
     },
     "Try Again" : {
@@ -4985,6 +5147,15 @@
           }
         }
       }
+    },
+    "Widget name" : {
+
+    },
+    "Widgets" : {
+
+    },
+    "Windows XP" : {
+
     },
     "You're all set." : {
       "localizations" : {

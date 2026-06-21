@@ -84,6 +84,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // optional Login Item so the app actually relaunches.
         WallpaperRenderer.shared.restoreLast()
 
+        // Re-place any desktop widgets the user had out before the last quit.
+        DesktopWidgetManager.shared.restoreAll()
+
         // Onboarding presentation is now driven from ContentView .task — it triggers the
         // sheet only after the main window mounts, so the user sees it on top of the app.
     }

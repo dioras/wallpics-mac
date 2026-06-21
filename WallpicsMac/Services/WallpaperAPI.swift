@@ -124,6 +124,82 @@ actor WallpaperAPI {
         }
     }
 
+    // MARK: - Widgets (backend-driven catalog)
+
+    /// Widget category tree (`GET /api/category-list?modelType=widget`). Cheap call to discover
+    /// which sub-categories exist; the grid then fetches widgets per category.
+    func widgetCategories() async throws -> [WidgetCategoryNode] {
+        _ = try await ensureGuestID()
+        var components = URLComponents(url: baseURL.appendingPathComponent("api/category-list"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "modelType", value: "widget")]
+        guard let url = components.url else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        applyAuthHeaders(to: &req)
+        let (data, response) = try await transport { try await session.data(for: req) }
+        try ensureOK(response)
+        do {
+            return try decoder.decode(WidgetCategoryTreeRes.self, from: data).data ?? []
+        } catch {
+            Log.api.error("Widget categories decode failed: \(error.localizedDescription, privacy: .public)")
+            throw APIError.decoding(error)
+        }
+    }
+
+    /// Paginated widget catalog (`GET /api/widgets`). Pass a category slug to scope to one section.
+    func widgets(categorySlug: String? = nil, page: Int = 1, perPage: Int = 24) async throws -> [WidgetCatalogItem] {
+        _ = try await ensureGuestID()
+        var components = URLComponents(url: baseURL.appendingPathComponent("api/widgets"), resolvingAgainstBaseURL: false)!
+        var items: [URLQueryItem] = [
+            URLQueryItem(name: "paginated", value: "1"),
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "per_page", value: String(perPage))
+        ]
+        if let slug = categorySlug, !slug.isEmpty {
+            items.append(URLQueryItem(name: "categorySlug", value: slug))
+        }
+        components.queryItems = items
+        guard let url = components.url else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        applyAuthHeaders(to: &req)
+        let (data, response) = try await transport { try await session.data(for: req) }
+        try ensureOK(response)
+        do {
+            return try decoder.decode(WidgetCatalogRes.self, from: data).data ?? []
+        } catch {
+            Log.api.error("Widgets decode failed: \(error.localizedDescription, privacy: .public)")
+            throw APIError.decoding(error)
+        }
+    }
+
+    /// Fire-and-forget widget usage report (`POST /api/add_use/widget/{id}`).
+    func recordWidgetUse(widgetID: String) async {
+        do {
+            _ = try await ensureGuestID()
+            let url = baseURL.appendingPathComponent("api/add_use/widget/\(widgetID)")
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            applyAuthHeaders(to: &req)
+            _ = try await session.data(for: req)
+        } catch {
+            Log.api.debug("Widget use stat failed (non-fatal)")
+        }
+    }
+
+    /// Download a widget bundle zip and return its bytes for extraction. Requires https (so a
+    /// crafted `file://`/`http://` `bundle_url` can't be fetched), and only attaches the
+    /// first-party auth headers (which include the guest id) when the host is a wallpics.app
+    /// domain — bundles served from a third-party CDN download fine without leaking the guest id.
+    func downloadData(from url: URL) async throws -> Data {
+        guard url.scheme == "https" else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        if let host = url.host?.lowercased(), host == "wallpics.app" || host.hasSuffix(".wallpics.app") {
+            applyAuthHeaders(to: &req)
+        }
+        let (data, response) = try await transport { try await session.data(for: req) }
+        try ensureOK(response)
+        return data
+    }
+
     func recordDownload(wallpaperID: Int) async {
         do {
             _ = try await ensureGuestID()

@@ -4,6 +4,7 @@ struct ContentView: View {
     @Environment(AppEnvironment.self) private var env
     @State private var browseModel = BrowseViewModel()
     @State private var favoritesModel = FavoritesViewModel()
+    @State private var widgetsModel = WidgetsViewModel()
 
     var body: some View {
         @Bindable var env = env
@@ -83,6 +84,9 @@ struct ContentView: View {
         case .uploads:
             UploadsView(model: browseModel)
                 .padding(.top, 54)
+        case .widgets:
+            WidgetsView(model: widgetsModel)
+                .padding(.top, 54)
         case .settings:
             SettingsView()
                 .padding(.top, 54)
@@ -113,6 +117,7 @@ private struct TopNavBar: View {
                 HStack(spacing: 2) {
                     navPill(.browse)
                     navPill(.uploads)
+                    navPill(.widgets)
                     navPill(.favorites)
                 }
                 .padding(3)
