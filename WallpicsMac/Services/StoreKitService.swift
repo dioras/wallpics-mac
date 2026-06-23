@@ -33,14 +33,53 @@ final class StoreKitService {
     // MARK: - Products
 
     func loadProducts() async {
+        print("[StoreKit] 🟡 loadProducts() requesting IDs: \(ProductIDs.all)")
+        print("[StoreKit] 🟡 Bundle ID: \(Bundle.main.bundleIdentifier ?? "nil")")
+        print("[StoreKit] 🟡 canMakePayments: \(AppStore.canMakePayments)")
+        // Which StoreKit environment are we actually talking to?
+        do {
+            let storefront = await Storefront.current
+            print("[StoreKit] 🟡 Storefront: \(storefront?.countryCode ?? "nil") id=\(storefront?.id ?? "nil")")
+        }
+        do {
+            let appTx = try await AppTransaction.shared
+            switch appTx {
+            case .verified(let tx):
+                print("[StoreKit] 🟡 AppTransaction VERIFIED — environment=\(tx.environment.rawValue) appBundleID=\(tx.bundleID) appVersion=\(tx.appVersion)")
+            case .unverified(let tx, let err):
+                print("[StoreKit] 🟠 AppTransaction UNVERIFIED — environment=\(tx.environment.rawValue) err=\(err)")
+            }
+        } catch {
+            print("[StoreKit] 🔴 AppTransaction.shared threw: \(error)")
+        }
         do {
             let fetched = try await Product.products(for: ProductIDs.all)
+            print("[StoreKit] 🟢 Fetched \(fetched.count) products from StoreKit")
+            for p in fetched {
+                print("[StoreKit]    • id=\(p.id) name=\(p.displayName) price=\(p.displayPrice) type=\(p.type.rawValue)")
+            }
+            let returnedIDs = Set(fetched.map(\.id))
+            let missing = ProductIDs.all.filter { !returnedIDs.contains($0) }
+            if !missing.isEmpty {
+                print("[StoreKit] 🔴 MISSING product IDs (not returned by StoreKit): \(missing)")
+                print("[StoreKit]    Possible causes: 1) ID typo / case mismatch in App Store Connect")
+                print("[StoreKit]                     2) Product not in 'Ready to Submit' state")
+                print("[StoreKit]                     3) Agreements/Banking not complete")
+                print("[StoreKit]                     4) No StoreKit configuration file selected in scheme (when running locally)")
+                print("[StoreKit]                     5) Bundle ID mismatch with App Store Connect app record")
+            }
             // Sort by subscription period, shortest first (weekly → yearly), so the
             // paywall order is correct no matter which IDs the store actually returns.
             products = fetched.sorted { Self.periodSeconds($0) < Self.periodSeconds($1) }
             Log.store.info("Loaded \(fetched.count) products")
         } catch {
             lastError = error.localizedDescription
+            print("[StoreKit] 🔴 Product load THREW: \(error)")
+            print("[StoreKit]    localizedDescription: \(error.localizedDescription)")
+            if let skError = error as? StoreKitError {
+                print("[StoreKit]    StoreKitError case: \(skError)")
+            }
+            print("[StoreKit]    NSError domain=\((error as NSError).domain) code=\((error as NSError).code) userInfo=\((error as NSError).userInfo)")
             Log.store.error("Product load failed: \(error.localizedDescription, privacy: .public)")
         }
     }

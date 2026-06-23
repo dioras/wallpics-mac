@@ -47,8 +47,11 @@ struct PaywallScreen: View {
         .overlay(alignment: .topTrailing) { closeButton }
         .task {
             withAnimation(Motion.transition) { appeared = true }
+            print("[Paywall] 🟡 .task fired — calling loadProducts()")
             await store.loadProducts()
+            print("[Paywall] 🟢 loadProducts() returned. store.products.count=\(store.products.count) lastError=\(store.lastError ?? "nil")")
             selectProduct()
+            print("[Paywall] 🟢 selectedProductID=\(selectedProductID ?? "nil")")
             didAttemptLoad = true
         }
         .task {
