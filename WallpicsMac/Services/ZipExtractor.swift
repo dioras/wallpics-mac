@@ -16,9 +16,6 @@ enum ZipExtractor {
     private static let centralSig = 0x02014b50
     private static let localSig = 0x04034b50
 
-    /// Hard cap on a single entry's uncompressed size. Widget bundle assets are small images and
-    /// JSON; this stops a malicious archive from declaring a multi-GB `uncompSize` and forcing a
-    /// huge allocation (decompression bomb).
     private static let maxEntryBytes = 64 * 1024 * 1024
 
     /// All real file entries in the archive (directories and macOS metadata excluded).
@@ -95,9 +92,6 @@ enum ZipExtractor {
         }
     }
 
-    /// Like ``entries(from:)`` but preserves each entry's full relative path inside the archive
-    /// (e.g. `elevator/small/frame1.png`) instead of flattening to the base name. Widget bundles
-    /// ship a nested `WidgetTemplates`-style tree, so the structure has to survive extraction.
     static func treeEntries(from zipData: Data) -> [Entry] {
         let b = [UInt8](zipData)
         guard b.count > 22 else { return [] }
@@ -153,9 +147,6 @@ enum ZipExtractor {
         return result
     }
 
-    /// Extract every file in the archive into `directory`, preserving the relative tree. Returns
-    /// the number of files written. Path components are sanitised so a malicious entry can't
-    /// escape `directory` via `..`.
     @discardableResult
     static func extractTree(from zipData: Data, to directory: URL) -> Int {
         let all = treeEntries(from: zipData)

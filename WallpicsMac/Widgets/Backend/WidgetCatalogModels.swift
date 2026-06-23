@@ -1,12 +1,5 @@
 import Foundation
 
-// Response models for the backend-driven widget catalog, ported from the iOS
-// `WidgetCatalogRes.swift`. These are pure Foundation and decode the same JSON the iOS app does:
-//   GET /api/widgets
-//   GET /api/category-list?modelType=widget
-
-// MARK: - GET /api/widgets
-
 struct WidgetCatalogRes: Codable {
     var status: String?
     var data: [WidgetCatalogItem]?
@@ -19,8 +12,6 @@ struct WidgetCatalogRes: Codable {
         data = try c.decodeIfPresent([WidgetCatalogItem].self, forKey: .data)
     }
 }
-
-// MARK: - GET /api/category-list?modelType=widget
 
 struct WidgetCategoryTreeRes: Codable {
     var status: String?
@@ -43,8 +34,6 @@ struct WidgetCategoryNode: Codable, Hashable, Identifiable {
     func hash(into hasher: inout Hasher) { hasher.combine(id ?? 0) }
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
 }
-
-// MARK: - Widget catalog item
 
 struct WidgetCatalogItem: Codable, Hashable, Identifiable {
     var id: String?
@@ -97,8 +86,6 @@ struct WidgetCatalogItem: Codable, Hashable, Identifiable {
     var thumbnailURL: URL? { thumbnail.flatMap(URL.init(string:)) }
     var bundleDownloadURL: URL? { bundleURL.flatMap(URL.init(string:)) }
 
-    /// Stable, code-safe key (slug preferred, else snake_cased name), normalised the same way the
-    /// iOS app does so the catalog item maps onto an in-app editor/renderer.
     var typeKey: String? {
         let raw: String
         if let slug, !slug.isEmpty {
@@ -129,9 +116,6 @@ struct WidgetCatalogItem: Codable, Hashable, Identifiable {
         return typeKeyAliases[s] ?? s
     }
 
-    /// Map a catalog item to the in-app `WidgetKind` it should open. Routing prefers the backend
-    /// `widget_type`, then the normalised `typeKey`. Unknown bundled widgets fall back to the
-    /// generic template renderer.
     var resolvedKind: WidgetKind {
         let type = (widgetType ?? "").lowercased()
         let key = typeKey ?? ""

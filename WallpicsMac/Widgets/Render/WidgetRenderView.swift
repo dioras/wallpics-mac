@@ -1,19 +1,8 @@
 import SwiftUI
 
-/// Faithful macOS render of every ported widget. This is the single source of truth used by the
-/// gallery tiles, the editor live preview, and the desktop overlay. It's a pure function of
-/// `(instance, isToggled)` — the caller owns the interactive flag so the same view drives a
-/// preview tap and a real desktop click.
-///
-/// The themed bodies (elevator / opened-eyes / garage-door / windows-xp) port the exact layer
-/// composition and `.easeOut(0.55)` slide geometry from the iOS `Small*View` renderers; the only
-/// changes are `Image(uiImage:)` → `Image(nsImage:)` and dropping the WidgetKit-only modifiers
-/// (`widgetAccentedRenderingMode`, `containerBackground(_:for:.widget)`, `Button(intent:)`).
 struct WidgetRenderView: View {
     let instance: WidgetInstance
-    /// Interactive state: `true` = closed/hidden (themed) or animating (DIY). Ignored by static kinds.
     var isToggled: Bool = false
-    /// Carousel position for the polaroid (advances by 1 per click). Ignored by other kinds.
     var carouselStep: Int = 0
 
     var body: some View {
@@ -40,8 +29,6 @@ struct WidgetRenderView: View {
     }
 }
 
-// MARK: - Image resolution helpers
-
 enum WidgetRenderAssets {
     @MainActor
     static func userImage(_ relativePath: String?, in id: UUID, maxPixelSize: Int = 640) -> NSImage? {
@@ -59,8 +46,6 @@ enum WidgetRenderAssets {
     }
 }
 
-/// A resizable, fill-cropped NSImage layer — the cross-platform stand-in for the iOS
-/// `Image(uiImage:).resizable().scaledToFill()` pattern used throughout the widget renderers.
 private struct ImageLayer: View {
     let image: NSImage?
     var fill: Bool = true
@@ -73,8 +58,6 @@ private struct ImageLayer: View {
         }
     }
 }
-
-// MARK: - Photo
 
 private struct PhotoBody: View {
     let instance: WidgetInstance
@@ -114,8 +97,6 @@ private struct PhotoBody: View {
     }
 }
 
-// MARK: - Static image (NEW)
-
 private struct StaticImageBody: View {
     let instance: WidgetInstance
     let w: CGFloat
@@ -142,8 +123,6 @@ private struct StaticImageBody: View {
     }
 }
 
-// MARK: - Elevator (ports SmallElevatorView)
-
 private struct ElevatorBody: View {
     let instance: WidgetInstance
     let isClosed: Bool
@@ -157,27 +136,22 @@ private struct ElevatorBody: View {
         let photo = WidgetRenderAssets.userImage(instance.payload.themedPhotoPath, in: instance.id)
             ?? WidgetRenderAssets.themeImage(slug: slug, name: "frame3")
         ZStack {
-            // backdrop (frame4)
             if let bg = WidgetRenderAssets.themeImage(slug: slug, name: "frame4") {
                 ImageLayer(image: bg).frame(width: w, height: h).clipped()
             } else {
                 Color(red: 0.18, green: 0.18, blue: 0.18)
             }
-            // photo (scales down when closed)
             ImageLayer(image: photo).frame(width: w, height: h).clipped()
                 .scaleEffect(isClosed ? closedScale : 1.0)
                 .animation(.easeOut(duration: 0.55), value: isClosed)
-            // left door (frame1) slides off left when open
             ImageLayer(image: WidgetRenderAssets.themeImage(slug: slug, name: "frame1"))
                 .frame(width: w, height: h)
                 .offset(x: isClosed ? 0 : -w)
                 .animation(.easeOut(duration: 0.55), value: isClosed)
-            // right door (frame2) slides off right when open
             ImageLayer(image: WidgetRenderAssets.themeImage(slug: slug, name: "frame2"))
                 .frame(width: w, height: h)
                 .offset(x: isClosed ? 0 : w)
                 .animation(.easeOut(duration: 0.55), value: isClosed)
-            // casing (frame5) on top so doors slide behind the side walls
             ImageLayer(image: WidgetRenderAssets.themeImage(slug: slug, name: "frame5"))
                 .frame(width: w, height: h).clipped()
                 .allowsHitTesting(false)
@@ -186,8 +160,6 @@ private struct ElevatorBody: View {
         .clipped()
     }
 }
-
-// MARK: - Opened Eyes (ports SmallOpenedEyesView)
 
 private struct OpenedEyesBody: View {
     let instance: WidgetInstance
@@ -205,12 +177,10 @@ private struct OpenedEyesBody: View {
         ZStack {
             Color.black
             ImageLayer(image: photo).frame(width: w, height: h).clipped()
-            // top eyelid (frame1) aligned top, slides up to open
             ImageLayer(image: WidgetRenderAssets.themeImage(slug: slug, name: "frame1"))
                 .frame(width: w, height: h, alignment: .top)
                 .offset(y: isClosed ? 0 : -slide)
                 .animation(.easeOut(duration: 0.55), value: isClosed)
-            // bottom eyelid (frame2) aligned bottom, slides down to open
             ImageLayer(image: WidgetRenderAssets.themeImage(slug: slug, name: "frame2"))
                 .frame(width: w, height: h, alignment: .bottom)
                 .offset(y: isClosed ? 0 : slide)
@@ -220,8 +190,6 @@ private struct OpenedEyesBody: View {
         .clipped()
     }
 }
-
-// MARK: - Garage Door (ports SmallGarageDoorView)
 
 private struct GarageDoorBody: View {
     let instance: WidgetInstance
@@ -237,7 +205,6 @@ private struct GarageDoorBody: View {
         ZStack {
             Color.black.opacity(0.6)
             ImageLayer(image: photo).frame(width: w, height: h).clipped()
-            // door (frame1): closed y=0 covers photo; open y=-h slid up off the top
             ImageLayer(image: WidgetRenderAssets.themeImage(slug: slug, name: "frame1"))
                 .frame(width: w, height: h).clipped()
                 .offset(y: isClosed ? 0 : -h)
@@ -247,8 +214,6 @@ private struct GarageDoorBody: View {
         .clipped()
     }
 }
-
-// MARK: - Windows XP (ports SmallWindowsXPView)
 
 private struct WindowsXPBody: View {
     let instance: WidgetInstance
@@ -266,17 +231,14 @@ private struct WindowsXPBody: View {
         let photo = WidgetRenderAssets.userImage(instance.payload.themedPhotoPath, in: instance.id)
             ?? WidgetRenderAssets.themeImage(slug: slug, name: "frame2")
         ZStack {
-            // backdrop (frame3)
             if let bg = WidgetRenderAssets.themeImage(slug: slug, name: "frame3") {
                 ImageLayer(image: bg).frame(width: w, height: h).clipped()
             } else {
                 Color(red: 0.30, green: 0.55, blue: 0.85)
             }
-            // photo slides behind the hill when hidden
             ImageLayer(image: photo).frame(width: w, height: h).clipped()
                 .offset(y: isHidden ? hiddenY : visibleY)
                 .animation(.easeOut(duration: 0.55), value: isHidden)
-            // foreground hill (frame1)
             ImageLayer(image: WidgetRenderAssets.themeImage(slug: slug, name: "frame1"))
                 .frame(width: w, height: h).clipped()
         }
@@ -285,8 +247,6 @@ private struct WindowsXPBody: View {
     }
 }
 
-// MARK: - DIY Animated (ports SmallDIYAnimatedView)
-
 private struct DIYAnimatedBody: View {
     let instance: WidgetInstance
     let isAnimating: Bool
@@ -294,11 +254,8 @@ private struct DIYAnimatedBody: View {
     let h: CGFloat
 
     @State private var frameIndex = 0
-    // Resolved once when the widget appears (or its photo set changes), not on every 12fps tick —
-    // re-decoding per tick churns the cache and can flash if a frame gets evicted mid-animation.
     @State private var frames: [NSImage] = []
     @State private var cover: NSImage?
-    private let timer = Timer.publish(every: 1.0 / 12.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
         ZStack {
@@ -307,9 +264,13 @@ private struct DIYAnimatedBody: View {
         }
         .frame(width: w, height: h)
         .task(id: frameKey) { loadAssets() }
-        .onReceive(timer) { _ in
-            guard isAnimating, !frames.isEmpty else { return }
-            frameIndex = (frameIndex + 1) % frames.count
+        .task(id: isAnimating) {
+            guard isAnimating else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000 / 12)
+                guard !Task.isCancelled, !frames.isEmpty else { continue }
+                frameIndex = (frameIndex + 1) % frames.count
+            }
         }
     }
 
@@ -332,7 +293,6 @@ private struct DIYAnimatedBody: View {
         return DIYAnimatedWidgetState()
     }
 
-    /// Identity for the asset load: re-run only when the instance or its frame set changes.
     private var frameKey: String {
         instance.id.uuidString + "|" + diyState.bakedFrameRelativePaths.joined(separator: ",")
     }
@@ -348,28 +308,20 @@ private struct DIYAnimatedBody: View {
     }
 }
 
-// MARK: - Polaroid (click-advance carousel, ported from SmallPolaroidCarouselView)
-
 private struct PolaroidBody: View {
     let instance: WidgetInstance
-    /// Carousel position. The photo at `step` is the front card; clicking advances it.
     let step: Int
     let w: CGFloat
     let h: CGFloat
 
-    /// Transform for a card given its slot distance from the front (0 = front). Each photo keeps a
-    /// stable identity and animates between slots, so advancing slides the front card off to the
-    /// left while the next card rises to the front — the iOS shuffle, not a cross-fade.
+    @State private var images: [NSImage] = []
+
     private struct Slot { var offset: CGSize; var rotation: Double; var scale: CGFloat; var opacity: Double; var z: Double }
 
     var body: some View {
-        let state = polaroidState
-        let images = state.relativePaths.compactMap {
-            WidgetRenderAssets.userImage($0, in: instance.id, maxPixelSize: 600)
-        }
         let count = images.count
         ZStack {
-            background(state.background)
+            background(polaroidState.background)
             if count == 0 {
                 Image(systemName: "photo.stack")
                     .font(.system(size: min(w, h) * 0.2))
@@ -388,23 +340,33 @@ private struct PolaroidBody: View {
             }
         }
         .frame(width: w, height: h)
+        .task(id: imagesKey) { loadImages() }
         .animation(.smooth(duration: 0.55), value: step)
     }
 
+    private var imagesKey: String {
+        instance.id.uuidString + "|" + polaroidState.relativePaths.joined(separator: ",")
+    }
+
+    @MainActor
+    private func loadImages() {
+        images = polaroidState.relativePaths.compactMap {
+            WidgetRenderAssets.userImage($0, in: instance.id, maxPixelSize: 600)
+        }
+    }
+
     private func slot(distance: Int, count: Int) -> Slot {
-        // The card that just left the front (largest distance, when there are ≥3) flies off-left.
         if count >= 3 && distance == count - 1 {
             return Slot(offset: CGSize(width: -w * 0.85, height: -6), rotation: -16, scale: 0.9, opacity: 0, z: 120)
         }
         switch distance {
-        case 0:  return Slot(offset: .zero, rotation: -4, scale: 1.0, opacity: 1, z: 100)              // front
-        case 1:  return Slot(offset: CGSize(width: w * 0.07, height: -h * 0.05), rotation: 6, scale: 0.93, opacity: 1, z: 90)  // peek behind
+        case 0:  return Slot(offset: .zero, rotation: -4, scale: 1.0, opacity: 1, z: 100)
+        case 1:  return Slot(offset: CGSize(width: w * 0.07, height: -h * 0.05), rotation: 6, scale: 0.93, opacity: 1, z: 90)
         case 2:  return Slot(offset: CGSize(width: -w * 0.06, height: h * 0.04), rotation: -8, scale: 0.88, opacity: 0.95, z: 80)
-        default: return Slot(offset: .zero, rotation: 0, scale: 0.85, opacity: 0, z: 10)               // hidden in the deck
+        default: return Slot(offset: .zero, rotation: 0, scale: 0.85, opacity: 0, z: 10)
         }
     }
 
-    /// A single polaroid card: photo in the upper area, white frame with a caption strip below.
     private func polaroidCard(_ image: NSImage) -> some View {
         let side = min(w, h) * 0.72
         return VStack(spacing: 0) {
@@ -447,45 +409,57 @@ private struct PolaroidBody: View {
     }
 }
 
-// MARK: - Template (backend Widgify preview)
-
 private struct TemplateBody: View {
     let instance: WidgetInstance
     let w: CGFloat
     let h: CGFloat
 
     var body: some View {
-        // Prefer a local preview asset baked from the bundle; otherwise render the real catalog
-        // thumbnail (covers Widgify templates and not-yet-supported kinds like `world_cup_stats`,
-        // so they show their actual artwork rather than an empty box). ThumbnailView's URLCache
-        // keeps it available offline after the first load.
-        let localImage = WidgetRenderAssets.userImage(instance.payload.templatePreviewPath, in: instance.id, maxPixelSize: 900)
         ZStack {
             Color.black.opacity(0.15)
-            if let localImage {
+            if let slug = instance.payload.templateSlug {
+                WidgetTemplateView(slug: slug,
+                                   family: instance.family,
+                                   userPhotoURL: photoURL,
+                                   fallbackThumbnailURL: instance.payload.templateThumbnailURL)
+                    .frame(width: w, height: h)
+            } else if let localImage = WidgetRenderAssets.userImage(instance.payload.templatePreviewPath, in: instance.id, maxPixelSize: 900) {
                 Image(nsImage: localImage).resizable().interpolation(.high)
                     .aspectRatio(contentMode: .fill).frame(width: w, height: h).clipped()
             } else if let thumb = instance.payload.templateThumbnailURL {
                 ThumbnailView(url: thumb, placeholderTint: .black.opacity(0.15))
                     .frame(width: w, height: h).clipped()
             } else {
-                Image(systemName: "square.grid.2x2")
-                    .font(.system(size: min(w, h) * 0.2))
-                    .foregroundStyle(.secondary)
+                VStack(spacing: min(w, h) * 0.05) {
+                    Image(systemName: "rectangle.stack.badge.play")
+                        .font(.system(size: min(w, h) * 0.18, weight: .light))
+                        .foregroundStyle(.white.opacity(0.55))
+                    Text(instance.name)
+                        .font(.system(size: max(9, min(w, h) * 0.085), weight: .medium))
+                        .foregroundStyle(.white.opacity(0.75))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(min(w, h) * 0.08)
+                .frame(width: w, height: h)
+                .background(LinearGradient(colors: [Color(white: 0.16), Color(white: 0.10)],
+                                           startPoint: .top, endPoint: .bottom))
             }
         }
         .frame(width: w, height: h)
     }
-}
 
-// MARK: - Small helpers
+    private var photoURL: URL? {
+        guard let rel = instance.payload.templatePhotoPath, !rel.isEmpty else { return nil }
+        return WidgetStore.shared.assetURL(for: rel, in: instance.id)
+    }
+}
 
 private extension Array {
     func ifEmpty(_ fallback: [Element]) -> [Element] { isEmpty ? fallback : self }
 }
 
 extension Color {
-    /// Hex string (`#RRGGBB` / `RRGGBBAA`) → Color, for polaroid background colours.
     init?(hex: String) {
         var s = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         if s.hasPrefix("#") { s.removeFirst() }

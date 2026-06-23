@@ -3,10 +3,6 @@ import SwiftUI
 import Observation
 import UniformTypeIdentifiers
 
-/// Backs the widget editor: holds the in-progress `WidgetInstance`, imports photos via
-/// `NSOpenPanel`, downloads any backend bundle the chosen widget needs, and saves to
-/// `WidgetStore`. One adaptive model serves every kind — the editor view shows the relevant
-/// controls per `instance.kind`.
 @MainActor
 @Observable
 final class WidgetEditorModel: Identifiable {
@@ -14,19 +10,15 @@ final class WidgetEditorModel: Identifiable {
     private let instanceID: UUID
 
     var instance: WidgetInstance
-    /// Catalog item this draft came from (for bundle download + usage reporting), if any.
     let source: WidgetCatalogItem?
 
     private(set) var isPreparing = false
     private(set) var prepareError: String?
-    /// Drives the interactive preview tap (closed/hidden/animating).
     var previewToggle = false
-    /// Drives the polaroid carousel preview (advances on tap).
     var previewStep = 0
 
     private let isNew: Bool
 
-    /// Edit an existing instance.
     init(editing instance: WidgetInstance) {
         self.instance = instance
         self.instanceID = instance.id
@@ -35,12 +27,9 @@ final class WidgetEditorModel: Identifiable {
         self.previewToggle = Self.initialToggle(for: instance)
     }
 
-    /// Create a new instance, optionally seeded from a catalog item.
     init(creating kind: WidgetKind, family: WidgetFamily? = nil, source: WidgetCatalogItem? = nil) {
         let fam = family ?? kind.supportedFamilies.first ?? .small
         var payload = Self.emptyPayload(for: kind)
-        // Seed the catalog thumbnail so template / unsupported kinds have real artwork to render
-        // even before (or without) a usable local preview asset.
         if case .template(var t) = payload {
             t.thumbnailURLString = source?.thumbnail
             payload = .template(t)
@@ -67,10 +56,6 @@ final class WidgetEditorModel: Identifiable {
         }
     }
 
-    // MARK: - Bundle / asset preparation
-
-    /// Download the widget's backend bundle (themed / template / static assets) and, for static
-    /// images, copy the bundled PNG into the instance directory. Safe to call on `.task`.
     func prepare() async {
         guard let source else { return }
         let slug = source.typeKey ?? instance.kind.themeSlug ?? (source.slug ?? "")
@@ -84,7 +69,11 @@ final class WidgetEditorModel: Identifiable {
                 importBundledStaticImage(slug: slug)
             }
             if instance.kind == .template {
+                if case .template(var s) = instance.payload { s.templateSlug = slug; instance.payload = .template(s) }
                 seedTemplatePreview(slug: slug)
+            }
+            if instance.kind.themeSlug != nil, !WidgetAssetResolver.isInstalled(slug: slug) {
+                prepareError = String(localized: "This widget's assets couldn't be downloaded. Check your connection and try again.")
             }
         } catch {
             prepareError = (error as? LocalizedError)?.errorDescription
@@ -93,7 +82,6 @@ final class WidgetEditorModel: Identifiable {
     }
 
     private func importBundledStaticImage(slug: String) {
-        // Static widgets ship a single image (`photo.png` or the first image in the bundle).
         let candidates = ["photo", "frame1", "image", "static"]
         var found: URL?
         for name in candidates {
@@ -102,7 +90,6 @@ final class WidgetEditorModel: Identifiable {
             }
         }
         guard let found, let rel = WidgetStore.shared.importImage(from: found, into: instance.id, maxPixelSize: 1200) else {
-            // Surface this — otherwise Save stays disabled (empty relativePath) with no explanation.
             prepareError = String(localized: "This widget's image couldn't be found in the downloaded bundle.")
             return
         }
@@ -110,7 +97,6 @@ final class WidgetEditorModel: Identifiable {
     }
 
     private func seedTemplatePreview(slug: String) {
-        // Use the bundle's animated/preview asset if present, else the catalog thumbnail will show.
         let candidates = [("preview", "webp"), ("preview", "png"), ("thumbnail", "png"), ("frame1", "png")]
         for (name, ext) in candidates {
             if let url = WidgetAssetResolver.url(forResource: name, withExtension: ext, slug: slug),
@@ -125,9 +111,6 @@ final class WidgetEditorModel: Identifiable {
         }
     }
 
-    // MARK: - Photo editing
-
-    /// Present an open panel and import the chosen image(s) into the instance.
     func addPhotos(multiple: Bool) {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = multiple
@@ -192,16 +175,28 @@ final class WidgetEditorModel: Identifiable {
 
     func setFamily(_ family: WidgetFamily) { instance.family = family }
 
-    // MARK: - Save
-
     @discardableResult
     func save() -> WidgetInstance {
+        if instance.kind == .diyAnimated { bakeDIYFrames() }
         WidgetStore.shared.upsert(instance)
         if let id = source?.id { Task { await WallpaperAPI.shared.recordWidgetUse(widgetID: id) } }
         return instance
     }
 
-    // MARK: - Defaults
+    private func bakeDIYFrames() {
+        guard case .diyAnimated(var s) = instance.payload else { return }
+        let slug = source?.typeKey ?? (s.templateSlug.isEmpty ? nil : s.templateSlug)
+        guard let slug, !slug.isEmpty else { return }
+        let photo = s.photoRelativePath.flatMap {
+            WidgetImage.load(at: WidgetStore.shared.assetURL(for: $0, in: instance.id), maxPixelSize: 1024)
+        }
+        let baked = DIYFrameBaker.bake(slug: slug, family: instance.family, userPhoto: photo, into: instance.id)
+        guard !baked.frames.isEmpty else { return }
+        s.templateSlug = slug
+        s.bakedFrameRelativePaths = baked.frames
+        if let cover = baked.cover { s.coverRelativePath = cover }
+        instance.payload = .diyAnimated(s)
+    }
 
     private static func emptyPayload(for kind: WidgetKind) -> WidgetPayload {
         switch kind {

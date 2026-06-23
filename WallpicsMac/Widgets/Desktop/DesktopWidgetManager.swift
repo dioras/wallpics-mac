@@ -2,20 +2,12 @@ import AppKit
 import SwiftUI
 import Observation
 
-/// Places created widgets on the desktop as live, draggable, clickable overlay windows — the
-/// macOS analog of dropping a widget on an iPhone home screen. Each overlay sits just above the
-/// desktop icons (so it reads as "on the wallpaper"), shows on every Space, and persists its
-/// position + interactive state across relaunch.
-///
-/// Interactivity that a real macOS WidgetKit extension can't do — the elevator doors opening, the
-/// eyelids sliding — works here because we host the widget's SwiftUI ourselves and re-render on a
-/// real click.
 @MainActor
 @Observable
 final class DesktopWidgetManager {
     static let shared = DesktopWidgetManager()
+    static let desktopLevel = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
 
-    /// Instance ids currently placed on the desktop.
     private(set) var placedIDs: Set<UUID> = []
 
     private var windows: [UUID: NSWindow] = [:]
@@ -28,20 +20,15 @@ final class DesktopWidgetManager {
 
     func isPlaced(_ id: UUID) -> Bool { placedIDs.contains(id) }
 
-    /// Recreate overlays for everything that was placed before the last quit. Call once at launch
-    /// after the store has loaded.
     func restoreAll() {
+        let stale = placements.keys.filter { WidgetStore.shared.instance(id: $0) == nil }
+        for id in stale { placements[id] = nil }
         for (id, placement) in placements {
-            guard WidgetStore.shared.instance(id: id) != nil else {
-                placements[id] = nil          // instance was deleted; drop the stale placement
-                continue
-            }
             showWindow(for: id, placement: placement)
         }
         persist()
     }
 
-    /// Place (or re-focus) a widget on the desktop.
     func place(_ instance: WidgetInstance) {
         if let existing = windows[instance.id] {
             existing.orderFrontRegardless()
@@ -59,12 +46,37 @@ final class DesktopWidgetManager {
         }
         windows[id]?.close()
         windows[id] = nil
-        placements[id] = nil
         placedIDs.remove(id)
-        persist()
+        if placements[id] != nil {
+            placements[id] = nil
+            persist()
+        }
     }
 
-    /// Persist a moved/resized frame for an instance.
+    func deleteWidget(_ id: UUID) {
+        remove(id)
+        WidgetStore.shared.delete(id: id)
+    }
+
+    func bringToFront(_ id: UUID) {
+        for (other, window) in windows where other != id {
+            window.level = Self.desktopLevel
+        }
+        if let window = windows[id] {
+            window.level = Self.desktopLevel + 1
+            window.orderFrontRegardless()
+        }
+    }
+
+    func requestEdit(_ id: UUID) {
+        AppEnvironment.shared.selectedSection = .widgets
+        AppEnvironment.shared.widgetEditRequestID = id
+        NSApp.activate(ignoringOtherApps: true)
+        if let main = NSApp.windows.first(where: { $0.styleMask.contains(.titled) && !($0 is DesktopWidgetWindow) }) {
+            main.makeKeyAndOrderFront(nil)
+        }
+    }
+
     func updateFrame(_ frame: CGRect, for id: UUID) {
         guard var placement = placements[id] else { return }
         placement.frame = frame
@@ -72,8 +84,6 @@ final class DesktopWidgetManager {
         persist()
     }
 
-    /// Toggle a themed / DIY widget's flag (payload is the source of truth; the placement mirrors
-    /// it as a 0/1 step so a relaunch restores the pose).
     func updateToggle(_ isToggled: Bool, for id: UUID) {
         guard var placement = placements[id] else { return }
         placement.step = isToggled ? 1 : 0
@@ -82,7 +92,6 @@ final class DesktopWidgetManager {
         persist()
     }
 
-    /// Advance a polaroid carousel by one card and persist the new position.
     func advance(for id: UUID) {
         guard var placement = placements[id] else { return }
         placement.step += 1
@@ -90,22 +99,20 @@ final class DesktopWidgetManager {
         persist()
     }
 
-    /// Current interaction step for an instance. Reading `placements` here registers an
-    /// Observation dependency, so a click (which mutates it) re-renders the overlay.
     func step(for id: UUID) -> Int { placements[id]?.step ?? 0 }
 
-    // MARK: - Window lifecycle
-
     private func showWindow(for id: UUID, placement: DesktopWidgetPlacement) {
+        guard windows[id] == nil else {
+            windows[id]?.orderFrontRegardless()
+            return
+        }
         let window = DesktopWidgetWindow(contentRect: placement.frame)
-        let content = DesktopWidgetContent(instanceID: id)
-        window.contentView = NSHostingView(rootView: content)
+        let root = DesktopWidgetContent(instanceID: id)
+            .environment(WidgetStore.shared)
+            .environment(DesktopWidgetManager.shared)
+        window.contentView = NSHostingView(rootView: root)
         window.setFrame(placement.frame, display: true)
 
-        // Persist position whenever the user drags the window. `queue: .main` guarantees the
-        // closure runs on the main thread, so assuming main-actor isolation is safe. The returned
-        // token is retained so it can be torn down in `remove(_:)` — the block-based observer is
-        // not auto-removed when its `object` deallocates.
         let token = NotificationCenter.default.addObserver(
             forName: NSWindow.didMoveNotification, object: window, queue: .main
         ) { [weak self, weak window] _ in
@@ -122,7 +129,6 @@ final class DesktopWidgetManager {
     private func defaultPlacement(for instance: WidgetInstance) -> DesktopWidgetPlacement {
         let size = instance.family.desktopSize
         let screen = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
-        // Stagger new widgets a little so they don't stack exactly on top of each other.
         let jitter = CGFloat(placements.count % 6) * 28
         let origin = CGPoint(
             x: screen.midX - size.width / 2 + jitter,
@@ -132,8 +138,6 @@ final class DesktopWidgetManager {
                                       step: Self.initialStep(for: instance))
     }
 
-    /// Initial interaction step for a freshly placed widget — themed/DIY start from their payload
-    /// flag, everything else from 0.
     private static func initialStep(for instance: WidgetInstance) -> Int {
         switch instance.payload {
         case .themed(let s): return s.isClosed ? 1 : 0
@@ -147,54 +151,60 @@ final class DesktopWidgetManager {
     }
 }
 
-// MARK: - Overlay window
-
-/// Borderless, transparent, draggable window that lives on the desktop layer (just above the
-/// icons) on every Space.
 final class DesktopWidgetWindow: NSWindow {
     init(contentRect: CGRect) {
         super.init(contentRect: contentRect, styleMask: [.borderless], backing: .buffered, defer: false)
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
-        isMovableByWindowBackground = true     // drag anywhere to reposition
+        isMovableByWindowBackground = true
         ignoresMouseEvents = false
-        // Sit just above the desktop icons so the widget reads as part of the wallpaper but stays
-        // below regular app windows (the same place macOS keeps its own desktop widgets).
-        level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
+        level = DesktopWidgetManager.desktopLevel
         collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         isReleasedWhenClosed = false
     }
 
-    // A borderless window won't become key by default; allow it so clicks register for interactive
-    // widgets without stealing focus aggressively.
     override var canBecomeKey: Bool { true }
 }
 
-// MARK: - Overlay content
-
-/// SwiftUI content for a placed widget. Reads its instance live from `WidgetStore` — the instance
-/// payload is the single source of truth for the interactive flag, so an edit-and-save reflects
-/// immediately and never diverges from a separate local copy. A click flips the flag through the
-/// manager, which persists it back onto the instance.
 private struct DesktopWidgetContent: View {
     let instanceID: UUID
+    @Environment(WidgetStore.self) private var store
+    @Environment(DesktopWidgetManager.self) private var desktop
 
     var body: some View {
         Group {
-            if let instance = WidgetStore.shared.instance(id: instanceID) {
+            if let instance = store.instance(id: instanceID) {
+                let interactive = instance.kind.isInteractive
                 WidgetRenderView(instance: instance,
                                  isToggled: Self.flag(for: instance),
-                                 carouselStep: DesktopWidgetManager.shared.step(for: instanceID))
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .contentShape(Rectangle())
+                                 carouselStep: desktop.step(for: instanceID))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     .onTapGesture {
-                        guard instance.kind.isInteractive else { return }
+                        guard interactive else { return }
                         if instance.kind == .polaroid {
-                            DesktopWidgetManager.shared.advance(for: instanceID)
+                            desktop.advance(for: instanceID)
                         } else {
-                            DesktopWidgetManager.shared.updateToggle(!Self.flag(for: instance), for: instanceID)
+                            desktop.updateToggle(!Self.flag(for: instance), for: instanceID)
                         }
+                    }
+                    .contextMenu {
+                        if interactive {
+                            Button(actionLabel(for: instance), systemImage: "hand.tap") {
+                                if instance.kind == .polaroid {
+                                    desktop.advance(for: instanceID)
+                                } else {
+                                    desktop.updateToggle(!Self.flag(for: instance), for: instanceID)
+                                }
+                            }
+                            Divider()
+                        }
+                        Button("Edit Widget", systemImage: "pencil") { desktop.requestEdit(instanceID) }
+                        Button("Bring to Front", systemImage: "square.3.layers.3d.top.filled") { desktop.bringToFront(instanceID) }
+                        Divider()
+                        Button("Remove from Desktop", systemImage: "rectangle.badge.minus") { desktop.remove(instanceID) }
+                        Button("Delete Widget", systemImage: "trash", role: .destructive) { desktop.deleteWidget(instanceID) }
                     }
             } else {
                 Color.clear
@@ -203,7 +213,14 @@ private struct DesktopWidgetContent: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    /// The persisted interactive flag for an instance (themed closed/hidden, DIY animating).
+    private func actionLabel(for instance: WidgetInstance) -> String {
+        switch instance.kind {
+        case .polaroid: return String(localized: "Next Photo")
+        case .diyAnimated: return String(localized: "Play")
+        default: return Self.flag(for: instance) ? String(localized: "Open") : String(localized: "Close")
+        }
+    }
+
     static func flag(for instance: WidgetInstance) -> Bool {
         switch instance.payload {
         case .themed(let s): return s.isClosed

@@ -1,16 +1,12 @@
 import Foundation
 import CoreGraphics
 
-/// A widget placed on the desktop: which instance, where, at what size, and its interactive state.
-/// Persisted to `WidgetPaths.placementsFile` so placements survive relaunch (the manager restores
-/// them at launch).
 struct DesktopWidgetPlacement: Codable, Equatable, Identifiable {
-    var id: UUID                 // == WidgetInstance.id (one placement per instance)
-    var originX: CGFloat         // bottom-left, in screen (AppKit) coordinates
+    var id: UUID
+    var originX: CGFloat
     var originY: CGFloat
     var width: CGFloat
     var height: CGFloat
-    /// Interaction position to restore: themed reveal as 0/1, polaroid carousel index.
     var step: Int
 
     var frame: CGRect {
@@ -34,8 +30,6 @@ struct DesktopWidgetPlacement: Codable, Equatable, Identifiable {
         case id, originX, originY, width, height, step, isToggled
     }
 
-    // Custom decode so placements written by the previous (`isToggled: Bool`) build still load —
-    // legacy `true` maps to step 1.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
@@ -63,18 +57,24 @@ struct DesktopWidgetPlacement: Codable, Equatable, Identifiable {
     }
 }
 
-/// Disk persistence for desktop placements.
 enum WidgetPlacementStore {
     private static let encoder: JSONEncoder = {
         let e = JSONEncoder(); e.outputFormatting = [.prettyPrinted]; return e
     }()
 
     static func load() -> [DesktopWidgetPlacement] {
-        guard let data = try? Data(contentsOf: WidgetPaths.placementsFile),
-              let list = try? JSONDecoder().decode([DesktopWidgetPlacement].self, from: data) else {
+        let url = WidgetPaths.placementsFile
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        do {
+            let data = try Data(contentsOf: url)
+            return try JSONDecoder().decode([DesktopWidgetPlacement].self, from: data)
+        } catch {
+            Log.app.error("Placements load failed; backing up corrupt file: \(error.localizedDescription, privacy: .public)")
+            let backup = url.appendingPathExtension("corrupt")
+            try? FileManager.default.removeItem(at: backup)
+            try? FileManager.default.moveItem(at: url, to: backup)
             return []
         }
-        return list
     }
 
     static func save(_ placements: [DesktopWidgetPlacement]) {

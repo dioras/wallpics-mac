@@ -1,9 +1,6 @@
 import AppKit
 import Observation
 
-/// Owns the user's created widgets: load/save to `WidgetPaths.instancesFile`, import photos into
-/// each instance's asset directory, and CRUD. Observed by the gallery so saving a widget updates
-/// the UI immediately. Mirrors the role of the iOS App Group state stores, but app-local.
 @MainActor
 @Observable
 final class WidgetStore {
@@ -27,19 +24,18 @@ final class WidgetStore {
         load()
     }
 
-    // MARK: - Load / save
-
     private func load() {
         let url = WidgetPaths.instancesFile
-        // A missing file is the normal first-launch case; only an existing-but-unreadable file is
-        // an error worth logging (so a corrupt/locked store doesn't masquerade as "no widgets").
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         do {
             let data = try Data(contentsOf: url)
             instances = try decoder.decode([WidgetInstance].self, from: data)
                 .sorted { $0.updatedAt > $1.updatedAt }
         } catch {
-            Log.app.error("Widget instances load failed: \(error.localizedDescription, privacy: .public)")
+            Log.app.error("Widget instances load failed; backing up corrupt file: \(error.localizedDescription, privacy: .public)")
+            let backup = url.appendingPathExtension("corrupt")
+            try? FileManager.default.removeItem(at: backup)
+            try? FileManager.default.moveItem(at: url, to: backup)
         }
     }
 
@@ -52,9 +48,6 @@ final class WidgetStore {
         }
     }
 
-    // MARK: - CRUD
-
-    /// Insert or update an instance (matched by id) and persist. Newest-updated first.
     func upsert(_ instance: WidgetInstance) {
         var next = instance
         next.updatedAt = Date()
@@ -71,7 +64,6 @@ final class WidgetStore {
         instances.first { $0.id == id }
     }
 
-    /// Toggle the interactive flag (elevator/garage/etc. open-closed, DIY open) and persist.
     func setToggle(id: UUID, isOn: Bool) {
         guard let idx = instances.firstIndex(where: { $0.id == id }) else { return }
         switch instances[idx].payload {
@@ -87,16 +79,21 @@ final class WidgetStore {
         persist()
     }
 
+    func updateTemplateAssets(id: UUID, thumbnailURLString: String?, templateSlug: String?) {
+        guard let idx = instances.firstIndex(where: { $0.id == id }),
+              case .template(var t) = instances[idx].payload else { return }
+        if let thumbnailURLString, !thumbnailURLString.isEmpty { t.thumbnailURLString = thumbnailURLString }
+        if let templateSlug, !templateSlug.isEmpty, t.templateSlug.isEmpty { t.templateSlug = templateSlug }
+        instances[idx].payload = .template(t)
+        persist()
+    }
+
     func delete(id: UUID) {
         instances.removeAll { $0.id == id }
         try? FileManager.default.removeItem(at: WidgetPaths.assetsDirectory(for: id))
         persist()
     }
 
-    // MARK: - Asset import
-
-    /// Copy a picked image into the instance's asset directory, downsampled to a sane max, and
-    /// return its file name (relative path). Returns `nil` if the file can't be read or encoded.
     @discardableResult
     func importImage(from sourceURL: URL, into id: UUID, maxPixelSize: Int = 1024) -> String? {
         guard let image = WidgetImage.load(at: sourceURL, maxPixelSize: maxPixelSize) else { return nil }
@@ -115,7 +112,6 @@ final class WidgetStore {
         }
     }
 
-    /// Persist an in-memory NSImage (e.g. a baked frame) into the instance directory.
     @discardableResult
     func writeImage(_ image: NSImage, named fileName: String, into id: UUID, asPNG: Bool = false) -> String? {
         guard let data = asPNG ? image.pngData() : image.jpegData(compressionQuality: 0.92) else { return nil }
@@ -129,7 +125,6 @@ final class WidgetStore {
         }
     }
 
-    /// Absolute URL for a relative asset path stored in an instance payload.
     func assetURL(for relativePath: String, in id: UUID) -> URL {
         WidgetPaths.assetsDirectory(for: id).appendingPathComponent(relativePath)
     }

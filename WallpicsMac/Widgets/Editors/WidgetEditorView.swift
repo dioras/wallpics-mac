@@ -1,11 +1,7 @@
 import SwiftUI
 
-/// Adaptive editor for any widget kind. Left: a live, tappable preview rendered by the same
-/// `WidgetRenderView` used on the desktop. Right: the controls relevant to the kind (photos,
-/// family, name, polaroid styling). Presented as a sheet from the gallery / My Widgets.
 struct WidgetEditorView: View {
     @State var model: WidgetEditorModel
-    /// Called with the saved instance so the caller can offer "Place on Desktop".
     var onSaved: (WidgetInstance) -> Void
     var onCancel: () -> Void
 
@@ -29,8 +25,6 @@ struct WidgetEditorView: View {
         .background(AmbientBackdrop())
         .task { await model.prepare() }
     }
-
-    // MARK: - Header / footer
 
     private var header: some View {
         HStack {
@@ -58,15 +52,12 @@ struct WidgetEditorView: View {
                 let saved = model.save()
                 onSaved(saved)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(PrimaryButtonStyle(fullWidth: false))
             .disabled(!model.canSave)
             .keyboardShortcut(.defaultAction)
         }
         .padding(Theme.Space.l)
     }
-
-    // MARK: - Preview
 
     private var previewColumn: some View {
         VStack(spacing: Theme.Space.m) {
@@ -83,7 +74,7 @@ struct WidgetEditorView: View {
                 .onTapGesture {
                     guard model.instance.kind.isInteractive else { return }
                     if model.instance.kind == .polaroid {
-                        model.previewStep += 1   // PolaroidBody animates the slot change itself
+                        model.previewStep += 1
                     } else {
                         withAnimation(.easeOut(duration: 0.55)) { model.previewToggle.toggle() }
                     }
@@ -99,13 +90,10 @@ struct WidgetEditorView: View {
     }
 
     private var previewSize: CGSize {
-        // `aspectRatio` is width/height: 1 for small/large (square), 2 for medium (2:1).
         let maxW: CGFloat = 240
         let ar = model.instance.family.aspectRatio
         return CGSize(width: maxW, height: maxW / ar)
     }
-
-    // MARK: - Controls
 
     @ViewBuilder
     private var controlsColumn: some View {
@@ -146,7 +134,7 @@ struct WidgetEditorView: View {
     private var photoControls: some View {
         switch model.instance.kind {
         case .staticImage, .template:
-            EmptyView() // image comes from the backend bundle
+            EmptyView()
         case .polaroid, .photo:
             multiPhotoControls
         default:

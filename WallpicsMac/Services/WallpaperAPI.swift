@@ -126,8 +126,6 @@ actor WallpaperAPI {
 
     // MARK: - Widgets (backend-driven catalog)
 
-    /// Widget category tree (`GET /api/category-list?modelType=widget`). Cheap call to discover
-    /// which sub-categories exist; the grid then fetches widgets per category.
     func widgetCategories() async throws -> [WidgetCategoryNode] {
         _ = try await ensureGuestID()
         var components = URLComponents(url: baseURL.appendingPathComponent("api/category-list"), resolvingAgainstBaseURL: false)!
@@ -145,8 +143,7 @@ actor WallpaperAPI {
         }
     }
 
-    /// Paginated widget catalog (`GET /api/widgets`). Pass a category slug to scope to one section.
-    func widgets(categorySlug: String? = nil, page: Int = 1, perPage: Int = 24) async throws -> [WidgetCatalogItem] {
+    func widgets(categorySlug: String? = nil, query: String? = nil, page: Int = 1, perPage: Int = 24) async throws -> [WidgetCatalogItem] {
         _ = try await ensureGuestID()
         var components = URLComponents(url: baseURL.appendingPathComponent("api/widgets"), resolvingAgainstBaseURL: false)!
         var items: [URLQueryItem] = [
@@ -156,6 +153,9 @@ actor WallpaperAPI {
         ]
         if let slug = categorySlug, !slug.isEmpty {
             items.append(URLQueryItem(name: "categorySlug", value: slug))
+        }
+        if let query, !query.isEmpty {
+            items.append(URLQueryItem(name: "query", value: query))
         }
         components.queryItems = items
         guard let url = components.url else { throw APIError.invalidURL }
@@ -171,7 +171,6 @@ actor WallpaperAPI {
         }
     }
 
-    /// Fire-and-forget widget usage report (`POST /api/add_use/widget/{id}`).
     func recordWidgetUse(widgetID: String) async {
         do {
             _ = try await ensureGuestID()
@@ -185,10 +184,6 @@ actor WallpaperAPI {
         }
     }
 
-    /// Download a widget bundle zip and return its bytes for extraction. Requires https (so a
-    /// crafted `file://`/`http://` `bundle_url` can't be fetched), and only attaches the
-    /// first-party auth headers (which include the guest id) when the host is a wallpics.app
-    /// domain — bundles served from a third-party CDN download fine without leaking the guest id.
     func downloadData(from url: URL) async throws -> Data {
         guard url.scheme == "https" else { throw APIError.invalidURL }
         var req = URLRequest(url: url)

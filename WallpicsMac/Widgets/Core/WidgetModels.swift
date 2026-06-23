@@ -1,20 +1,6 @@
 import Foundation
 import CoreGraphics
 
-// Cross-platform widget model for the macOS port of the iOS Wallpics widget system.
-//
-// On iOS the widgets live in a WidgetKit extension and persist their state to an App Group
-// that the extension reads back. macOS has no equivalent in-app home screen, so here we own
-// the whole pipeline: the app renders each widget itself (see `WidgetRenderView`) and can
-// place it as a live desktop overlay (see `DesktopWidgetManager`). That means we don't need
-// an App Group / provisioning — instances persist to Application Support like the rest of the
-// Mac app's data (`CacheManager`).
-//
-// The state structs below mirror the iOS `*WidgetState` shapes (photo file + a toggle flag,
-// polaroid frame variant + photos, etc.) so the rendering stays faithful.
-
-/// The widget canvas families ported from iOS. macOS desktop overlays render these at a
-/// larger physical size than an iPhone home screen, but the aspect ratios are preserved.
 enum WidgetFamily: String, Codable, CaseIterable, Identifiable, Sendable {
     case small
     case medium
@@ -30,8 +16,6 @@ enum WidgetFamily: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Canonical render aspect, matching iOS home-screen widget proportions
-    /// (small/large are square, medium is 2:1).
     var aspectRatio: CGFloat {
         switch self {
         case .small: return 1
@@ -40,8 +24,6 @@ enum WidgetFamily: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Base point size used for in-app previews and the default desktop overlay size.
-    /// Scaled up from the iPhone home-screen footprint so widgets read well on a Mac desktop.
     var desktopSize: CGSize {
         switch self {
         case .small:  return CGSize(width: 200, height: 200)
@@ -51,19 +33,16 @@ enum WidgetFamily: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// Every widget type ported from the iOS app. Lock-screen-only families (accessory circular /
-/// rectangular / inline) and the iOS 26 control widget are intentionally excluded — they have no
-/// macOS analog. Everything that renders on a home-screen surface is here.
 enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
-    case photo          // user photo(s), optionally rotating
-    case staticImage    // backend-provided still image (NEW in the latest iOS build)
-    case polaroid       // stacked / fanned polaroid carousel
-    case elevator       // themed: doors slide open to reveal the photo (interactive)
-    case openedEyes     // themed: torn-paper eyelids slide open (interactive)
-    case garageDoor     // themed: door slides up to reveal the photo (interactive)
-    case windowsXP      // themed: photo slides behind the Bliss hill (interactive)
-    case diyAnimated    // template-driven baked-frame animation
-    case template       // backend Widgify template (config.json + assets)
+    case photo
+    case staticImage
+    case polaroid
+    case elevator
+    case openedEyes
+    case garageDoor
+    case windowsXP
+    case diyAnimated
+    case template
 
     var id: String { rawValue }
 
@@ -95,9 +74,6 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Widgets that respond to a click on the desktop overlay — the themed reveal widgets toggle
-    /// open/closed, DIY plays its animation, and the polaroid advances its carousel. (This
-    /// interactivity is the one thing a real macOS WidgetKit extension couldn't reproduce.)
     var isInteractive: Bool {
         switch self {
         case .elevator, .openedEyes, .garageDoor, .windowsXP, .diyAnimated, .polaroid: return true
@@ -105,7 +81,6 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Asset-bundle slug for themed widgets (matches the iOS `WidgetTemplates/<slug>/...` layout).
     var themeSlug: String? {
         switch self {
         case .elevator:   return "elevator"
@@ -125,25 +100,16 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
-// MARK: - Per-kind state (mirrors the iOS `*WidgetState` structs)
-
-/// Photo widget: one or more user photos (rotated by the widget over time on iOS; on the desktop
-/// overlay we show the first and cycle on a timer). `relativePaths` resolve against the instance's
-/// asset directory.
 struct PhotoWidgetState: Codable, Equatable, Sendable {
     var relativePaths: [String] = []
-    /// `true` keeps the photo aspect-filled (default, like iOS); `false` fits it letterboxed.
     var fill: Bool = true
 }
 
-/// Static image widget (NEW): a single backend PNG copied into the instance directory.
 struct StaticImageState: Codable, Equatable, Sendable {
     var relativePath: String = ""
-    /// Slug of the catalog item it came from, for usage reporting / re-download.
     var sourceSlug: String? = nil
 }
 
-/// Polaroid carousel. Background mirrors the iOS `PolaroidWidgetState.Background`.
 struct PolaroidWidgetState: Codable, Equatable, Sendable {
     enum Background: Codable, Equatable, Sendable {
         case transparent
@@ -155,16 +121,11 @@ struct PolaroidWidgetState: Codable, Equatable, Sendable {
     var background: Background = .transparent
 }
 
-/// Shared shape for the four themed reveal widgets (elevator / opened-eyes / garage-door /
-/// windows-xp). They differ only in their asset set and slide geometry, not their data.
 struct ThemedToggleState: Codable, Equatable, Sendable {
     var photoRelativePath: String? = nil
-    /// Closed (door/eyelid shut, photo hidden) vs open. For Windows XP this reads as "hidden".
     var isClosed: Bool = false
 }
 
-/// DIY animated widget: a template slug plus the user's photo. iOS bakes opaque frames at save
-/// time; the Mac editor does the same and stores their relative paths here.
 struct DIYAnimatedWidgetState: Codable, Equatable, Sendable {
     var templateSlug: String = ""
     var photoRelativePath: String? = nil
@@ -173,23 +134,15 @@ struct DIYAnimatedWidgetState: Codable, Equatable, Sendable {
     var isOpen: Bool = false
 }
 
-/// Backend Widgify template. `replacements` carries the dynamic text/color customizations keyed
-/// by the template's `#{customize.X}` field names.
 struct TemplateWidgetState: Codable, Equatable, Sendable {
     var templateSlug: String = ""
     var sizeFolder: String = "small"
     var photoRelativePath: String? = nil
     var replacements: [String: String] = [:]
-    /// Animated WebP / preview asset relative path, used for the in-app + desktop render.
     var previewRelativePath: String? = nil
-    /// Remote catalog thumbnail, rendered as the fallback when there's no local preview asset —
-    /// so a template / unsupported backend kind (e.g. `world_cup_stats`) shows its real artwork
-    /// instead of an empty placeholder.
     var thumbnailURLString: String? = nil
 }
 
-/// Discriminated payload. Swift synthesises `Codable` for enums with associated values, which is
-/// all we need for local persistence.
 enum WidgetPayload: Codable, Equatable, Sendable {
     case photo(PhotoWidgetState)
     case staticImage(StaticImageState)
@@ -197,16 +150,9 @@ enum WidgetPayload: Codable, Equatable, Sendable {
     case themed(ThemedToggleState)
     case diyAnimated(DIYAnimatedWidgetState)
     case template(TemplateWidgetState)
-    // Note: the four themed kinds share `.themed`, so the payload can't identify which theme it
-    // is — `WidgetInstance.kind` is the single source of truth, and all rendering/editing dispatch
-    // on it. (A `payload.kind` accessor would be ambiguous for `.themed`, so it's deliberately
-    // absent.)
 }
 
-// MARK: - Payload accessors
-
 extension WidgetPayload {
-    /// Photo paths for `.photo` and `.polaroid`; `nil` for all other kinds.
     var relativePaths: [String]? {
         switch self {
         case .photo(let s): return s.relativePaths
@@ -215,42 +161,42 @@ extension WidgetPayload {
         }
     }
 
-    /// Single user photo path used by themed reveal widgets and DIY animated.
     var themedPhotoPath: String? {
         if case .themed(let s) = self { return s.photoRelativePath }
         return nil
     }
 
-    /// Relative path for the `.staticImage` payload.
     var staticImagePath: String? {
         if case .staticImage(let s) = self { return s.relativePath.isEmpty ? nil : s.relativePath }
         return nil
     }
 
-    /// Preview/render path for the `.template` payload.
     var templatePreviewPath: String? {
         if case .template(let s) = self { return s.previewRelativePath }
         return nil
     }
 
-    /// Remote thumbnail URL fallback for the `.template` payload.
     var templateThumbnailURL: URL? {
         if case .template(let s) = self { return s.thumbnailURLString.flatMap(URL.init(string:)) }
         return nil
     }
 
-    /// Whether the photo fill flag is enabled (`.photo` only; defaults to `true`).
+    var templateSlug: String? {
+        if case .template(let s) = self { return s.templateSlug.isEmpty ? nil : s.templateSlug }
+        return nil
+    }
+
+    var templatePhotoPath: String? {
+        if case .template(let s) = self { return s.photoRelativePath }
+        return nil
+    }
+
     var photoFill: Bool {
         if case .photo(let s) = self { return s.fill }
         return true
     }
 }
 
-// MARK: - Instance
-
-/// A user-created widget. This is the unit the gallery lists, the editors produce, and the
-/// desktop manager places. Photos and baked frames live in `assetsDirectory`; the relative paths
-/// inside `payload` resolve against it.
 struct WidgetInstance: Codable, Equatable, Identifiable, Sendable {
     let id: UUID
     var kind: WidgetKind

@@ -1,11 +1,8 @@
 import SwiftUI
 
-/// The Widgets tab: a backend-driven gallery of every widget (the "all widgets" surface) plus the
-/// user's created widgets, which can be placed on the desktop as live overlays. Built in the same
-/// One4Wall idiom as Browse/Uploads — immersive black surface, 30pt white header, glass-capsule
-/// filters, white-on-dark empty states, `Motion.reward` grid animation.
 struct WidgetsView: View {
     @Bindable var model: WidgetsViewModel
+    @Environment(AppEnvironment.self) private var env
     @State private var editor: WidgetEditorModel?
     @State private var desktop = DesktopWidgetManager.shared
 
@@ -23,25 +20,26 @@ struct WidgetsView: View {
         }
         .scrollContentBackground(.hidden)
         .background(.black)
-        // The browse surface is always dark (like Browse/Uploads), so force a dark scheme for the
-        // content — default-colored controls (search field text, `.secondary` glyphs) then read as
-        // light regardless of the system appearance. The editor sheet keeps its own adaptive scheme.
         .environment(\.colorScheme, .dark)
         .task { await model.loadIfNeeded() }
+        .task(id: env.widgetEditRequestID) {
+            guard let id = env.widgetEditRequestID, let instance = model.store.instance(id: id) else { return }
+            model.tab = .mine
+            editor = WidgetEditorModel(editing: instance)
+            env.widgetEditRequestID = nil
+        }
         .sheet(item: $editor) { editorModel in
             WidgetEditorView(
                 model: editorModel,
                 onSaved: { saved in
                     editor = nil
                     model.tab = .mine
-                    desktop.place(saved)          // place on the desktop right away
+                    desktop.place(saved)
                 },
                 onCancel: { editor = nil }
             )
         }
     }
-
-    // MARK: - Header
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -64,11 +62,12 @@ struct WidgetsView: View {
             Button { editor = WidgetEditorModel(creating: .photo) } label: { Label("Photo Widget", systemImage: "photo") }
             Button { editor = WidgetEditorModel(creating: .polaroid) } label: { Label("Polaroid Widget", systemImage: "photo.stack") }
         } label: {
-            HStack(spacing: 7) {
+            HStack(spacing: 6) {
                 Image(systemName: "plus").font(.system(size: 12, weight: .bold))
                 Text("New").font(.callout.weight(.semibold))
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).opacity(0.55)
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 16)
             .padding(.vertical, 9)
             .foregroundStyle(.black)
             .background(.white, in: Capsule())
@@ -78,8 +77,6 @@ struct WidgetsView: View {
         .fixedSize()
         .help(String(localized: "Create a widget from your photos"))
     }
-
-    // MARK: - Toolbar (segmented toggle + search), mirrors BrowseToolbar
 
     private var toolbar: some View {
         HStack(spacing: Theme.Space.m) {
@@ -111,8 +108,6 @@ struct WidgetsView: View {
         }
     }
 
-    // MARK: - Gallery
-
     @ViewBuilder
     private var galleryTab: some View {
         if !model.categoryChips.isEmpty { categoryChips }
@@ -128,13 +123,13 @@ struct WidgetsView: View {
                 ForEach(model.filteredItems) { item in
                     WidgetGalleryTile(item: item)
                         .onTapGesture { openEditor(for: item) }
-                        .task { await model.loadNextPageIfNeeded(currentItem: item) }
                 }
             }
             .animation(Motion.reward, value: model.filteredItems.map { $0.id ?? "" })
-            if model.isLoading {
+            if model.hasMore && model.query.isEmpty {
                 ProgressView().controlSize(.small).tint(.white)
                     .frame(maxWidth: .infinity).padding(.top, Theme.Space.m)
+                    .onAppear { Task { await model.loadMore() } }
             }
         }
     }
@@ -162,8 +157,6 @@ struct WidgetsView: View {
         editor = WidgetEditorModel(creating: kind, family: kind.supportedFamilies.first ?? .small, source: item)
     }
 
-    // MARK: - My Widgets
-
     @ViewBuilder
     private var myWidgetsTab: some View {
         if model.myWidgets.isEmpty {
@@ -190,8 +183,6 @@ struct WidgetsView: View {
             .animation(Motion.reward, value: model.myWidgets.map(\.id))
         }
     }
-
-    // MARK: - States (white-on-dark, matching Browse/Uploads)
 
     private var loadingState: some View {
         VStack(spacing: Theme.Space.m) {
@@ -263,10 +254,6 @@ struct WidgetsView: View {
     }
 }
 
-// MARK: - Shared chrome (mirrors BrowseView's CollectionFilter / CategoryChip)
-
-/// Glass-capsule segmented control with an accent-filled active segment — the exact idiom Browse
-/// uses for its Photos/Live/Shaders switch.
 private struct WidgetSegmentedToggle: View {
     @Binding var selection: WidgetsViewModel.Tab
 
@@ -298,7 +285,6 @@ private struct WidgetSegmentedToggle: View {
     }
 }
 
-/// Capsule filter chip — white-on-select / faint-glass otherwise, matching Browse's `CategoryChip`.
 private struct WidgetCategoryChip: View {
     let title: String
     let isSelected: Bool

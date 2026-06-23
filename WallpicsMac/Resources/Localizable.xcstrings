@@ -962,6 +962,9 @@
         }
       }
     },
+    "Bring to Front" : {
+
+    },
     "Bring your own images, videos, GIFs or shaders." : {
 
     },
@@ -1345,13 +1348,7 @@
     "Choose Photo" : {
 
     },
-    "Click to place" : {
-
-    },
     "Click to place on your desktop" : {
-
-    },
-    "Click to remove" : {
 
     },
     "Close" : {
@@ -1649,6 +1646,9 @@
 
     },
     "Delete" : {
+
+    },
+    "Delete Widget" : {
 
     },
     "DIY Animated" : {
@@ -2594,6 +2594,9 @@
         }
       }
     },
+    "Next Photo" : {
+
+    },
     "No favorites yet" : {
       "localizations" : {
         "de" : {
@@ -2928,6 +2931,9 @@
     "On your desktop — click to remove" : {
 
     },
+    "Open" : {
+
+    },
     "Open Browse" : {
       "localizations" : {
         "de" : {
@@ -3232,6 +3238,9 @@
           }
         }
       }
+    },
+    "Play" : {
+
     },
     "Play on battery power" : {
       "localizations" : {
@@ -4624,6 +4633,9 @@
       }
     },
     "This wallpaper isn't available right now." : {
+
+    },
+    "This widget's assets couldn't be downloaded. Check your connection and try again." : {
 
     },
     "This widget's image couldn't be found in the downloaded bundle." : {
