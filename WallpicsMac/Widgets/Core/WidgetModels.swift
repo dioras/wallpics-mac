@@ -35,6 +35,7 @@ enum WidgetFamily: String, Codable, CaseIterable, Identifiable, Sendable {
 
 enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case photo
+    case video
     case staticImage
     case polaroid
     case elevator
@@ -49,6 +50,7 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
     var displayName: String {
         switch self {
         case .photo:       return String(localized: "Photo")
+        case .video:       return String(localized: "Video")
         case .staticImage: return String(localized: "Image")
         case .polaroid:    return String(localized: "Polaroid")
         case .elevator:    return String(localized: "Elevator")
@@ -63,6 +65,7 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
     var symbol: String {
         switch self {
         case .photo:       return "photo"
+        case .video:       return "video"
         case .staticImage: return "photo.artframe"
         case .polaroid:    return "photo.stack"
         case .elevator:    return "rectangle.split.2x1"
@@ -93,9 +96,9 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var supportedFamilies: [WidgetFamily] {
         switch self {
-        case .photo, .staticImage, .template: return [.small, .medium, .large]
-        case .polaroid:                        return [.small, .medium]
-        default:                               return [.small]
+        case .photo, .video, .staticImage, .template: return [.small, .medium, .large]
+        case .polaroid:                               return [.small, .medium]
+        default:                                      return [.small]
         }
     }
 }
@@ -103,6 +106,15 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
 struct PhotoWidgetState: Codable, Equatable, Sendable {
     var relativePaths: [String] = []
     var fill: Bool = true
+    var offsetX: CGFloat = 0
+    var offsetY: CGFloat = 0
+}
+
+struct VideoWidgetState: Codable, Equatable, Sendable {
+    var relativePath: String = ""
+    var fill: Bool = true
+    var offsetX: CGFloat = 0
+    var offsetY: CGFloat = 0
 }
 
 struct StaticImageState: Codable, Equatable, Sendable {
@@ -145,6 +157,7 @@ struct TemplateWidgetState: Codable, Equatable, Sendable {
 
 enum WidgetPayload: Codable, Equatable, Sendable {
     case photo(PhotoWidgetState)
+    case video(VideoWidgetState)
     case staticImage(StaticImageState)
     case polaroid(PolaroidWidgetState)
     case themed(ThemedToggleState)
@@ -194,6 +207,24 @@ extension WidgetPayload {
     var photoFill: Bool {
         if case .photo(let s) = self { return s.fill }
         return true
+    }
+
+    var videoPath: String? {
+        if case .video(let s) = self { return s.relativePath.isEmpty ? nil : s.relativePath }
+        return nil
+    }
+
+    var videoFill: Bool {
+        if case .video(let s) = self { return s.fill }
+        return true
+    }
+
+    var focalOffset: CGPoint {
+        switch self {
+        case .photo(let s): return CGPoint(x: s.offsetX, y: s.offsetY)
+        case .video(let s): return CGPoint(x: s.offsetX, y: s.offsetY)
+        default: return .zero
+        }
     }
 }
 

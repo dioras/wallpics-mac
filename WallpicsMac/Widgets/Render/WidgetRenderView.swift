@@ -1,4 +1,5 @@
 import SwiftUI
+import AVFoundation
 
 struct WidgetRenderView: View {
     let instance: WidgetInstance
@@ -17,6 +18,7 @@ struct WidgetRenderView: View {
     private func content(width w: CGFloat, height h: CGFloat) -> some View {
         switch instance.kind {
         case .photo:       PhotoBody(instance: instance, w: w, h: h)
+        case .video:       VideoBody(instance: instance, w: w, h: h)
         case .staticImage: StaticImageBody(instance: instance, w: w, h: h)
         case .polaroid:    PolaroidBody(instance: instance, step: carouselStep, w: w, h: h)
         case .elevator:    ElevatorBody(instance: instance, isClosed: isToggled, w: w, h: h)
@@ -59,33 +61,89 @@ private struct ImageLayer: View {
     }
 }
 
+private struct FocalFillImage: View {
+    let image: NSImage
+    var fill: Bool = true
+    var offset: CGPoint = .zero
+    let w: CGFloat
+    let h: CGFloat
+
+    var body: some View {
+        if fill {
+            let imgSize = image.size
+            let zoom = max(w / max(imgSize.width, 1), h / max(imgSize.height, 1)) * 1.12
+            let sw = imgSize.width * zoom
+            let sh = imgSize.height * zoom
+            let maxX = max(0, (sw - w) / 2)
+            let maxY = max(0, (sh - h) / 2)
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: sw, height: sh)
+                .offset(x: offset.x * maxX, y: offset.y * maxY)
+                .frame(width: w, height: h)
+                .clipped()
+        } else {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: w, height: h)
+        }
+    }
+}
+
 private struct PhotoBody: View {
     let instance: WidgetInstance
     let w: CGFloat
     let h: CGFloat
 
+    @State private var images: [NSImage] = []
+    @State private var index = 0
+
     var body: some View {
         let state = photoState
-        let image = WidgetRenderAssets.userImage(state.relativePaths.first, in: instance.id, maxPixelSize: 900)
         ZStack {
             Color.black.opacity(0.25)
-            if let image {
-                Image(nsImage: image)
-                    .resizable()
-                    .interpolation(.high)
-                    .aspectRatio(contentMode: state.fill ? .fill : .fit)
-                    .frame(width: w, height: h)
-                    .clipped()
-            } else {
+            if images.isEmpty {
                 placeholder
+            } else {
+                let safe = min(index, images.count - 1)
+                FocalFillImage(image: images[safe], fill: state.fill,
+                               offset: CGPoint(x: state.offsetX, y: state.offsetY), w: w, h: h)
+                    .id(safe)
+                    .transition(.opacity)
             }
         }
         .frame(width: w, height: h)
+        .task(id: imagesKey) { loadImages() }
+        .task(id: images.count) { await runSlideshow() }
     }
 
     private var photoState: PhotoWidgetState {
         if case .photo(let s) = instance.payload { return s }
         return PhotoWidgetState()
+    }
+
+    private var imagesKey: String {
+        instance.id.uuidString + "|" + photoState.relativePaths.joined(separator: ",")
+    }
+
+    @MainActor
+    private func loadImages() {
+        images = photoState.relativePaths.prefix(8).compactMap {
+            WidgetRenderAssets.userImage($0, in: instance.id, maxPixelSize: 900)
+        }
+        index = 0
+    }
+
+    private func runSlideshow() async {
+        guard images.count > 1 else { return }
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            guard !Task.isCancelled, images.count > 1 else { continue }
+            withAnimation(.easeInOut(duration: 0.6)) { index = (index + 1) % images.count }
+        }
     }
 
     private var placeholder: some View {
@@ -120,6 +178,94 @@ private struct StaticImageBody: View {
             }
         }
         .frame(width: w, height: h)
+    }
+}
+
+private struct VideoBody: View {
+    let instance: WidgetInstance
+    let w: CGFloat
+    let h: CGFloat
+
+    var body: some View {
+        let state = videoState
+        let url = state.relativePath.isEmpty ? nil
+            : WidgetStore.shared.assetURL(for: state.relativePath, in: instance.id)
+        ZStack {
+            Color.black
+            if let url {
+                WidgetVideoPlayerView(url: url, fill: state.fill)
+                    .scaleEffect(state.fill ? 1.18 : 1)
+                    .offset(x: state.offsetX * w * 0.12, y: state.offsetY * h * 0.12)
+                    .frame(width: w, height: h)
+                    .clipped()
+            } else {
+                VStack(spacing: 6) {
+                    Image(systemName: "video").font(.system(size: min(w, h) * 0.22))
+                    Text("Add video").font(.caption)
+                }
+                .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: w, height: h)
+        .clipped()
+    }
+
+    private var videoState: VideoWidgetState {
+        if case .video(let s) = instance.payload { return s }
+        return VideoWidgetState()
+    }
+}
+
+private struct WidgetVideoPlayerView: NSViewRepresentable {
+    let url: URL
+    var fill: Bool = true
+
+    func makeNSView(context: Context) -> LoopingVideoView { LoopingVideoView() }
+    func updateNSView(_ view: LoopingVideoView, context: Context) { view.configure(url: url, fill: fill) }
+    static func dismantleNSView(_ view: LoopingVideoView, coordinator: ()) { view.stop() }
+}
+
+final class LoopingVideoView: NSView {
+    private let playerLayer = AVPlayerLayer()
+    private var player: AVQueuePlayer?
+    private var looper: AVPlayerLooper?
+    private var currentURL: URL?
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layer?.addSublayer(playerLayer)
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        playerLayer.frame = bounds
+        CATransaction.commit()
+    }
+
+    func configure(url: URL, fill: Bool) {
+        playerLayer.videoGravity = fill ? .resizeAspectFill : .resizeAspect
+        guard url != currentURL else { return }
+        currentURL = url
+        stop()
+        let queue = AVQueuePlayer()
+        queue.isMuted = true
+        queue.preventsDisplaySleepDuringVideoPlayback = false
+        looper = AVPlayerLooper(player: queue, templateItem: AVPlayerItem(url: url))
+        playerLayer.player = queue
+        queue.play()
+        player = queue
+    }
+
+    func stop() {
+        player?.pause()
+        looper = nil
+        playerLayer.player = nil
+        player = nil
     }
 }
 

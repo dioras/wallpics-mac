@@ -29,12 +29,6 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         window.delegate = self
     }
 
-    func windowWillClose(_ notification: Notification) {
-        if NSApp.windows.allSatisfy({ !$0.isVisible || $0 == window }) {
-            NSApp.setActivationPolicy(.accessory)
-        }
-    }
-
     private var didMaximizeOnce = false
 
     override func showWindow(_ sender: Any?) {

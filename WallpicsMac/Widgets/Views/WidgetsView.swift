@@ -60,22 +60,24 @@ struct WidgetsView: View {
     private var newWidgetMenu: some View {
         Menu {
             Button { editor = WidgetEditorModel(creating: .photo) } label: { Label("Photo Widget", systemImage: "photo") }
+            Button { editor = WidgetEditorModel(creating: .video) } label: { Label("Video Widget", systemImage: "video") }
             Button { editor = WidgetEditorModel(creating: .polaroid) } label: { Label("Polaroid Widget", systemImage: "photo.stack") }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "plus").font(.system(size: 12, weight: .bold))
                 Text("New").font(.callout.weight(.semibold))
-                Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).opacity(0.55)
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).opacity(0.8)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 9)
-            .foregroundStyle(.black)
-            .background(.white, in: Capsule())
+            .foregroundStyle(.white)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
-        .help(String(localized: "Create a widget from your photos"))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .background(Color.blue, in: Capsule())
+        .shadow(color: .blue.opacity(0.45), radius: 8, y: 2)
+        .help(String(localized: "Create a widget from your photos or videos"))
     }
 
     private var toolbar: some View {

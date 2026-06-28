@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0022758506CC60C48E683845 /* WidgetPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE5F6D360845697647D3808 /* WidgetPaths.swift */; };
+		04FD7C7DD4D878EC0D695BD9 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9EA0551C7CFCB3404F76EE0 /* Cocoa.framework */; };
 		0B4C2D7BF9036EA1A0004570 /* WidgetTemplateData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BEC354024929BF3887BAB31 /* WidgetTemplateData.swift */; };
 		17E2115CE8E510B7F5B5CB47 /* WidgetImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29D6BE80656AF7DD6C119A6 /* WidgetImage.swift */; };
 		28CDED18A879E29656671E9E /* WidgetCatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F924FF12FB8CEECBD4EA2F /* WidgetCatalogModels.swift */; };
@@ -17,12 +18,14 @@
 		5ECA8C63270AEA74197101B2 /* WidgetTemplateConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CD6D58BF5865CECF199BDD /* WidgetTemplateConfig.swift */; };
 		61CA52C315FD608EC89223EB /* WidgetsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */; };
 		68461D3FC3445F66414C8F83 /* DIYFrameBaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C87E7F7B86C667D7F1FD40C /* DIYFrameBaker.swift */; };
+		73D761E29FE5056C85A72142 /* WallpicsWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 438ECF57B372488E4FA596B4 /* WallpicsWidgetBundle.swift */; };
 		7BD3955EB231ABDEF6F40300 /* WidgetTiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84EE652DF247E02687ABFFD /* WidgetTiles.swift */; };
 		7C5AE7A9F2BFD7D3EF4B50FA /* WidgetEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4318819C553015843F9648 /* WidgetEditorView.swift */; };
 		802F5EE3015D9BFBC5DFB916 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CD0FB93DA94C15043B5DCF7 /* WidgetStore.swift */; };
 		95F65D524E33AA80215E8107 /* WidgetRenderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FCA84474CBC35EE7E13D44 /* WidgetRenderView.swift */; };
 		97F07E6659D71C72CEB5C48C /* WidgetAssetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128817C116CCD7AB1F751D97 /* WidgetAssetResolver.swift */; };
 		987B7FA73C84D28929172375 /* WidgetTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D663E18412E9535042E0235F /* WidgetTemplateView.swift */; };
+		9BCEED2F5FF6428B1F83976F /* WidgetSharedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4915D64E49376ED002DD0DB2 /* WidgetSharedStore.swift */; };
 		A1000001000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001000000000000001 /* AppDelegate.swift */; };
 		A1000002000000000000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002000000000000001 /* main.swift */; };
 		A1000003000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000003000000000000001 /* Assets.xcassets */; };
@@ -73,17 +76,50 @@
 		AC0000A000000000000008 /* AnimatedWebPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000008 /* AnimatedWebPView.swift */; };
 		AC0000A000000000000009 /* UploadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000009 /* UploadsView.swift */; };
 		AC0000A000000000000099 /* HWheelScroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000099 /* HWheelScroll.swift */; };
+		B56B5E45C3CF13F1B91D4EF9 /* WallpicsPhotoWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAD64552A46CD4C3AB449DF4 /* WallpicsPhotoWidget.swift */; };
 		C706000A029426925A98EC2E /* WidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C5C425870D8FF97C70E085 /* WidgetModels.swift */; };
 		DC44CFC23A302EC527823E6D /* WidgetBundleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC5E6B57B74DF56E4D4630E /* WidgetBundleStore.swift */; };
+		EC909DF5EFAEEDD79C83A861 /* SelectWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3CE76D02AAD667C56E43A8 /* SelectWidgetIntent.swift */; };
+		F310155BD39D4412E0A1C0F8 /* WidgetSharedExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F5A43595EF0B78D10A68D1 /* WidgetSharedExport.swift */; };
+		F82C9776D3E0E5DBF6D603EA /* WallpicsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3691DDD0E08111A43D91D9FB /* WallpicsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B5E1492E5FC54428D160B0AA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A0000001000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8A3ECE55ECFE3AFE0361F4AF;
+			remoteInfo = WallpicsWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6FB56FBF3BD020CB0D8AB667 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F82C9776D3E0E5DBF6D603EA /* WallpicsWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		128817C116CCD7AB1F751D97 /* WidgetAssetResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetAssetResolver.swift; sourceTree = "<group>"; };
+		215C2434A814A5F95DFA36B9 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		23C5C425870D8FF97C70E085 /* WidgetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetModels.swift; sourceTree = "<group>"; };
 		2613285DE4217B686CFC9458 /* WidgetPlacement.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetPlacement.swift; sourceTree = "<group>"; };
 		26FCA84474CBC35EE7E13D44 /* WidgetRenderView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetRenderView.swift; sourceTree = "<group>"; };
+		279A58E939A5FD364E8160CB /* WallpicsWidgetExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = WallpicsWidgetExtension.entitlements; sourceTree = "<group>"; };
+		3691DDD0E08111A43D91D9FB /* WallpicsWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WallpicsWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BEC354024929BF3887BAB31 /* WidgetTemplateData.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetTemplateData.swift; sourceTree = "<group>"; };
+		438ECF57B372488E4FA596B4 /* WallpicsWidgetBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallpicsWidgetBundle.swift; sourceTree = "<group>"; };
 		43CD6D58BF5865CECF199BDD /* WidgetTemplateConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetTemplateConfig.swift; sourceTree = "<group>"; };
+		4915D64E49376ED002DD0DB2 /* WidgetSharedStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WidgetSharedStore.swift; path = Shared/WidgetSharedStore.swift; sourceTree = "<group>"; };
 		4A4318819C553015843F9648 /* WidgetEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetEditorView.swift; sourceTree = "<group>"; };
 		59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetsViewModel.swift; sourceTree = "<group>"; };
 		6CD0FB93DA94C15043B5DCF7 /* WidgetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
@@ -145,12 +181,24 @@
 		B1F924FF12FB8CEECBD4EA2F /* WidgetCatalogModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetCatalogModels.swift; sourceTree = "<group>"; };
 		B29D6BE80656AF7DD6C119A6 /* WidgetImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetImage.swift; sourceTree = "<group>"; };
 		C9C2F9BC6D0A476338D677DB /* DesktopWidgetManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesktopWidgetManager.swift; sourceTree = "<group>"; };
+		C9EA0551C7CFCB3404F76EE0 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
 		D663E18412E9535042E0235F /* WidgetTemplateView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetTemplateView.swift; sourceTree = "<group>"; };
+		DAD64552A46CD4C3AB449DF4 /* WallpicsPhotoWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallpicsPhotoWidget.swift; sourceTree = "<group>"; };
+		E6F5A43595EF0B78D10A68D1 /* WidgetSharedExport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSharedExport.swift; sourceTree = "<group>"; };
 		E74DD3CAEE2516BF272B3479 /* WidgetEditorModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetEditorModel.swift; sourceTree = "<group>"; };
+		EE3CE76D02AAD667C56E43A8 /* SelectWidgetIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SelectWidgetIntent.swift; sourceTree = "<group>"; };
 		F84EE652DF247E02687ABFFD /* WidgetTiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetTiles.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		9070190B6ECC5D470812154D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04FD7C7DD4D878EC0D695BD9 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A4000001000000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -168,7 +216,6 @@
 				7FC5E6B57B74DF56E4D4630E /* WidgetBundleStore.swift */,
 				B1F924FF12FB8CEECBD4EA2F /* WidgetCatalogModels.swift */,
 			);
-			name = Backend;
 			path = Backend;
 			sourceTree = "<group>";
 		};
@@ -185,7 +232,6 @@
 				2A17796CC26605C84C657982 /* Templates */,
 				B2C0AACC20D527CF36FB5E96 /* DIY */,
 			);
-			name = Widgets;
 			path = Widgets;
 			sourceTree = "<group>";
 		};
@@ -196,7 +242,6 @@
 				3BEC354024929BF3887BAB31 /* WidgetTemplateData.swift */,
 				D663E18412E9535042E0235F /* WidgetTemplateView.swift */,
 			);
-			name = Templates;
 			path = Templates;
 			sourceTree = "<group>";
 		};
@@ -206,8 +251,23 @@
 				E74DD3CAEE2516BF272B3479 /* WidgetEditorModel.swift */,
 				4A4318819C553015843F9648 /* WidgetEditorView.swift */,
 			);
-			name = Editors;
 			path = Editors;
+			sourceTree = "<group>";
+		};
+		452ED1A2986AA53F1FF13449 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				70F8FB8ABBFB0128F787DEE3 /* OS X */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		70F8FB8ABBFB0128F787DEE3 /* OS X */ = {
+			isa = PBXGroup;
+			children = (
+				C9EA0551C7CFCB3404F76EE0 /* Cocoa.framework */,
+			);
+			name = "OS X";
 			sourceTree = "<group>";
 		};
 		731955957D5AA1A8760021AB /* Desktop */ = {
@@ -216,7 +276,6 @@
 				C9C2F9BC6D0A476338D677DB /* DesktopWidgetManager.swift */,
 				2613285DE4217B686CFC9458 /* WidgetPlacement.swift */,
 			);
-			name = Desktop;
 			path = Desktop;
 			sourceTree = "<group>";
 		};
@@ -229,7 +288,6 @@
 				AEE5F6D360845697647D3808 /* WidgetPaths.swift */,
 				6CD0FB93DA94C15043B5DCF7 /* WidgetStore.swift */,
 			);
-			name = Core;
 			path = Core;
 			sourceTree = "<group>";
 		};
@@ -238,7 +296,6 @@
 			children = (
 				26FCA84474CBC35EE7E13D44 /* WidgetRenderView.swift */,
 			);
-			name = Render;
 			path = Render;
 			sourceTree = "<group>";
 		};
@@ -248,7 +305,6 @@
 				F84EE652DF247E02687ABFFD /* WidgetTiles.swift */,
 				8E7AB3753E268B72CB297CDC /* WidgetsView.swift */,
 			);
-			name = Views;
 			path = Views;
 			sourceTree = "<group>";
 		};
@@ -257,6 +313,8 @@
 			children = (
 				A5000002000000000000001 /* WallpicsMac */,
 				A5000003000000000000001 /* Products */,
+				452ED1A2986AA53F1FF13449 /* Frameworks */,
+				FC8B4AEF779468F37C860D45 /* WallpicsWidgetExtension */,
 			);
 			sourceTree = "<group>";
 		};
@@ -287,6 +345,7 @@
 			isa = PBXGroup;
 			children = (
 				A3000001000000000000001 /* WallpicsMac.app */,
+				3691DDD0E08111A43D91D9FB /* WallpicsWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -411,7 +470,6 @@
 			children = (
 				9C87E7F7B86C667D7F1FD40C /* DIYFrameBaker.swift */,
 			);
-			name = DIY;
 			path = DIY;
 			sourceTree = "<group>";
 		};
@@ -420,13 +478,43 @@
 			children = (
 				59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */,
 			);
-			name = ViewModels;
 			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		FC8B4AEF779468F37C860D45 /* WallpicsWidgetExtension */ = {
+			isa = PBXGroup;
+			children = (
+				438ECF57B372488E4FA596B4 /* WallpicsWidgetBundle.swift */,
+				DAD64552A46CD4C3AB449DF4 /* WallpicsPhotoWidget.swift */,
+				EE3CE76D02AAD667C56E43A8 /* SelectWidgetIntent.swift */,
+				4915D64E49376ED002DD0DB2 /* WidgetSharedStore.swift */,
+				215C2434A814A5F95DFA36B9 /* Info.plist */,
+				279A58E939A5FD364E8160CB /* WallpicsWidgetExtension.entitlements */,
+				E6F5A43595EF0B78D10A68D1 /* WidgetSharedExport.swift */,
+			);
+			path = WallpicsWidgetExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		8A3ECE55ECFE3AFE0361F4AF /* WallpicsWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C2FCC74C6D1FAE6D7759E4E3 /* Build configuration list for PBXNativeTarget "WallpicsWidgetExtension" */;
+			buildPhases = (
+				3F95AF5463CFFEE442CAEEB1 /* Sources */,
+				9070190B6ECC5D470812154D /* Frameworks */,
+				F7E05CD1782A90DE0FAFCC7F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WallpicsWidgetExtension;
+			productName = WallpicsWidgetExtension;
+			productReference = 3691DDD0E08111A43D91D9FB /* WallpicsWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A6000001000000000000001 /* WallpicsMac */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A7000001000000000000001 /* Build configuration list for PBXNativeTarget "WallpicsMac" */;
@@ -434,10 +522,12 @@
 				A8000001000000000000001 /* Sources */,
 				A4000001000000000000001 /* Frameworks */,
 				A9000001000000000000001 /* Resources */,
+				6FB56FBF3BD020CB0D8AB667 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				06EA601A8126A4D077898AE1 /* PBXTargetDependency */,
 			);
 			name = WallpicsMac;
 			packageProductDependencies = (
@@ -486,6 +576,7 @@
 			projectRoot = "";
 			targets = (
 				A6000001000000000000001 /* WallpicsMac */,
+				8A3ECE55ECFE3AFE0361F4AF /* WallpicsWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -502,9 +593,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F7E05CD1782A90DE0FAFCC7F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3F95AF5463CFFEE442CAEEB1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				73D761E29FE5056C85A72142 /* WallpicsWidgetBundle.swift in Sources */,
+				B56B5E45C3CF13F1B91D4EF9 /* WallpicsPhotoWidget.swift in Sources */,
+				EC909DF5EFAEEDD79C83A861 /* SelectWidgetIntent.swift in Sources */,
+				9BCEED2F5FF6428B1F83976F /* WidgetSharedStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A8000001000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -572,12 +681,47 @@
 				0B4C2D7BF9036EA1A0004570 /* WidgetTemplateData.swift in Sources */,
 				987B7FA73C84D28929172375 /* WidgetTemplateView.swift in Sources */,
 				68461D3FC3445F66414C8F83 /* DIYFrameBaker.swift in Sources */,
+				F310155BD39D4412E0A1C0F8 /* WidgetSharedExport.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		06EA601A8126A4D077898AE1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = WallpicsWidgetExtension;
+			target = 8A3ECE55ECFE3AFE0361F4AF /* WallpicsWidgetExtension */;
+			targetProxy = B5E1492E5FC54428D160B0AA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		761B8E4D97F741382F47F665 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = WallpicsWidgetExtension/WallpicsWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y2QL97Z4A6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WallpicsWidgetExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
 		A7000003000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -715,7 +859,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 48;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = QE3Q29UECT;
+				DEVELOPMENT_TEAM = Y2QL97Z4A6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WallpicsMac;
@@ -744,7 +888,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 48;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = QE3Q29UECT;
+				DEVELOPMENT_TEAM = Y2QL97Z4A6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WallpicsMac;
@@ -758,6 +902,31 @@
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		EF317B709A696E466AD5100E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = WallpicsWidgetExtension/WallpicsWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = Y2QL97Z4A6;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WallpicsWidgetExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -780,6 +949,15 @@
 			buildConfigurations = (
 				A7000003000000000000001 /* Debug */,
 				A7000004000000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C2FCC74C6D1FAE6D7759E4E3 /* Build configuration list for PBXNativeTarget "WallpicsWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EF317B709A696E466AD5100E /* Release */,
+				761B8E4D97F741382F47F665 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

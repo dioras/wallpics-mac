@@ -85,6 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         WallpaperRenderer.shared.restoreLast()
 
         DesktopWidgetManager.shared.restoreAll()
+        WidgetSharedExport.sync()
 
         // Onboarding presentation is now driven from ContentView .task — it triggers the
         // sheet only after the main window mounts, so the user sees it on top of the app.

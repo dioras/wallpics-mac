@@ -58,6 +58,7 @@ final class WidgetStore {
         }
         instances.sort { $0.updatedAt > $1.updatedAt }
         persist()
+        WidgetSharedExport.sync()
     }
 
     func instance(id: UUID) -> WidgetInstance? {
@@ -92,6 +93,7 @@ final class WidgetStore {
         instances.removeAll { $0.id == id }
         try? FileManager.default.removeItem(at: WidgetPaths.assetsDirectory(for: id))
         persist()
+        WidgetSharedExport.sync()
     }
 
     @discardableResult
@@ -108,6 +110,23 @@ final class WidgetStore {
             return fileName
         } catch {
             Log.app.error("Widget image import failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    @discardableResult
+    func importFile(from sourceURL: URL, into id: UUID) -> String? {
+        let ext = sourceURL.pathExtension.isEmpty ? "mov" : sourceURL.pathExtension.lowercased()
+        let fileName = "video_\(UUID().uuidString.prefix(8)).\(ext)"
+        let dir = WidgetPaths.assetsDirectory(for: id)
+        let dest = dir.appendingPathComponent(fileName)
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.copyItem(at: sourceURL, to: dest)
+            return fileName
+        } catch {
+            Log.app.error("Widget video import failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

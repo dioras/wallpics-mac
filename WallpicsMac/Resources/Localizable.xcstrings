@@ -720,6 +720,9 @@
     "Add to Login Items" : {
 
     },
+    "Add video" : {
+
+    },
     "All" : {
 
     },
@@ -1345,9 +1348,6 @@
         }
       }
     },
-    "Choose Photo" : {
-
-    },
     "Click to place on your desktop" : {
 
     },
@@ -1639,7 +1639,7 @@
     "Couldn't read this shader." : {
 
     },
-    "Create a widget from your photos" : {
+    "Create a widget from your photos or videos" : {
 
     },
     "Customize and place live widgets on your desktop." : {
@@ -1700,6 +1700,15 @@
           }
         }
       }
+    },
+    "Drag a photo here" : {
+
+    },
+    "Drag a video here" : {
+
+    },
+    "Drag the preview to reposition" : {
+
     },
     "Edit" : {
 
@@ -2986,6 +2995,9 @@
     "Opened Eyes" : {
 
     },
+    "or click to choose from your Mac" : {
+
+    },
     "Pause in Low Power Mode" : {
       "localizations" : {
         "de" : {
@@ -3333,6 +3345,9 @@
           }
         }
       }
+    },
+    "Plays muted, on loop, on your desktop" : {
+
     },
     "Polaroid" : {
 
@@ -3759,9 +3774,6 @@
           }
         }
       }
-    },
-    "Replace" : {
-
     },
     "Replay Onboarding" : {
 
@@ -4923,6 +4935,12 @@
           }
         }
       }
+    },
+    "Video" : {
+
+    },
+    "Video Widget" : {
+
     },
     "Wallpaper set." : {
       "localizations" : {

@@ -48,6 +48,7 @@ final class WidgetEditorModel: Identifiable {
     var canSave: Bool {
         switch instance.payload {
         case .photo(let s): return !s.relativePaths.isEmpty
+        case .video(let s): return !s.relativePath.isEmpty
         case .staticImage(let s): return !s.relativePath.isEmpty
         case .polaroid(let s): return !s.relativePaths.isEmpty
         case .themed(let s): return s.photoRelativePath != nil
@@ -127,10 +128,53 @@ final class WidgetEditorModel: Identifiable {
         }
     }
 
+    func addVideo() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.movie, .quickTimeMovie, .mpeg4Movie, .video]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+        guard let rel = WidgetStore.shared.importFile(from: url, into: instance.id) else { return }
+        append(relativePath: rel)
+    }
+
+    @discardableResult
+    func importDropped(url: URL) -> Bool {
+        let didAccess = url.startAccessingSecurityScopedResource()
+        defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+        if instance.kind == .video {
+            guard let rel = WidgetStore.shared.importFile(from: url, into: instance.id) else { return false }
+            append(relativePath: rel)
+        } else {
+            guard let rel = WidgetStore.shared.importImage(from: url, into: instance.id) else { return false }
+            append(relativePath: rel)
+        }
+        return true
+    }
+
+    func setFocalOffset(x: CGFloat, y: CGFloat) {
+        let cx = max(-1, min(1, x)), cy = max(-1, min(1, y))
+        switch instance.payload {
+        case .photo(var s): s.offsetX = cx; s.offsetY = cy; instance.payload = .photo(s)
+        case .video(var s): s.offsetX = cx; s.offsetY = cy; instance.payload = .video(s)
+        default: break
+        }
+    }
+
+    var videoAssetURL: URL? {
+        guard let rel = instance.payload.videoPath else { return nil }
+        return WidgetStore.shared.assetURL(for: rel, in: instance.id)
+    }
+
     private func append(relativePath rel: String) {
         switch instance.payload {
         case .photo(var s):
             s.relativePaths.append(rel); instance.payload = .photo(s)
+        case .video(var s):
+            s.relativePath = rel; instance.payload = .video(s)
         case .polaroid(var s):
             s.relativePaths.append(rel); instance.payload = .polaroid(s)
         case .themed(var s):
@@ -166,7 +210,11 @@ final class WidgetEditorModel: Identifiable {
     }
 
     func setFill(_ fill: Bool) {
-        if case .photo(var s) = instance.payload { s.fill = fill; instance.payload = .photo(s) }
+        switch instance.payload {
+        case .photo(var s): s.fill = fill; instance.payload = .photo(s)
+        case .video(var s): s.fill = fill; instance.payload = .video(s)
+        default: break
+        }
     }
 
     func setPolaroidBackground(_ bg: PolaroidWidgetState.Background) {
@@ -201,6 +249,7 @@ final class WidgetEditorModel: Identifiable {
     private static func emptyPayload(for kind: WidgetKind) -> WidgetPayload {
         switch kind {
         case .photo: return .photo(PhotoWidgetState())
+        case .video: return .video(VideoWidgetState())
         case .staticImage: return .staticImage(StaticImageState())
         case .polaroid: return .polaroid(PolaroidWidgetState())
         case .elevator, .openedEyes, .garageDoor, .windowsXP: return .themed(ThemedToggleState())
