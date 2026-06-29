@@ -712,8 +712,8 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = WallpicsWidgetExtension/WallpicsWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Y2QL97Z4A6;
+				CURRENT_PROJECT_VERSION = 48;
+				DEVELOPMENT_TEAM = QE3Q29UECT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsWidgetExtension/Info.plist;
@@ -722,8 +722,8 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WidgetExtension;
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WallpicsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -769,7 +769,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = Y2QL97Z4A6;
+				DEVELOPMENT_TEAM = QE3Q29UECT;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -836,7 +836,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = Y2QL97Z4A6;
+				DEVELOPMENT_TEAM = QE3Q29UECT;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -869,7 +869,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 48;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Y2QL97Z4A6;
+				DEVELOPMENT_TEAM = QE3Q29UECT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WallpicsMac;
@@ -898,7 +898,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 48;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = Y2QL97Z4A6;
+				DEVELOPMENT_TEAM = QE3Q29UECT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WallpicsMac;
@@ -922,8 +922,8 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = WallpicsWidgetExtension/WallpicsWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Y2QL97Z4A6;
+				CURRENT_PROJECT_VERSION = 48;
+				DEVELOPMENT_TEAM = QE3Q29UECT;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsWidgetExtension/Info.plist;
@@ -932,8 +932,8 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WidgetExtension;
+				MARKETING_VERSION = 1.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WallpicsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
