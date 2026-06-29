@@ -665,6 +665,9 @@
         }
       }
     },
+    "24-hour time" : {
+
+    },
     "About" : {
       "localizations" : {
         "de" : {
@@ -964,6 +967,9 @@
           }
         }
       }
+    },
+    "Both" : {
+
     },
     "Bring to Front" : {
 
@@ -1348,7 +1354,13 @@
         }
       }
     },
+    "Classic" : {
+
+    },
     "Click to place on your desktop" : {
+
+    },
+    "Clock" : {
 
     },
     "Close" : {
@@ -1645,6 +1657,9 @@
     "Customize and place live widgets on your desktop." : {
 
     },
+    "Date" : {
+
+    },
     "Delete" : {
 
     },
@@ -1813,6 +1828,9 @@
           }
         }
       }
+    },
+    "Font" : {
+
     },
     "Free includes a small watermark — remove" : {
 
@@ -2451,6 +2469,9 @@
       }
     },
     "Medium" : {
+
+    },
+    "Mono" : {
 
     },
     "Most Popular" : {
@@ -3963,6 +3984,9 @@
         }
       }
     },
+    "Rounded" : {
+
+    },
     "Save Widget" : {
 
     },
@@ -4016,6 +4040,9 @@
 
     },
     "See all" : {
+
+    },
+    "Serif" : {
 
     },
     "Server returned status %lld." : {
@@ -4358,6 +4385,9 @@
         }
       }
     },
+    "Style" : {
+
+    },
     "Subscribe for %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4644,6 +4674,9 @@
         }
       }
     },
+    "Text color" : {
+
+    },
     "This wallpaper isn't available right now." : {
 
     },
@@ -4651,6 +4684,9 @@
 
     },
     "This widget's image couldn't be found in the downloaded bundle." : {
+
+    },
+    "Time" : {
 
     },
     "Try a different category or search." : {

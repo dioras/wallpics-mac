@@ -27,7 +27,26 @@ struct WidgetRenderView: View {
         case .windowsXP:   WindowsXPBody(instance: instance, isHidden: isToggled, w: w, h: h)
         case .diyAnimated: DIYAnimatedBody(instance: instance, isAnimating: isToggled, w: w, h: h)
         case .template:    TemplateBody(instance: instance, w: w, h: h)
+        case .dateTime:    DateTimeBody(instance: instance, w: w, h: h)
         }
+    }
+}
+
+private struct DateTimeBody: View {
+    let instance: WidgetInstance
+    let w: CGFloat
+    let h: CGFloat
+
+    var body: some View {
+        let state = instance.payload.dateTimeState ?? DateTimeWidgetState()
+        ZStack {
+            WidgetClockStyle.gradient(state.backgroundHexes)
+            TimelineView(.everyMinute) { context in
+                ClockFace(state: state, date: context.date)
+            }
+        }
+        .frame(width: w, height: h)
+        .clipped()
     }
 }
 
@@ -605,26 +624,3 @@ private extension Array {
     func ifEmpty(_ fallback: [Element]) -> [Element] { isEmpty ? fallback : self }
 }
 
-extension Color {
-    init?(hex: String) {
-        var s = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        if s.hasPrefix("#") { s.removeFirst() }
-        guard let value = UInt64(s, radix: 16) else { return nil }
-        let r, g, b, a: Double
-        switch s.count {
-        case 6:
-            r = Double((value >> 16) & 0xFF) / 255
-            g = Double((value >> 8) & 0xFF) / 255
-            b = Double(value & 0xFF) / 255
-            a = 1
-        case 8:
-            r = Double((value >> 24) & 0xFF) / 255
-            g = Double((value >> 16) & 0xFF) / 255
-            b = Double((value >> 8) & 0xFF) / 255
-            a = Double(value & 0xFF) / 255
-        default:
-            return nil
-        }
-        self = Color(.sRGB, red: r, green: g, blue: b, opacity: a)
-    }
-}

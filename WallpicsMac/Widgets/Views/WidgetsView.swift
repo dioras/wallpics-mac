@@ -62,6 +62,8 @@ struct WidgetsView: View {
             Button { editor = WidgetEditorModel(creating: .photo) } label: { Label("Photo Widget", systemImage: "photo") }
             Button { editor = WidgetEditorModel(creating: .video) } label: { Label("Video Widget", systemImage: "video") }
             Button { editor = WidgetEditorModel(creating: .polaroid) } label: { Label("Polaroid Widget", systemImage: "photo.stack") }
+            Divider()
+            Button { editor = WidgetEditorModel(creating: .dateTime) } label: { Label("Clock", systemImage: "clock") }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "plus").font(.system(size: 12, weight: .bold))

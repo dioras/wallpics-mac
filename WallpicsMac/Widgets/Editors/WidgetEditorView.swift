@@ -138,7 +138,73 @@ struct WidgetEditorView: View {
             if model.instance.kind.supportedFamilies.count > 1 { familyPicker }
             photoControls
             if model.instance.kind == .polaroid { polaroidControls }
+            if model.instance.kind == .dateTime { dateTimeControls }
             Spacer(minLength: 0)
+        }
+    }
+
+    private var dateTimeControls: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.m) {
+            VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                Text("Style").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Picker("Style", selection: Binding(
+                    get: { model.dateTimeState.style },
+                    set: { model.setClockStyle($0) }
+                )) {
+                    Text("Time").tag(DateTimeWidgetState.Style.time)
+                    Text("Date").tag(DateTimeWidgetState.Style.date)
+                    Text("Both").tag(DateTimeWidgetState.Style.timeAndDate)
+                }
+                .pickerStyle(.segmented).labelsHidden()
+            }
+            VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                Text("Background").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Theme.Space.s) {
+                        ForEach(Array(WidgetClockStyle.backgroundChoices.enumerated()), id: \.offset) { _, hexes in
+                            let selected = model.dateTimeState.backgroundHexes == hexes
+                            Circle()
+                                .fill(WidgetClockStyle.gradient(hexes))
+                                .frame(width: 30, height: 30)
+                                .overlay(Circle().strokeBorder(selected ? Theme.accent : Color.clear, lineWidth: 2))
+                                .onTapGesture { model.setClockBackground(hexes) }
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                Text("Text color").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                HStack(spacing: Theme.Space.s) {
+                    ForEach(WidgetClockStyle.tintChoices, id: \.self) { hex in
+                        let selected = model.dateTimeState.tintHex == hex
+                        Circle()
+                            .fill(Color(hex: hex) ?? .white)
+                            .frame(width: 26, height: 26)
+                            .overlay(Circle().strokeBorder(Color.secondary.opacity(0.4), lineWidth: 1))
+                            .overlay(Circle().strokeBorder(selected ? Theme.accent : Color.clear, lineWidth: 2))
+                            .onTapGesture { model.setClockTint(hex) }
+                    }
+                }
+            }
+            VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                Text("Font").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Picker("Font", selection: Binding(
+                    get: { model.dateTimeState.fontKey },
+                    set: { model.setClockFont($0) }
+                )) {
+                    Text("Rounded").tag("rounded")
+                    Text("Classic").tag("default")
+                    Text("Serif").tag("serif")
+                    Text("Mono").tag("mono")
+                }
+                .pickerStyle(.segmented).labelsHidden()
+            }
+            Toggle("24-hour time", isOn: Binding(
+                get: { model.dateTimeState.use24Hour },
+                set: { model.setClock24Hour($0) }
+            ))
+            .toggleStyle(.checkbox).font(.caption)
         }
     }
 
@@ -169,7 +235,7 @@ struct WidgetEditorView: View {
     @ViewBuilder
     private var photoControls: some View {
         switch model.instance.kind {
-        case .staticImage, .template:
+        case .staticImage, .template, .dateTime:
             EmptyView()
         case .video:
             videoControls

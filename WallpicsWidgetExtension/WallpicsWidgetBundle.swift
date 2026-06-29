@@ -5,5 +5,6 @@ import SwiftUI
 struct WallpicsWidgetBundle: WidgetBundle {
     var body: some Widget {
         WallpicsPhotoWidget()
+        MatchesWidget()
     }
 }

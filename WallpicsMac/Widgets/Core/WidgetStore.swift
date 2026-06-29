@@ -1,5 +1,7 @@
 import AppKit
+import AVFoundation
 import Observation
+import SwiftUI
 
 @MainActor
 @Observable
@@ -29,7 +31,8 @@ final class WidgetStore {
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         do {
             let data = try Data(contentsOf: url)
-            instances = try decoder.decode([WidgetInstance].self, from: data)
+            instances = try decoder.decode([FailableInstance].self, from: data)
+                .compactMap(\.value)
                 .sorted { $0.updatedAt > $1.updatedAt }
         } catch {
             Log.app.error("Widget instances load failed; backing up corrupt file: \(error.localizedDescription, privacy: .public)")
@@ -58,7 +61,7 @@ final class WidgetStore {
         }
         instances.sort { $0.updatedAt > $1.updatedAt }
         persist()
-        WidgetSharedExport.sync()
+        renderAndSync(next)
     }
 
     func instance(id: UUID) -> WidgetInstance? {
@@ -87,6 +90,7 @@ final class WidgetStore {
         if let templateSlug, !templateSlug.isEmpty, t.templateSlug.isEmpty { t.templateSlug = templateSlug }
         instances[idx].payload = .template(t)
         persist()
+        renderAndSync(instances[idx])
     }
 
     func delete(id: UUID) {
@@ -146,5 +150,75 @@ final class WidgetStore {
 
     func assetURL(for relativePath: String, in id: UUID) -> URL {
         WidgetPaths.assetsDirectory(for: id).appendingPathComponent(relativePath)
+    }
+
+    private func renderAndSync(_ instance: WidgetInstance) {
+        renderPrimaryImage(for: instance)
+        WidgetSharedExport.sync()
+    }
+
+    private func renderPrimaryImage(for instance: WidgetInstance) {
+        let size = instance.family.desktopSize
+        switch instance.kind {
+        case .elevator, .openedEyes, .garageDoor, .windowsXP:
+            let view = WidgetRenderView(instance: instance,
+                                        isToggled: Self.stillFlag(for: instance),
+                                        carouselStep: 0)
+                .frame(width: size.width, height: size.height)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 2
+            if let image = renderer.nsImage {
+                writeImage(image, named: WidgetSharedConfig.renderFileName, into: instance.id, asPNG: true)
+            } else {
+                removeRenderImage(for: instance.id)
+            }
+        case .video:
+            guard case .video(let s) = instance.payload, !s.relativePath.isEmpty else {
+                removeRenderImage(for: instance.id)
+                return
+            }
+            let id = instance.id
+            let url = assetURL(for: s.relativePath, in: id)
+            Task { [weak self] in
+                guard let self else { return }
+                if let poster = await Self.makeVideoPoster(url: url, size: size) {
+                    self.writeImage(poster, named: WidgetSharedConfig.renderFileName, into: id, asPNG: true)
+                } else {
+                    self.removeRenderImage(for: id)
+                }
+                WidgetSharedExport.sync()
+            }
+        case .photo, .staticImage, .polaroid, .diyAnimated, .template, .dateTime:
+            removeRenderImage(for: instance.id)
+        }
+    }
+
+    private func removeRenderImage(for id: UUID) {
+        try? FileManager.default.removeItem(
+            at: WidgetPaths.assetsDirectory(for: id).appendingPathComponent(WidgetSharedConfig.renderFileName))
+    }
+
+    nonisolated private static func makeVideoPoster(url: URL, size: CGSize) async -> NSImage? {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: size.width * 2, height: size.height * 2)
+        let time = CMTime(seconds: 0.1, preferredTimescale: 600)
+        guard let result = try? await generator.image(at: time) else { return nil }
+        return NSImage(cgImage: result.image, size: size)
+    }
+
+    private static func stillFlag(for instance: WidgetInstance) -> Bool {
+        switch instance.payload {
+        case .themed(let s): return s.isClosed
+        case .diyAnimated(let s): return s.isOpen
+        default: return false
+        }
+    }
+}
+
+private struct FailableInstance: Decodable {
+    let value: WidgetInstance?
+    init(from decoder: Decoder) throws {
+        value = try? WidgetInstance(from: decoder)
     }
 }

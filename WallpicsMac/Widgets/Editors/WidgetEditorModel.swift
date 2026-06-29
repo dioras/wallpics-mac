@@ -54,6 +54,7 @@ final class WidgetEditorModel: Identifiable {
         case .themed(let s): return s.photoRelativePath != nil
         case .diyAnimated(let s): return s.photoRelativePath != nil || s.coverRelativePath != nil
         case .template: return true
+        case .dateTime: return true
         }
     }
 
@@ -185,7 +186,37 @@ final class WidgetEditorModel: Identifiable {
             s.relativePath = rel; instance.payload = .staticImage(s)
         case .template(var s):
             s.photoRelativePath = rel; instance.payload = .template(s)
+        case .dateTime:
+            break
         }
+    }
+
+    func setClockStyle(_ style: DateTimeWidgetState.Style) {
+        if case .dateTime(var s) = instance.payload { s.style = style; instance.payload = .dateTime(s) }
+    }
+
+    func setClockBackground(_ hexes: [String]) {
+        if case .dateTime(var s) = instance.payload {
+            s.backgroundHexes = hexes
+            s.tintHex = WidgetClockStyle.suggestedTint(for: hexes)
+            instance.payload = .dateTime(s)
+        }
+    }
+
+    func setClockFont(_ key: String) {
+        if case .dateTime(var s) = instance.payload { s.fontKey = key; instance.payload = .dateTime(s) }
+    }
+
+    func setClock24Hour(_ on: Bool) {
+        if case .dateTime(var s) = instance.payload { s.use24Hour = on; instance.payload = .dateTime(s) }
+    }
+
+    func setClockTint(_ hex: String) {
+        if case .dateTime(var s) = instance.payload { s.tintHex = hex; instance.payload = .dateTime(s) }
+    }
+
+    var dateTimeState: DateTimeWidgetState {
+        instance.payload.dateTimeState ?? DateTimeWidgetState()
     }
 
     func removePhoto(at index: Int) {
@@ -255,6 +286,7 @@ final class WidgetEditorModel: Identifiable {
         case .elevator, .openedEyes, .garageDoor, .windowsXP: return .themed(ThemedToggleState())
         case .diyAnimated: return .diyAnimated(DIYAnimatedWidgetState())
         case .template: return .template(TemplateWidgetState())
+        case .dateTime: return .dateTime(DateTimeWidgetState())
         }
     }
 

@@ -24,15 +24,26 @@ struct WallpicsWidgetProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: SelectWidgetIntent, in context: Context) async -> Timeline<WallpicsWidgetEntry> {
         let widget = resolveWidget(for: configuration)
+        if widget?.dateTime != nil {
+            let calendar = Calendar.current
+            let comps = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: Date())
+            let start = calendar.date(from: comps) ?? Date()
+            let entries = (0..<60).map { i -> WallpicsWidgetEntry in
+                let date = calendar.date(byAdding: .minute, value: i, to: start) ?? start
+                return WallpicsWidgetEntry(date: date, widget: widget, cgImage: nil)
+            }
+            return Timeline(entries: entries, policy: .atEnd)
+        }
         let entry = makeEntry(for: widget, context: context)
         return Timeline(entries: [entry], policy: .never)
     }
 
     private func resolveWidget(for configuration: SelectWidgetIntent) -> SharedWidget? {
-        if let id = configuration.selected?.id, let match = WidgetSharedStore.shared.widget(id: id) {
+        let all = WidgetSharedStore.shared.allWidgets()
+        if let id = configuration.selected?.id, let match = all.first(where: { $0.id == id }) {
             return match
         }
-        return WidgetSharedStore.shared.allWidgets().first
+        return all.first(where: { WidgetSharedStore.shared.imageURL(for: $0) != nil }) ?? all.first
     }
 
     private func makeEntry(for widget: SharedWidget?, context: Context) -> WallpicsWidgetEntry {
@@ -44,7 +55,7 @@ struct WallpicsWidgetProvider: AppIntentTimelineProvider {
         return WallpicsWidgetEntry(date: Date(), widget: widget, cgImage: cg)
     }
 
-    private func pixelSize(for family: WidgetFamily) -> Int {
+    private func pixelSize(for family: WidgetKit.WidgetFamily) -> Int {
         switch family {
         case .systemSmall:  return 600
         case .systemMedium: return 1000
@@ -74,7 +85,9 @@ struct WallpicsWidgetBackground: View {
     let entry: WallpicsWidgetEntry
 
     var body: some View {
-        if let cg = entry.cgImage {
+        if let dt = entry.widget?.dateTime {
+            WidgetClockStyle.gradient(dt.backgroundHexes)
+        } else if let cg = entry.cgImage {
             GeometryReader { proxy in
                 Image(decorative: cg, scale: 1)
                     .resizable()
@@ -96,7 +109,9 @@ struct WallpicsWidgetView: View {
     let entry: WallpicsWidgetEntry
 
     var body: some View {
-        if entry.cgImage != nil {
+        if let dt = entry.widget?.dateTime {
+            ClockFace(state: dt, date: entry.date)
+        } else if entry.cgImage != nil {
             Color.clear
         } else {
             placeholder
@@ -108,7 +123,7 @@ struct WallpicsWidgetView: View {
             Image(systemName: "photo.artframe")
                 .font(.system(size: 26, weight: .regular))
                 .foregroundStyle(.white.opacity(0.85))
-            Text("Open WallPics to pick a widget")
+            Text(entry.widget?.displayName ?? "Open WallPics to pick a widget")
                 .font(.system(size: 12, weight: .medium))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white.opacity(0.7))
