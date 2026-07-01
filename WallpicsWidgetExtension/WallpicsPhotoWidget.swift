@@ -75,8 +75,8 @@ struct WallpicsPhotoWidget: Widget {
                     WallpicsWidgetBackground(entry: entry)
                 }
         }
-        .configurationDisplayName("WallPics Photo")
-        .description("Show one of your WallPics widgets on your desktop.")
+        .configurationDisplayName("WallPics Widget")
+        .description("Place it, then right-click → Edit Widget to pick from 100+ WallPics widgets.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -119,15 +119,18 @@ struct WallpicsWidgetView: View {
     }
 
     private var placeholder: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "photo.artframe")
-                .font(.system(size: 26, weight: .regular))
+        VStack(spacing: 6) {
+            Image(systemName: "rectangle.badge.plus")
+                .font(.system(size: 24, weight: .regular))
                 .foregroundStyle(.white.opacity(0.85))
-            Text(entry.widget?.displayName ?? "Open WallPics to pick a widget")
-                .font(.system(size: 12, weight: .medium))
+            Text("Right-click → Edit Widget")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.85))
+            Text("then choose a WallPics widget")
+                .font(.system(size: 10, weight: .medium))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.white.opacity(0.7))
-                .padding(.horizontal, 10)
+                .foregroundStyle(.white.opacity(0.55))
+                .padding(.horizontal, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

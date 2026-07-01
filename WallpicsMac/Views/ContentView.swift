@@ -125,27 +125,32 @@ private struct TopNavBar: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: Theme.Space.s) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
-                TextField("Search wallpapers", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.callout)
-                    .focused($searchFocused)
-                if !query.isEmpty {
-                    Button { query = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+            // This global field searches wallpapers (typing even jumps to Browse). Showing it on
+            // the Widgets tab — which has its own "Search widgets" — was the client's "two searches"
+            // confusion, so keep it to Browse where it actually applies.
+            if selection == .browse {
+                HStack(spacing: Theme.Space.s) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    TextField("Search wallpapers", text: $query)
+                        .textFieldStyle(.plain)
+                        .font(.callout)
+                        .focused($searchFocused)
+                    if !query.isEmpty {
+                        Button { query = "" } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .padding(.horizontal, Theme.Space.m)
+                .padding(.vertical, 6)
+                .frame(minWidth: 150, maxWidth: 340)
+                .liquidGlass(in: Capsule())
+                .overlay(Capsule().strokeBorder(searchFocused ? Theme.accent.opacity(0.6) : .clear, lineWidth: 1.5))
+                .animation(Motion.hover, value: searchFocused)
             }
-            .padding(.horizontal, Theme.Space.m)
-            .padding(.vertical, 6)
-            .frame(minWidth: 150, maxWidth: 340)
-            .liquidGlass(in: Capsule())
-            .overlay(Capsule().strokeBorder(searchFocused ? Theme.accent.opacity(0.6) : .clear, lineWidth: 1.5))
-            .animation(Motion.hover, value: searchFocused)
 
             HStack(spacing: Theme.Space.s) {
                 if !store.state.isPro {

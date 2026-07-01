@@ -67,6 +67,8 @@ final class WidgetsViewModel {
             await reload()
         }
         await healStaleTemplates()
+        // Keep the native-picker gallery fresh whenever the user opens Widgets.
+        Task { await WidgetSharedExport.refreshCatalog() }
     }
 
     func healStaleTemplates() async {

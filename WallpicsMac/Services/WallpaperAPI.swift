@@ -69,7 +69,7 @@ actor WallpaperAPI {
 
     // MARK: - Wallpapers
 
-    func desktopWallpapers(collection: WallpaperCollection = .normal, page: Int, perPage: Int = 24, sortOrder: SortOrder = .newest, categorySlug: String? = nil) async throws -> WallpaperPage {
+    func desktopWallpapers(collection: WallpaperCollection = .normal, page: Int, perPage: Int = 24, sortOrder: SortOrder = .newest, categorySlug: String? = nil, timestamp: Int? = nil) async throws -> WallpaperPage {
         _ = try await ensureGuestID()
 
         var components = URLComponents(url: baseURL.appendingPathComponent(collection.path), resolvingAgainstBaseURL: false)!
@@ -77,9 +77,15 @@ actor WallpaperAPI {
             URLQueryItem(name: "paginated", value: "1"),
             URLQueryItem(name: "page", value: String(page)),
             URLQueryItem(name: "per_page", value: String(perPage)),
+            URLQueryItem(name: "sortBy", value: sortOrder.sortByValue),
             URLQueryItem(name: "sortOrder", value: sortOrder.queryValue),
             URLQueryItem(name: "nsfwContent", value: "0")
         ]
+        // A stable timestamp across pages keeps a live catalog from shuffling between page
+        // fetches (the backend uses it to freeze the ordering), so pages don't overlap/skip.
+        if let timestamp {
+            items.append(URLQueryItem(name: "timestamp", value: String(timestamp)))
+        }
         if let slug = categorySlug, !slug.isEmpty {
             items.append(URLQueryItem(name: "categorySlug", value: slug))
         }
@@ -100,15 +106,20 @@ actor WallpaperAPI {
         }
     }
 
-    /// Two-level category tree for the browse filter chips. Pass `countType` (the wallpaper
-    /// type: 5 desktop / 6 live / 7 shader) to get per-category `wallpapers_count` back.
-    func categoryList(countType: Int? = nil) async throws -> [WallpaperCategory] {
+    /// Category tree for the browse chips, scoped to a desktop wallpaper `type`
+    /// (5 photo / 6 live / 7 shader). The backend's `type` filter returns ONLY categories that
+    /// actually have content of that type, so each tab shows its own real categories with matching
+    /// slugs — clicking one returns wallpapers instead of an empty grid. NOTE: sending `modelType`
+    /// alongside `type` makes the backend ignore `type` and return the photo set on every tab
+    /// (the old bug: Live/Shader showed photo categories that then matched nothing).
+    func categoryList(type: Int? = nil) async throws -> [WallpaperCategory] {
         _ = try await ensureGuestID()
         var components = URLComponents(url: baseURL.appendingPathComponent("api/category-list"), resolvingAgainstBaseURL: false)!
-        var items = [URLQueryItem(name: "modelType", value: "desktop_wallpaper")]
-        if let countType {
-            items.append(URLQueryItem(name: "withContentCount", value: "1"))
-            items.append(URLQueryItem(name: "type", value: String(countType)))
+        var items = [URLQueryItem(name: "noComputed", value: "1")]
+        if let type {
+            items.append(URLQueryItem(name: "type", value: String(type)))
+        } else {
+            items.append(URLQueryItem(name: "modelType", value: "desktop_wallpaper"))
         }
         components.queryItems = items
         guard let url = components.url else { throw APIError.invalidURL }
@@ -169,6 +180,39 @@ actor WallpaperAPI {
             Log.api.error("Widgets decode failed: \(error.localizedDescription, privacy: .public)")
             throw APIError.decoding(error)
         }
+    }
+
+    /// The ENTIRE widget gallery, every category and type. The flat /api/widgets endpoint caps at
+    /// ~32, but category-list-with-widgets exposes the whole catalog (125+ incl. world_cup_stats,
+    /// stickers, animated) — flattened across the tree and de-duped by id.
+    func allGalleryWidgets(perCategory: Int = 200) async throws -> [WidgetCatalogItem] {
+        _ = try await ensureGuestID()
+        var components = URLComponents(url: baseURL.appendingPathComponent("api/category-list-with-widgets"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "widgets_per_category", value: String(perCategory))]
+        guard let url = components.url else { throw APIError.invalidURL }
+        var req = URLRequest(url: url)
+        applyAuthHeaders(to: &req)
+        let (data, response) = try await transport { try await session.data(for: req) }
+        try ensureOK(response)
+        let decoded: CategoryWidgetsRes
+        do {
+            decoded = try decoder.decode(CategoryWidgetsRes.self, from: data)
+        } catch {
+            Log.api.error("Gallery widgets decode failed: \(error.localizedDescription, privacy: .public)")
+            throw APIError.decoding(error)
+        }
+        var out: [WidgetCatalogItem] = []
+        var seen = Set<String>()
+        func walk(_ nodes: [CategoryWidgetsRes.Node]) {
+            for node in nodes {
+                for widget in node.widgets ?? [] where widget.id != nil {
+                    if seen.insert(widget.id!).inserted { out.append(widget) }
+                }
+                if let children = node.children { walk(children) }
+            }
+        }
+        walk(decoded.data ?? [])
+        return out
     }
 
     func recordWidgetUse(widgetID: String) async {
@@ -305,6 +349,16 @@ enum SortOrder: String, CaseIterable {
         switch self {
         case .newest, .popular: return "desc"
         case .oldest: return "asc"
+        }
+    }
+
+    /// Backend sort field. The API sorts by `sortBy` (the field) + `sortOrder` (direction);
+    /// sending only the direction leaves every option sorting by the default field, so
+    /// "Most Popular" was identical to "Newest". Map each option to its real field.
+    var sortByValue: String {
+        switch self {
+        case .newest, .oldest: return "date"
+        case .popular: return "popular"
         }
     }
 

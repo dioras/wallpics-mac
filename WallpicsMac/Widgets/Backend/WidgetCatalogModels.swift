@@ -20,6 +20,16 @@ struct WidgetCategoryTreeRes: Codable {
     enum CodingKeys: String, CodingKey { case status, data }
 }
 
+/// category-list-with-widgets: categories (with children) each carrying their widgets. Used to pull
+/// the FULL gallery, since the flat /api/widgets endpoint caps at ~32.
+struct CategoryWidgetsRes: Decodable {
+    var data: [Node]?
+    struct Node: Decodable {
+        var widgets: [WidgetCatalogItem]?
+        var children: [Node]?
+    }
+}
+
 struct WidgetCategoryNode: Codable, Hashable, Identifiable {
     var id: Int?
     var name: String?

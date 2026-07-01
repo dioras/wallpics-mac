@@ -73,9 +73,28 @@ actor ImageLoader {
         }
     }
 
+    /// Warm the cache for cells about to scroll into view so the grid never flashes a spinner on a
+    /// fast scroll. Fire-and-forget and deduped against cache/in-flight, so calling it liberally is
+    /// cheap — thumbnails are ~25KB each, and it reuses the same in-flight task as the real load.
+    func prefetch(_ urls: [URL], maxPixelSize: Int = 720) {
+        for url in urls {
+            let key = "\(url.absoluteString)|\(maxPixelSize)" as NSString
+            if cache.object(forKey: key) != nil || inflight[key as String] != nil { continue }
+            Task { [weak self] in _ = try? await self?.image(for: url, maxPixelSize: maxPixelSize) }
+        }
+    }
+
     private func data(for image: NSImage) -> Int {
-        guard let rep = image.representations.first as? NSBitmapImageRep else { return 0 }
-        return rep.bytesPerRow * rep.pixelsHigh
+        // Our images are CGImage-backed (NSImage(cgImage:)), whose first representation is NOT an
+        // NSBitmapImageRep — the old cast always failed and returned 0, so the cache's byte-cost
+        // limit never evicted and bitmaps piled up (250MB+ on a long scroll). Cost the CGImage.
+        if let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            return cg.bytesPerRow * cg.height
+        }
+        if let rep = image.representations.first {
+            return rep.pixelsWide * rep.pixelsHigh * 4
+        }
+        return 0
     }
 }
 

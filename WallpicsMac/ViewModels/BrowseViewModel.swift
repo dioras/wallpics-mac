@@ -12,41 +12,31 @@ final class BrowseViewModel {
     /// Live is the default collection — it's the product's hero content.
     var collection: WallpaperCollection = .live
 
-    // Two-level category filter, curated at runtime: only categories that actually return
-    // content for the current collection are shown (probed concurrently, cached per session).
+    // Two-level category filter. The backend's per-type category-list returns only categories that
+    // actually have content for the current collection (5 photo / 6 live / 7 shader), with slugs
+    // that match that collection — so we use it directly, cached per collection, no probing.
     var categories: [WallpaperCategory] = []
     var availableSubcategories: [WallpaperCategory] = []
     var selectedCategory: WallpaperCategory?
     var selectedSubcategory: WallpaperCategory?
-    private var allCategories: [WallpaperCategory] = []
     private var curatedCache: [WallpaperCollection: [WallpaperCategory]] = [:]
-    private var curatedSubsCache: [String: [WallpaperCategory]] = [:]
 
-    // One4Wall-style editorial rail (community favorites, sorted by popularity).
+    // "Most Popular" rail — real backend popularity for the CURRENT collection + category filter,
+    // so it reacts to the chips like the client asked (was a static, filter-blind client-side rank).
     var popularRail: [Wallpaper] = []
-    private var popularRailCache: [WallpaperCollection: [Wallpaper]] = [:]
 
-    func loadPopularRailIfNeeded() async {
+    func loadPopularRail() async {
         let col = collection
-        if let cached = popularRailCache[col] {
-            if collection == col { popularRail = cached }
-            return
-        }
-        // The backend's sortOrder is only asc/desc, so "popular" must be ranked client-side:
-        // pull a wide newest page, rank by downloads/hot-rank, and exclude the first 14 items
-        // (they're already on screen in the hero carousel) so the rail never repeats it.
+        let catSlug = (selectedSubcategory ?? selectedCategory)?.slug
         guard let page = try? await WallpaperAPI.shared.desktopWallpapers(
-            collection: col, page: 1, perPage: 48, sortOrder: .newest
+            collection: col, page: 1, perPage: 20, sortOrder: .popular, categorySlug: catSlug
         ) else { return }
-        let carouselIDs = Set(page.data.prefix(14).map(\.id))
-        let ranked = page.data
-            .filter { !carouselIDs.contains($0.id) }
-            .sorted {
-                ($0.safeDownloadCount, $0.hotRank ?? 0) > ($1.safeDownloadCount, $1.hotRank ?? 0)
-            }
-            .prefix(10)
-        popularRailCache[col] = Array(ranked)
-        if collection == col { popularRail = Array(ranked) }
+        // Drop a stale response from a superseded collection/filter.
+        guard collection == col,
+              (selectedSubcategory ?? selectedCategory)?.slug == catSlug else { return }
+        // The strip over the hero is the "Most Popular" rail — a scrollable set, but small enough
+        // that excluding it from the grid below doesn't thin "All Wallpapers".
+        popularRail = Array(page.data.prefix(14))
     }
     var isLoading = false
     var errorMessage: String?
@@ -56,6 +46,12 @@ final class BrowseViewModel {
     /// Bumped on every reload so a late-returning request from a previous sort/query is
     /// recognised as stale and its results are discarded instead of polluting the grid.
     private var generation = 0
+
+    /// Frozen once per reload so paging stays consistent; `seenIDs` rejects duplicate ids so the
+    /// grid never holds two cards with the same Identifiable id (SwiftUI undefined behaviour — the
+    /// "All Wallpapers" corruption/hang the client hit).
+    private var pageTimestamp = 0
+    private var seenIDs = Set<Wallpaper.ID>()
 
     /// Client-side paging only makes sense over the full set; while the user is searching we
     /// match against already-loaded pages and must not keep fetching more.
@@ -86,6 +82,8 @@ final class BrowseViewModel {
         hasMore = true
         isLoading = false   // cancel any in-flight page's effect; its append is gated by gen
         wallpapers = []
+        seenIDs.removeAll()
+        pageTimestamp = Int(Date().timeIntervalSince1970)
         await loadPage(gen: gen)
     }
 
@@ -100,23 +98,32 @@ final class BrowseViewModel {
         guard !isLoading else { return }
         isLoading = true
         defer { if gen == generation { isLoading = false } }
-        do {
-            let page = try await WallpaperAPI.shared.desktopWallpapers(
-                collection: collection,
-                page: currentPage,
-                perPage: 24,
-                sortOrder: sortOrder,
-                categorySlug: (selectedSubcategory ?? selectedCategory)?.slug
-            )
-            guard gen == generation else { return } // a newer reload superseded this request
-            wallpapers.append(contentsOf: page.data)
-            hasMore = page.info.currentPage < page.info.lastPage
-            currentPage = page.info.currentPage + 1
-            errorMessage = nil
-        } catch {
-            guard gen == generation else { return }
-            errorMessage = error.localizedDescription
-            Log.api.error("Browse load failed: \(error.localizedDescription, privacy: .public)")
+        // The infinite-scroll sentinel only re-fires when the grid grows, so a page whose ids are
+        // all already-seen (dedup → zero fresh) would stall paging. Skip up to a few such pages in
+        // one pass until we get fresh content or reach the end.
+        for _ in 0..<5 {
+            do {
+                let page = try await WallpaperAPI.shared.desktopWallpapers(
+                    collection: collection,
+                    page: currentPage,
+                    perPage: 24,
+                    sortOrder: sortOrder,
+                    categorySlug: (selectedSubcategory ?? selectedCategory)?.slug,
+                    timestamp: pageTimestamp
+                )
+                guard gen == generation else { return } // a newer reload superseded this request
+                let fresh = page.data.filter { seenIDs.insert($0.id).inserted }
+                wallpapers.append(contentsOf: fresh)
+                hasMore = page.info.currentPage < page.info.lastPage
+                currentPage = page.info.currentPage + 1
+                errorMessage = nil
+                if !fresh.isEmpty || !hasMore { return }
+            } catch {
+                guard gen == generation else { return }
+                errorMessage = error.localizedDescription
+                Log.api.error("Browse load failed: \(error.localizedDescription, privacy: .public)")
+                return
+            }
         }
     }
 
@@ -134,22 +141,15 @@ final class BrowseViewModel {
         selectedSubcategory = nil
         availableSubcategories = []
         categories = curatedCache[newValue] ?? []
-        popularRail = popularRailCache[newValue] ?? []
+        popularRail = []
         Task { await reload() }
         Task { await curateCategories() }
-        Task { await loadPopularRailIfNeeded() }
+        Task { await loadPopularRail() }
     }
 
     // MARK: - Categories
 
     func loadCategoriesIfNeeded() async {
-        if allCategories.isEmpty {
-            do {
-                allCategories = try await WallpaperAPI.shared.categoryList()
-            } catch {
-                Log.api.error("Category list failed: \(error.localizedDescription, privacy: .public)")
-            }
-        }
         await curateCategories()
     }
 
@@ -159,86 +159,32 @@ final class BrowseViewModel {
             if collection == col { categories = cached }
             return
         }
-        // Categories are tagged against desktop photo wallpapers (type 5); the live/shader
-        // endpoints aren't tagged on the backend yet, so curating per-tab would empty the
-        // filter on Live/Shader. Always curate against the desktop collection so the full
-        // set of real categories shows on every tab.
-        let source: WallpaperCollection = .normal
-        if let counted = try? await WallpaperAPI.shared.categoryList(countType: source.apiType),
-           counted.contains(where: { $0.wallpapersCount != nil }) {
-            let curated = counted
-                .filter { $0.wallpapersCount != 0 }
-                .map { parent in
-                    WallpaperCategory(
-                        id: parent.id, name: parent.name, slug: parent.slug,
-                        children: parent.children.filter { $0.wallpapersCount != 0 },
-                        wallpapersCount: parent.wallpapersCount
-                    )
-                }
-            curatedCache[col] = curated
-            if collection == col { categories = curated }
-            return
-        }
-        guard !allCategories.isEmpty else { return }
-        let curated = await Self.nonEmpty(allCategories, in: source)
-        curatedCache[col] = curated
-        if collection == col { categories = curated }
-    }
-
-    private func curateSubcategories(of parent: WallpaperCategory) async {
-        let col = collection
-        let key = "\(col.rawValue)|\(parent.slug)"
-        if let cached = curatedSubsCache[key] {
-            if selectedCategory?.id == parent.id { availableSubcategories = cached }
-            return
-        }
-        // Count-curated parents already carry pre-filtered children.
-        if parent.children.contains(where: { $0.wallpapersCount != nil }) || parent.wallpapersCount != nil {
-            curatedSubsCache[key] = parent.children
-            if selectedCategory?.id == parent.id { availableSubcategories = parent.children }
-            return
-        }
-        let curated = await Self.nonEmpty(parent.children, in: col)
-        curatedSubsCache[key] = curated
-        if selectedCategory?.id == parent.id, collection == col {
-            availableSubcategories = curated
-        }
-    }
-
-    private nonisolated static func nonEmpty(
-        _ candidates: [WallpaperCategory], in collection: WallpaperCollection
-    ) async -> [WallpaperCategory] {
-        guard !candidates.isEmpty else { return [] }
-        return await withTaskGroup(of: (Int, Bool).self) { group in
-            for (index, category) in candidates.enumerated() {
-                group.addTask {
-                    let page = try? await WallpaperAPI.shared.desktopWallpapers(
-                        collection: collection, page: 1, perPage: 1, categorySlug: category.slug
-                    )
-                    return (index, page?.data.isEmpty == false)
-                }
-            }
-            var keep = Set<Int>()
-            for await (index, hasContent) in group where hasContent { keep.insert(index) }
-            return candidates.enumerated().filter { keep.contains($0.offset) }.map(\.element)
-        }
+        // The backend's per-type category list already returns only categories that HAVE content
+        // for this exact collection (5 photo / 6 live / 7 shader), with slugs that match — so no
+        // probing is needed and clicking a category actually returns wallpapers. Live/Shader
+        // legitimately have few categories right now; that's backend tagging, not a bug to hide.
+        guard let cats = try? await WallpaperAPI.shared.categoryList(type: col.apiType) else { return }
+        curatedCache[col] = cats
+        if collection == col { categories = cats }
     }
 
     func selectCategory(_ category: WallpaperCategory?) {
         guard category?.id != selectedCategory?.id else { return }
         selectedCategory = category
         selectedSubcategory = nil
-        availableSubcategories = []
+        // Children arrive with the same per-type call, already scoped to this collection.
+        availableSubcategories = category?.children ?? []
+        popularRail = []
         Task { await reload() }
-        if let category, !category.children.isEmpty {
-            Task { await curateSubcategories(of: category) }
-        }
+        Task { await loadPopularRail() }
     }
 
     func selectSubcategory(_ sub: WallpaperCategory?) {
         guard sub?.id != selectedSubcategory?.id else { return }
         selectedSubcategory = sub
+        popularRail = []
         Task { await reload() }
+        Task { await loadPopularRail() }
     }
 
     // MARK: - Imports

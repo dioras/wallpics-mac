@@ -61,6 +61,71 @@ enum WidgetSharedExport {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    private struct CatalogEntry: Encodable { let id: String; let name: String; let image: String }
+
+    /// Fetch the ENTIRE backend widget gallery (paging through all of it) and publish it, so the
+    /// native picker offers EVERY WallPics widget — not just ones the user created. New gallery
+    /// widgets appear on the next refresh.
+    static func refreshCatalog() async {
+        // The whole gallery (125+), not the flat endpoint's 32 — see WallpaperAPI.allGalleryWidgets.
+        let items = (try? await WallpaperAPI.shared.allGalleryWidgets()) ?? []
+        guard !items.isEmpty else { return }
+        await syncCatalog(items)
+    }
+
+    /// Download each gallery preview once into the App Group and write a manifest the extension
+    /// reads. Cached images are skipped, stale ones pruned — safe to call on every launch.
+    static func syncCatalog(_ items: [WidgetCatalogItem]) async {
+        guard let container = containerURL else {
+            Log.app.error("WidgetSharedExport.catalog: App Group container unavailable")
+            return
+        }
+        let catalogRoot = container.appendingPathComponent("Widgets", isDirectory: true)
+            .appendingPathComponent("Catalog", isDirectory: true)
+        let catalogFile = container.appendingPathComponent("Widgets", isDirectory: true)
+            .appendingPathComponent("catalog.json")
+        try? FileManager.default.createDirectory(at: catalogRoot, withIntermediateDirectories: true)
+
+        // Download any missing previews concurrently.
+        await withTaskGroup(of: Void.self) { group in
+            for item in items {
+                guard let rawID = item.id, !rawID.isEmpty, let thumb = item.thumbnailURL else { continue }
+                let dest = catalogRoot.appendingPathComponent("catalog-\(rawID)", isDirectory: true)
+                    .appendingPathComponent("image.jpg")
+                if FileManager.default.fileExists(atPath: dest.path) { continue }
+                group.addTask {
+                    guard let (data, resp) = try? await URLSession.shared.data(from: thumb),
+                          (resp as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? false,
+                          !data.isEmpty else { return }
+                    try? FileManager.default.createDirectory(
+                        at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try? data.write(to: dest, options: .atomic)
+                }
+            }
+        }
+
+        // Build the manifest from items whose preview is now on disk, and prune the rest.
+        var entries: [CatalogEntry] = []
+        var keep = Set<String>()
+        for item in items {
+            guard let rawID = item.id, !rawID.isEmpty, let name = item.name, !name.isEmpty else { continue }
+            let cid = "catalog-\(rawID)"
+            let dest = catalogRoot.appendingPathComponent(cid, isDirectory: true).appendingPathComponent("image.jpg")
+            guard FileManager.default.fileExists(atPath: dest.path) else { continue }
+            keep.insert(cid)
+            entries.append(CatalogEntry(id: cid, name: name, image: "image.jpg"))
+        }
+        if let existing = try? FileManager.default.contentsOfDirectory(atPath: catalogRoot.path) {
+            for dir in existing where !keep.contains(dir) {
+                try? FileManager.default.removeItem(at: catalogRoot.appendingPathComponent(dir))
+            }
+        }
+        if let json = try? JSONEncoder().encode(entries) {
+            try? json.write(to: catalogFile, options: .atomic)
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     private static func sharedAsset(for instance: WidgetInstance, fileManager: FileManager) -> (source: URL, name: String)? {
         if instance.kind == .dateTime { return nil }
         let dir = WidgetPaths.assetsDirectory(for: instance.id)

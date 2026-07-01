@@ -6,20 +6,34 @@ struct BrowseView: View {
 
     private let columns = [GridItem(.adaptive(minimum: 230, maximum: 340), spacing: Theme.Space.l)]
 
-    private static let carouselCount = 14
-
     private var featuredWallpaper: Wallpaper? {
         env.selectedWallpaper ?? model.filteredWallpapers.first
     }
 
     private var gridWallpapers: [Wallpaper] {
         if model.isSearching { return model.filteredWallpapers }
-        var items = Array(model.filteredWallpapers.dropFirst(Self.carouselCount))
-        if model.selectedCategory == nil {
-            let railIDs = Set(model.popularRail.map(\.id))
-            items.removeAll { railIDs.contains($0.id) }
+        // The Most Popular strip + featured hero already show some of these; drop them so the grid
+        // doesn't repeat them (by identity; the hero may be an import).
+        let featuredID = featuredWallpaper?.id
+        let popular = Set(model.popularRail.map(\.id))
+        let deduped = model.filteredWallpapers.filter { !popular.contains($0.id) && $0.id != featuredID }
+        // A small collection (Shaders has ~6 total) can be entirely consumed by the strip + hero,
+        // leaving "All Wallpapers" blank — in that case show everything but the hero so it's never empty.
+        if deduped.count < 6 {
+            return model.filteredWallpapers.filter { $0.id != featuredID }
         }
-        return items
+        return deduped
+    }
+
+    /// Warm the next ~12 thumbnails as each card appears so scrolling stays instant instead of
+    /// flashing spinners. Thumbnails are ~25KB, so the lookahead is cheap.
+    private func prefetchAhead(from index: Int) {
+        let items = gridWallpapers
+        let end = min(index + 13, items.count)
+        guard index + 1 < end else { return }
+        let urls = items[(index + 1)..<end].compactMap(\.thumbnailURL)
+        guard !urls.isEmpty else { return }
+        Task { await ImageLoader.shared.prefetch(urls) }
     }
 
     var body: some View {
@@ -28,15 +42,12 @@ struct BrowseView: View {
             VStack(spacing: 0) {
             ZStack(alignment: .bottom) {
                 FeaturedHero(wallpaper: featuredWallpaper, bottomInset: 132)
+                // The strip over the hero IS "Most Popular" now — tapping a card features it above.
                 heroCarousel
             }
-            // Cover scales as a share of the window so it stays dominant at every size
-            // (a fixed inset would let the cover shrink out of proportion on small windows).
             .frame(height: max(420, geo.size.height * 0.74))
 
             BrowseToolbar(
-                sortOrder: model.sortOrder,
-                onSort: model.setSort,
                 collection: model.collection,
                 onCollection: model.setCollection
             )
@@ -44,29 +55,33 @@ struct BrowseView: View {
                 categoryRows
             }
 
-            if !model.popularRail.isEmpty && !model.isSearching && model.selectedCategory == nil {
-                SectionHeader(
-                    title: String(localized: "Most Popular"),
-                    subtitle: String(localized: "Wallpapers the community loves"),
-                    seeAllAction: nil
-                )
-                popularRailView
-            }
-
             if !model.isSearching {
-                SectionHeader(
-                    title: String(localized: "All Wallpapers"),
-                    subtitle: model.sortOrder.label,
-                    seeAllAction: nil
-                )
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("All Wallpapers")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(.white)
+                        Text(model.sortOrder.label)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
+                    Spacer()
+                    // Sort lives next to the content it orders (the client wanted it out of the
+                    // tucked-away top-right icon), as a visible pill rather than a bare glyph.
+                    SortMenu(sortOrder: model.sortOrder, onSort: model.setSort)
+                }
+                .padding(.horizontal, Theme.Space.l)
+                .padding(.top, Theme.Space.xl)
+                .padding(.bottom, Theme.Space.s)
             }
 
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
-                ForEach(gridWallpapers) { wallpaper in
+                ForEach(Array(gridWallpapers.enumerated()), id: \.element.id) { index, wallpaper in
                     WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
                         .onTapGesture {
                             withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
                         }
+                        .onAppear { prefetchAhead(from: index) }
                         .scrollTransition { content, phase in
                             content
                                 .opacity(phase.isIdentity ? 1 : 0.35)
@@ -104,34 +119,18 @@ struct BrowseView: View {
         .refreshable { await model.reload() }
         .task {
             await model.loadCategoriesIfNeeded()
-            await model.loadPopularRailIfNeeded()
+            await model.loadPopularRail()
         }
         }
         .ignoresSafeArea(edges: .top)
     }
 
-    private var popularRailView: some View {
-        HWheelScroll {
-            HStack(spacing: Theme.Space.l) {
-                ForEach(model.popularRail) { wallpaper in
-                    WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
-                        .frame(width: 300, height: 188)
-                        .onTapGesture {
-                            withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
-                        }
-                }
-            }
-            .padding(.horizontal, Theme.Space.l)
-            .padding(.vertical, Theme.Space.s)
-        }
-        .frame(height: 204)
-    }
-
-    /// Quick-pick strip under the hero — tapping a card features it above, One4Wall style.
+    /// The small strip over the featured hero — this is "Most Popular" now. Tapping a card features
+    /// it above. Filled with real backend-popular content that reacts to the selected category.
     private var heroCarousel: some View {
         HWheelScroll {
             HStack(spacing: Theme.Space.m) {
-                ForEach(model.filteredWallpapers.prefix(14)) { wp in
+                ForEach(model.popularRail) { wp in
                     let active = featuredWallpaper?.id == wp.id
                     Button {
                         withAnimation(Motion.transition) { env.selectedWallpaper = wp }
@@ -161,7 +160,7 @@ struct BrowseView: View {
     /// subcategories when the selected root has children.
     private var categoryRows: some View {
         VStack(alignment: .leading, spacing: Theme.Space.s) {
-            ScrollView(.horizontal, showsIndicators: false) {
+            HWheelScroll {
                 HStack(spacing: Theme.Space.s) {
                     CategoryChip(title: String(localized: "All"), isSelected: model.selectedCategory == nil) {
                         model.selectCategory(nil)
@@ -174,8 +173,9 @@ struct BrowseView: View {
                 }
                 .padding(.horizontal, Theme.Space.l)
             }
+            .frame(height: 40)
             if let parent = model.selectedCategory, !model.availableSubcategories.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
+                HWheelScroll {
                     HStack(spacing: Theme.Space.s) {
                         CategoryChip(title: String(localized: "All \(parent.cleanName)"),
                                      isSelected: model.selectedSubcategory == nil, isSub: true) {
@@ -189,6 +189,7 @@ struct BrowseView: View {
                     }
                     .padding(.horizontal, Theme.Space.l)
                 }
+                .frame(height: 32)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
@@ -233,41 +234,51 @@ struct BrowseView: View {
 }
 
 private struct BrowseToolbar: View {
-    let sortOrder: SortOrder
-    let onSort: (SortOrder) -> Void
     let collection: WallpaperCollection
     let onCollection: (WallpaperCollection) -> Void
 
     var body: some View {
         HStack(spacing: Theme.Space.m) {
             CollectionFilter(selection: collection, onSelect: onCollection)
-
             Spacer()
-
-            Menu {
-                ForEach(SortOrder.allCases, id: \.self) { order in
-                    Button {
-                        onSort(order)
-                    } label: {
-                        if order == sortOrder { Image(systemName: "checkmark") }
-                        Text(order.label)
-                    }
-                }
-            } label: {
-                Image(systemName: "arrow.up.arrow.down")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 34, height: 34)
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .liquidGlass(in: Circle())
-            .help(sortOrder.label)
         }
         .padding(.horizontal, Theme.Space.l)
         .padding(.top, Theme.Space.l)
         .padding(.bottom, Theme.Space.m)
+    }
+}
+
+/// Visible sort control that sits by the "All Wallpapers" header. Shows the active order + a
+/// chevron so it reads as a real menu, not a bare glyph tucked in the corner.
+private struct SortMenu: View {
+    let sortOrder: SortOrder
+    let onSort: (SortOrder) -> Void
+
+    var body: some View {
+        Menu {
+            ForEach(SortOrder.allCases, id: \.self) { order in
+                Button {
+                    onSort(order)
+                } label: {
+                    if order == sortOrder { Image(systemName: "checkmark") }
+                    Text(order.label)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.up.arrow.down").font(.system(size: 11, weight: .semibold))
+                Text(sortOrder.label).font(.callout.weight(.medium))
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).opacity(0.7)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .liquidGlass(in: Capsule())
+        .help(String(localized: "Sort wallpapers"))
     }
 }
 

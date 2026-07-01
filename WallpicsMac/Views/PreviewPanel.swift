@@ -661,7 +661,7 @@ struct DetailOverlay: View {
             .offset(drag)
         }
         .contentShape(Rectangle())
-        .gesture(slideGesture)
+        .highPriorityGesture(slideGesture)
         .onAppear { configureSwipe(); addScrollMonitor() }
         .onDisappear { removeScrollMonitor() }
         .onChange(of: wallpaper.id) { _, _ in

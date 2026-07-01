@@ -27,7 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     nonisolated func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         MainActor.assumeIsolated {
-            if !flag { mainWindowController?.showWindow(nil) }
+            // Restore whether the window was closed, minimized, or just hidden behind other apps.
+            mainWindowController?.reopen()
             return true
         }
     }
@@ -86,6 +87,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         DesktopWidgetManager.shared.restoreAll()
         WidgetSharedExport.sync()
+        // Publish the backend widget gallery to the App Group so the native macOS picker lists
+        // every WallPics widget, not just ones the user created.
+        Task { await WidgetSharedExport.refreshCatalog() }
 
         // Onboarding presentation is now driven from ContentView .task — it triggers the
         // sheet only after the main window mounts, so the user sees it on top of the app.

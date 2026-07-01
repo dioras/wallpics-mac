@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import CryptoKit
 
 struct WidgetRenderView: View {
     let instance: WidgetInstance
@@ -582,7 +583,11 @@ private struct TemplateBody: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.15)
-            if let slug = instance.payload.templateSlug {
+            if let slug = instance.payload.templateSlug, MatchesLiveView.handles(slug: slug) {
+                // The World Cup widget is data-driven — render the live scoreboard, not a static image.
+                MatchesLiveView(width: w, height: h)
+                    .frame(width: w, height: h)
+            } else if let slug = instance.payload.templateSlug {
                 WidgetTemplateView(slug: slug,
                                    family: instance.family,
                                    userPhotoURL: photoURL,
@@ -622,5 +627,207 @@ private struct TemplateBody: View {
 
 private extension Array {
     func ifEmpty(_ fallback: [Element]) -> [Element] { isEmpty ? fallback : self }
+}
+
+// MARK: - Live World Cup widget (data-driven "template")
+
+struct WCMatch: Decodable, Identifiable, Sendable {
+    let id: String
+    let home: String
+    let away: String
+    let homeScore: String
+    let awayScore: String
+    let dateString: String
+    let finished: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case home = "home_team_name_en"
+        case away = "away_team_name_en"
+        case homeScore = "home_score"
+        case awayScore = "away_score"
+        case dateString = "local_date"
+        case finished
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decode(String.self, forKey: .id)) ?? UUID().uuidString
+        home = (try? c.decode(String.self, forKey: .home)) ?? "—"
+        away = (try? c.decode(String.self, forKey: .away)) ?? "—"
+        homeScore = (try? c.decode(String.self, forKey: .homeScore)) ?? ""
+        awayScore = (try? c.decode(String.self, forKey: .awayScore)) ?? ""
+        dateString = (try? c.decode(String.self, forKey: .dateString)) ?? ""
+        finished = ((try? c.decode(String.self, forKey: .finished)) ?? "FALSE").uppercased() == "TRUE"
+    }
+
+    init(id: String, home: String, away: String, homeScore: String, awayScore: String, dateString: String, finished: Bool) {
+        self.id = id; self.home = home; self.away = away
+        self.homeScore = homeScore; self.awayScore = awayScore
+        self.dateString = dateString; self.finished = finished
+    }
+
+    private static let parser: DateFormatter = {
+        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "MM/dd/yyyy HH:mm"; return f
+    }()
+    var kickoff: Date? { Self.parser.date(from: dateString) }
+}
+
+private struct WCMatchesResponse: Decodable { let games: [WCMatch] }
+
+enum MatchesLiveData {
+    private static let base = "https://backend.wallpics.app"
+    private static let salt = "wall"
+
+    static func fetch() async -> [WCMatch] {
+        guard let url = URL(string: "\(base)/api/world-cup/games") else { return [] }
+        var req = URLRequest(url: url, timeoutInterval: 12)
+        let ts = String(Int(Date().timeIntervalSince1970))
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("MacOS", forHTTPHeaderField: "X-App-Platform")
+        req.setValue(ts, forHTTPHeaderField: "x-auth")
+        req.setValue(md5(ts + salt), forHTTPHeaderField: "x-token")
+        req.setValue("1", forHTTPHeaderField: "x-get-guest-id")
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let decoded = try? JSONDecoder().decode(WCMatchesResponse.self, from: data) else { return [] }
+        return decoded.games
+    }
+
+    static func relevant(_ games: [WCMatch], limit: Int, now: Date = Date()) -> [WCMatch] {
+        let named = games.filter { $0.home != "—" && $0.away != "—" && !$0.home.isEmpty && !$0.away.isEmpty }
+        func started(_ g: WCMatch) -> Bool { g.kickoff.map { $0 <= now } ?? false }
+        let live = named.filter { !$0.finished && started($0) }
+        let rest = named.filter { $0.finished || !started($0) }
+            .sorted { abs(($0.kickoff ?? .distantPast).timeIntervalSince(now)) < abs(($1.kickoff ?? .distantPast).timeIntervalSince(now)) }
+        return Array((live + rest).prefix(limit))
+    }
+
+    static let sample: [WCMatch] = [
+        WCMatch(id: "s1", home: "Brazil", away: "Norway", homeScore: "2", awayScore: "1", dateString: "", finished: true),
+        WCMatch(id: "s2", home: "France", away: "Japan", homeScore: "3", awayScore: "0", dateString: "", finished: true),
+        WCMatch(id: "s3", home: "Spain", away: "Morocco", homeScore: "1", awayScore: "1", dateString: "", finished: true),
+        WCMatch(id: "s4", home: "Argentina", away: "Mexico", homeScore: "2", awayScore: "0", dateString: "", finished: true),
+        WCMatch(id: "s5", home: "Germany", away: "Portugal", homeScore: "0", awayScore: "2", dateString: "", finished: true),
+        WCMatch(id: "s6", home: "England", away: "Croatia", homeScore: "1", awayScore: "0", dateString: "", finished: true)
+    ]
+
+    private static func md5(_ s: String) -> String {
+        Insecure.MD5.hash(data: Data(s.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+enum WCFlags {
+    private static let map: [String: String] = [
+        "algeria": "🇩🇿", "argentina": "🇦🇷", "australia": "🇦🇺", "austria": "🇦🇹", "belgium": "🇧🇪",
+        "bosnia and herzegovina": "🇧🇦", "brazil": "🇧🇷", "canada": "🇨🇦", "cape verde": "🇨🇻", "colombia": "🇨🇴",
+        "croatia": "🇭🇷", "curaçao": "🇨🇼", "curacao": "🇨🇼", "czech republic": "🇨🇿",
+        "democratic republic of the congo": "🇨🇩", "ecuador": "🇪🇨", "egypt": "🇪🇬", "england": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+        "france": "🇫🇷", "germany": "🇩🇪", "ghana": "🇬🇭", "haiti": "🇭🇹", "iran": "🇮🇷", "iraq": "🇮🇶",
+        "ivory coast": "🇨🇮", "japan": "🇯🇵", "jordan": "🇯🇴", "mexico": "🇲🇽", "morocco": "🇲🇦",
+        "netherlands": "🇳🇱", "new zealand": "🇳🇿", "norway": "🇳🇴", "panama": "🇵🇦", "paraguay": "🇵🇾",
+        "portugal": "🇵🇹", "qatar": "🇶🇦", "saudi arabia": "🇸🇦", "scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "senegal": "🇸🇳",
+        "south africa": "🇿🇦", "south korea": "🇰🇷", "spain": "🇪🇸", "sweden": "🇸🇪", "switzerland": "🇨🇭",
+        "tunisia": "🇹🇳", "turkey": "🇹🇷", "united states": "🇺🇸", "usa": "🇺🇸", "uruguay": "🇺🇾", "uzbekistan": "🇺🇿"
+    ]
+    static func emoji(_ team: String) -> String {
+        map[team.lowercased().trimmingCharacters(in: .whitespaces)] ?? "⚽️"
+    }
+}
+
+/// Live World Cup scoreboard rendered inside the desktop overlay — pulls api/world-cup/games and
+/// refreshes on its own. Scales across the small/medium/large desktop widget sizes.
+struct MatchesLiveView: View {
+    let width: CGFloat
+    let height: CGFloat
+    @State private var games: [WCMatch] = MatchesLiveData.sample
+    @State private var loaded = false
+
+    static func handles(slug: String) -> Bool {
+        let s = slug.lowercased()
+        return s.contains("world_cup") || s.contains("world-cup") || s.contains("worldcup") || s.contains("matches")
+    }
+
+    private var scale: CGFloat { max(0.72, min(width / 360, 1.25)) }
+    private var rowCount: Int { height > 340 ? 6 : (height > 210 ? 4 : 3) }
+
+    var body: some View {
+        let shown = MatchesLiveData.relevant(games, limit: rowCount)
+        VStack(alignment: .leading, spacing: 7 * scale) {
+            HStack(spacing: 6 * scale) {
+                Image(systemName: "soccerball").font(.system(size: 13 * scale, weight: .bold))
+                Text("TODAY'S MATCHES").font(.system(size: 12 * scale, weight: .heavy)).tracking(0.4).lineLimit(1)
+                Spacer(minLength: 4)
+                Text(headerDate).font(.system(size: 11 * scale, weight: .semibold)).foregroundStyle(.white.opacity(0.65))
+            }
+            .foregroundStyle(.white)
+            Rectangle().fill(.white.opacity(0.14)).frame(height: 1)
+            if shown.isEmpty {
+                Spacer()
+                Text("No matches available").font(.system(size: 12 * scale, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6)).frame(maxWidth: .infinity)
+                Spacer()
+            } else {
+                ForEach(shown) { g in
+                    row(g)
+                    if g.id != shown.last?.id { Rectangle().fill(.white.opacity(0.08)).frame(height: 1) }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.horizontal, 14 * scale)
+        .padding(.vertical, 12 * scale)
+        .frame(width: width, height: height)
+        .background(
+            LinearGradient(colors: [Color(red: 0.07, green: 0.20, blue: 0.11), Color(red: 0.03, green: 0.09, blue: 0.05)],
+                           startPoint: .top, endPoint: .bottom)
+        )
+        .task {
+            guard !loaded else { return }
+            let g = await MatchesLiveData.fetch()
+            if !g.isEmpty { games = g }
+            loaded = true
+        }
+        .onReceive(Timer.publish(every: 120, on: .main, in: .common).autoconnect()) { _ in
+            Task { let g = await MatchesLiveData.fetch(); if !g.isEmpty { games = g } }
+        }
+    }
+
+    private func row(_ g: WCMatch) -> some View {
+        HStack(spacing: 6 * scale) {
+            HStack(spacing: 5 * scale) {
+                Spacer(minLength: 0)
+                Text(g.home).lineLimit(1).minimumScaleFactor(0.65)
+                Text(WCFlags.emoji(g.home)).font(.system(size: 13 * scale))
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            Text(score(g)).font(.system(size: 14 * scale, weight: .heavy, design: .rounded)).monospacedDigit().frame(width: 56 * scale)
+            HStack(spacing: 5 * scale) {
+                Text(WCFlags.emoji(g.away)).font(.system(size: 13 * scale))
+                Text(g.away).lineLimit(1).minimumScaleFactor(0.65)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .font(.system(size: 12 * scale, weight: .semibold))
+        .foregroundStyle(.white)
+    }
+
+    private func score(_ g: WCMatch) -> String {
+        let started = g.kickoff.map { $0 <= Date() } ?? false
+        if (g.finished || started), !g.homeScore.isEmpty, !g.awayScore.isEmpty {
+            return "\(g.homeScore) - \(g.awayScore)"
+        }
+        if let k = g.kickoff { return Self.timeFmt.string(from: k) }
+        return "vs"
+    }
+
+    private var headerDate: String {
+        let shown = MatchesLiveData.relevant(games, limit: rowCount)
+        if let k = shown.compactMap(\.kickoff).min() { return Self.dayFmt.string(from: k) }
+        return Self.dayFmt.string(from: Date())
+    }
+
+    private static let timeFmt: DateFormatter = { let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "HH:mm"; return f }()
+    private static let dayFmt: DateFormatter = { let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "d MMM"; return f }()
 }
 

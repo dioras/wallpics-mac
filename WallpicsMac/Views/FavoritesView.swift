@@ -35,9 +35,13 @@ struct FavoritesView: View {
                     .animation(Motion.reward, value: model.wallpapers.map(\.id))
                 }
                 .scrollContentBackground(.hidden)
-                .background(Color(nsColor: .windowBackgroundColor))
             }
         }
+        // Match every other tab: solid dark backdrop (the empty state used the light window
+        // colour before). Forcing the dark scheme keeps the empty-state text legible on black.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(.black)
+        .environment(\.colorScheme, .dark)
         .task { await model.refresh() }
     }
 }

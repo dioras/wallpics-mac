@@ -717,6 +717,9 @@
     "Add" : {
 
     },
+    "Add a native WallPics widget" : {
+
+    },
     "Add photo" : {
 
     },
@@ -724,6 +727,9 @@
 
     },
     "Add video" : {
+
+    },
+    "Add WallPics as a real native macOS widget. Apple only allows this through the system Widget gallery — placing from a tile below is an instant app overlay instead." : {
 
     },
     "All" : {
@@ -826,6 +832,9 @@
           }
         }
       }
+    },
+    "Apple only lets you add native widgets from the system gallery — it takes about 5 seconds:" : {
+
     },
     "Apply Wallpaper" : {
       "localizations" : {
@@ -4237,6 +4246,9 @@
     "Shaders" : {
 
     },
+    "Show me how" : {
+
+    },
     "Show WallPics" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4288,6 +4300,9 @@
 
     },
     "Small" : {
+
+    },
+    "Sort wallpapers" : {
 
     },
     "Start Free Trial" : {
@@ -4978,6 +4993,9 @@
     "Video Widget" : {
 
     },
+    "Waiting for you to drag it out…" : {
+
+    },
     "Wallpaper set." : {
       "localizations" : {
         "de" : {
@@ -5023,9 +5041,6 @@
           }
         }
       }
-    },
-    "Wallpapers the community loves" : {
-
     },
     "WallPics" : {
 
@@ -5075,6 +5090,9 @@
           }
         }
       }
+    },
+    "Want it to snap with your other desktop widgets?" : {
+
     },
     "Watermark removed. Thank you." : {
       "localizations" : {
@@ -5213,6 +5231,9 @@
           }
         }
       }
+    },
+    "Widget added — you'll see it on your desktop" : {
+
     },
     "Widget name" : {
 

@@ -1,10 +1,12 @@
 import SwiftUI
+import WidgetKit
 
 struct WidgetsView: View {
     @Bindable var model: WidgetsViewModel
     @Environment(AppEnvironment.self) private var env
     @State private var editor: WidgetEditorModel?
     @State private var desktop = DesktopWidgetManager.shared
+    @State private var showNativeGuide = false
 
     private let columns = [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: Theme.Space.l)]
 
@@ -12,6 +14,7 @@ struct WidgetsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Space.l) {
                 header
+                nativeWidgetCallout
                 toolbar
                 content
             }
@@ -21,6 +24,7 @@ struct WidgetsView: View {
         .scrollContentBackground(.hidden)
         .background(.black)
         .environment(\.colorScheme, .dark)
+        .sheet(isPresented: $showNativeGuide) { NativeWidgetGuide() }
         .task { await model.loadIfNeeded() }
         .task(id: env.widgetEditRequestID) {
             guard let id = env.widgetEditRequestID, let instance = model.store.instance(id: id) else { return }
@@ -82,6 +86,33 @@ struct WidgetsView: View {
         .help(String(localized: "Create a widget from your photos or videos"))
     }
 
+    /// Honest native-widget path. macOS gives apps no way to drop a widget on the desktop or open
+    /// the gallery directly, so we guide the user through the one Apple-sanctioned flow and detect
+    /// success automatically. Placing from a tile stays instant but is an app overlay, not native.
+    private var nativeWidgetCallout: some View {
+        HStack(spacing: Theme.Space.m) {
+            Image(systemName: "sparkles.rectangle.stack")
+                .font(.system(size: 22))
+                .foregroundStyle(Theme.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Want it to snap with your other desktop widgets?")
+                    .font(.callout.weight(.semibold)).foregroundStyle(.white)
+                Text("Add WallPics as a real native macOS widget. Apple only allows this through the system Widget gallery — placing from a tile below is an instant app overlay instead.")
+                    .font(.caption).foregroundStyle(.white.opacity(0.6))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Theme.Space.m)
+            Button("Show me how") { showNativeGuide = true }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .foregroundStyle(.white).background(Theme.accent, in: Capsule())
+        }
+        .padding(Theme.Space.m)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+            .strokeBorder(.white.opacity(0.08), lineWidth: 1))
+    }
+
     private var toolbar: some View {
         HStack(spacing: Theme.Space.m) {
             WidgetSegmentedToggle(selection: $model.tab)
@@ -126,7 +157,15 @@ struct WidgetsView: View {
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
                 ForEach(model.filteredItems) { item in
                     WidgetGalleryTile(item: item)
-                        .onTapGesture { openEditor(for: item) }
+                        .onTapGesture { placeOnDesktop(item) }
+                        .contextMenu {
+                            Button { placeOnDesktop(item) } label: {
+                                Label("Place on Desktop", systemImage: "plus.rectangle.on.rectangle")
+                            }
+                            Button { openEditor(for: item) } label: {
+                                Label("Customize\u{2026}", systemImage: "slider.horizontal.3")
+                            }
+                        }
                 }
             }
             .animation(Motion.reward, value: model.filteredItems.map { $0.id ?? "" })
@@ -139,7 +178,7 @@ struct WidgetsView: View {
     }
 
     private var categoryChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        HWheelScroll {
             HStack(spacing: Theme.Space.s) {
                 WidgetCategoryChip(title: String(localized: "All"), isSelected: model.selectedCategorySlug == nil) {
                     model.selectCategory(nil)
@@ -154,11 +193,29 @@ struct WidgetsView: View {
             }
             .padding(.vertical, 2)
         }
+        .frame(height: 40)
     }
 
     private func openEditor(for item: WidgetCatalogItem) {
         let kind = item.resolvedKind
         editor = WidgetEditorModel(creating: kind, family: kind.supportedFamilies.first ?? .small, source: item)
+    }
+
+    /// One-click "Desktop Widgets": download + seed the widget's assets, then drop it straight onto
+    /// the desktop overlay. Widgets that need the user's own photo/video open the editor instead.
+    private func placeOnDesktop(_ item: WidgetCatalogItem) {
+        let kind = item.resolvedKind
+        let editorModel = WidgetEditorModel(creating: kind, family: kind.supportedFamilies.first ?? .small, source: item)
+        Task {
+            await editorModel.prepare()
+            if editorModel.canSave {
+                let saved = editorModel.save()
+                desktop.place(saved)
+                model.tab = .mine
+            } else {
+                editor = editorModel   // needs your photo/video first
+            }
+        }
     }
 
     @ViewBuilder
@@ -312,5 +369,102 @@ private struct WidgetCategoryChip: View {
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Guided add-to-desktop for a REAL native widget. macOS has no API to place a widget or open the
+/// gallery, so we show the exact steps and poll WidgetCenter to auto-confirm the moment one appears.
+private struct NativeWidgetGuide: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var added = false
+    @State private var poll: Task<Void, Never>?
+
+    private let steps: [(String, String, String)] = [
+        ("1", "Right-click an empty spot on your desktop", "cursorarrow.rays"),
+        ("2", "Click \u{201C}Edit Widgets\u{201D}", "square.grid.2x2"),
+        ("3", "Search \u{201C}WallPics\u{201D}, then drag a widget out", "magnifyingglass")
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.l) {
+            HStack {
+                Text("Add a native WallPics widget")
+                    .font(.title2.weight(.bold)).foregroundStyle(.white)
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill").font(.title3).foregroundStyle(.white.opacity(0.5))
+                }.buttonStyle(.plain)
+            }
+            Text("Apple only lets you add native widgets from the system gallery — it takes about 5 seconds:")
+                .font(.callout).foregroundStyle(.white.opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: Theme.Space.m) {
+                ForEach(steps, id: \.0) { step in
+                    HStack(spacing: Theme.Space.m) {
+                        Text(step.0)
+                            .font(.headline).foregroundStyle(.black)
+                            .frame(width: 26, height: 26).background(.white, in: Circle())
+                        Image(systemName: step.2).font(.system(size: 15)).foregroundStyle(Theme.accent).frame(width: 22)
+                        Text(step.1).font(.callout).foregroundStyle(.white)
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+            .padding(Theme.Space.m)
+            .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+
+            detectionBanner
+        }
+        .padding(Theme.Space.xl)
+        .frame(width: 480)
+        .background(Color(white: 0.09))
+        .environment(\.colorScheme, .dark)
+        .onAppear { startPolling() }
+        .onDisappear { poll?.cancel() }
+    }
+
+    private var detectionBanner: some View {
+        HStack(spacing: Theme.Space.s) {
+            if added {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                Text("Widget added — you'll see it on your desktop").foregroundStyle(.white)
+            } else {
+                ProgressView().controlSize(.small).tint(.white)
+                Text("Waiting for you to drag it out…").foregroundStyle(.white.opacity(0.7))
+            }
+            Spacer(minLength: 0)
+        }
+        .font(.callout)
+        .padding(Theme.Space.m)
+        .background((added ? Color.green.opacity(0.14) : Color.white.opacity(0.06)),
+                   in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+        .animation(Motion.hover, value: added)
+    }
+
+    private func startPolling() {
+        poll = Task {
+            while !Task.isCancelled && !added {
+                if await Self.hasNativeWidget() {
+                    await MainActor.run { withAnimation { added = true } }
+                    break
+                }
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+            }
+        }
+    }
+
+    private static func hasNativeWidget() async -> Bool {
+        await withCheckedContinuation { continuation in
+            WidgetCenter.shared.getCurrentConfigurations { result in
+                if case .success(let infos) = result {
+                    continuation.resume(returning: infos.contains {
+                        $0.kind == "WallpicsPhotoWidget" || $0.kind == "WallpicsMatchesWidget"
+                    })
+                } else {
+                    continuation.resume(returning: false)
+                }
+            }
+        }
     }
 }

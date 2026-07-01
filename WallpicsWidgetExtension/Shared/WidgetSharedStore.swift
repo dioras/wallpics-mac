@@ -5,10 +5,12 @@ import SwiftUI
 import os
 
 struct SharedWidget: Identifiable, Hashable, Sendable {
+    enum Source: String, Sendable { case instance, catalog }
     let id: String
     let name: String
     let kindRawValue: String
     let imageRelativePath: String?
+    var source: Source = .instance
     var dateTime: DateTimeWidgetState? = nil
 
     var displayName: String {
@@ -42,7 +44,36 @@ struct WidgetSharedStore: Sendable {
         widgetsRoot?.appendingPathComponent("Instances", isDirectory: true)
     }
 
+    var catalogFile: URL? {
+        widgetsRoot?.appendingPathComponent("catalog.json")
+    }
+
+    var catalogRoot: URL? {
+        widgetsRoot?.appendingPathComponent("Catalog", isDirectory: true)
+    }
+
+    /// The user's own created widgets first, then the full backend gallery — so the native picker
+    /// offers every WallPics widget (and new ones appear automatically as the exported catalog grows).
     func allWidgets() -> [SharedWidget] {
+        instanceWidgets() + catalogWidgets()
+    }
+
+    private struct CatalogEntry: Decodable { let id: String; let name: String; let image: String }
+
+    private func catalogWidgets() -> [SharedWidget] {
+        guard let url = catalogFile,
+              FileManager.default.fileExists(atPath: url.path),
+              let data = try? Data(contentsOf: url),
+              let entries = try? JSONDecoder().decode([CatalogEntry].self, from: data) else {
+            return []
+        }
+        return entries.map {
+            SharedWidget(id: $0.id, name: $0.name, kindRawValue: "photo",
+                         imageRelativePath: $0.image, source: .catalog)
+        }
+    }
+
+    private func instanceWidgets() -> [SharedWidget] {
         guard let url = instancesFile else {
             Self.log.error("App Group container unavailable for \(Self.appGroupID, privacy: .public)")
             return []
@@ -89,11 +120,9 @@ struct WidgetSharedStore: Sendable {
     }
 
     func imageURL(for widget: SharedWidget) -> URL? {
-        guard let relativePath = widget.imageRelativePath,
-              !relativePath.isEmpty,
-              let root = instancesRoot else {
-            return nil
-        }
+        guard let relativePath = widget.imageRelativePath, !relativePath.isEmpty else { return nil }
+        let root = widget.source == .catalog ? catalogRoot : instancesRoot
+        guard let root else { return nil }
         let url = root
             .appendingPathComponent(widget.id, isDirectory: true)
             .appendingPathComponent(relativePath)
