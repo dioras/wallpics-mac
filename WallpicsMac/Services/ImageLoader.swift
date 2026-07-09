@@ -36,11 +36,7 @@ actor ImageLoader {
             if url.isFileURL {
                 data = try Data(contentsOf: url)
             } else {
-                let (remote, response) = try await session.data(from: url)
-                if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                    throw ImageLoaderError.invalidResponse
-                }
-                data = remote
+                data = try await ResilientFetch.data(from: url, using: session)
             }
             // Pre-decode + downsample off the main thread. NSImage(data:) defers decoding to
             // first draw — which lands on the main thread mid-scroll and janks the grid;
@@ -95,6 +91,60 @@ actor ImageLoader {
             return rep.pixelsWide * rep.pixelsHigh * 4
         }
         return 0
+    }
+}
+
+/// GET with retry + short exponential backoff on transient failures — a brief connectivity blip,
+/// dropped connection, 5xx, or zero-byte body (which decodes to nothing and left cards blank/black).
+/// A timeout or 4xx fails fast (retrying just repeats a long wait / won't help), and cancellation is
+/// honoured so a scrolled-away cell stops immediately.
+enum ResilientFetch {
+    static func data(from url: URL, using session: URLSession, attempts: Int = 3) async throws -> Data {
+        var lastError: Error = URLError(.unknown)
+        for attempt in 0..<max(1, attempts) {
+            if attempt > 0 {
+                let backoff = 0.35 * Double(1 << (attempt - 1))   // 0.35s, 0.70s, …
+                try? await Task.sleep(nanoseconds: UInt64(backoff * 1_000_000_000))
+            }
+            if Task.isCancelled { throw CancellationError() }
+            let data: Data
+            let response: URLResponse
+            do {
+                (data, response) = try await session.data(from: url)
+            } catch let error as URLError where error.code == .cancelled {
+                throw error
+            } catch {
+                if Task.isCancelled { throw error }
+                if !isRetryable(error) { throw error }   // e.g. timed-out — a retry just repeats the wait
+                lastError = error
+                continue
+            }
+            if let http = response as? HTTPURLResponse {
+                if (400..<500).contains(http.statusCode) {
+                    throw URLError(.badServerResponse)   // client error — fail fast
+                }
+                if !(200..<300).contains(http.statusCode) {
+                    lastError = URLError(.badServerResponse); continue   // 5xx / other — retry
+                }
+            }
+            if data.isEmpty { lastError = URLError(.zeroByteResource); continue }
+            return data
+        }
+        throw lastError
+    }
+
+    /// Retry genuinely-transient failures, but NOT ones where a retry is pointless or just repeats a
+    /// long wait: a timeout (the resource was already slow the whole timeout) or a cancellation.
+    /// `.notConnectedToInternet` fails instantly, so retrying it briefly rides out a flaky-Wi-Fi blip.
+    static func isRetryable(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return true }
+        switch urlError.code {
+        case .timedOut, .cancelled, .userCancelledAuthentication,
+             .cannotParseResponse, .cannotDecodeContentData:
+            return false
+        default:
+            return true
+        }
     }
 }
 

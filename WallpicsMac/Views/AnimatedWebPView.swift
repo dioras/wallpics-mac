@@ -11,10 +11,13 @@ struct AnimatedWebPView: NSViewRepresentable {
     var fallbackURL: URL?
     var isActive: Bool = true
     var maxPixelSize: CGFloat = 360
+    /// Shown behind the frames so a failed/slow download reads as a tinted card, never black.
+    var placeholderTint: Color = Color(white: 0.14)
 
     func makeNSView(context: Context) -> WebPPlayerView { WebPPlayerView() }
 
     func updateNSView(_ view: WebPPlayerView, context: Context) {
+        view.setPlaceholder(placeholderTint)
         view.load(url: url, fallbackURL: fallbackURL, maxPixelSize: maxPixelSize)
         view.setActive(isActive)
     }
@@ -57,6 +60,12 @@ final class WebPPlayerView: NSView {
 
     required init?(coder: NSCoder) { nil }
 
+    /// Solid tint behind the frames so a slow/failed download shows a colored card, not black.
+    func setPlaceholder(_ color: Color) {
+        let cg = NSColor(color).cgColor
+        if layer?.backgroundColor != cg { layer?.backgroundColor = cg }
+    }
+
     func load(url: URL, fallbackURL: URL?, maxPixelSize: CGFloat) {
         guard url != currentURL else { return }
         currentURL = url
@@ -65,7 +74,7 @@ final class WebPPlayerView: NSView {
         stop()
         loadTask = Task { [weak self] in
             guard let fallbackURL,
-                  let fbData = try? await Self.session.data(from: fallbackURL).0 else { return }
+                  let fbData = try? await ResilientFetch.data(from: fallbackURL, using: Self.session) else { return }
             let still = await Task.detached(priority: .userInitiated) {
                 Self.decodeStill(data: fbData, maxPixelSize: maxPixelSize)
             }.value
@@ -101,7 +110,7 @@ final class WebPPlayerView: NSView {
         guard animationTask == nil, frames.count <= 1, let url = currentURL else { return }
         let maxPixelSize = pendingMaxPixelSize
         animationTask = Task { [weak self] in
-            let data = try? await Self.session.data(from: url).0
+            let data = try? await ResilientFetch.data(from: url, using: Self.session)
             guard !Task.isCancelled, let data else {
                 await MainActor.run { [weak self] in self?.animationTask = nil }
                 return

@@ -255,12 +255,37 @@ actor WallpaperAPI {
     // MARK: - Image fetching
 
     func downloadImage(from url: URL, progress: ((Double) -> Void)? = nil) async throws -> URL {
-        let (tempURL, response) = try await session.download(from: url) { written, total in
-            guard total > 0 else { return }
-            progress?(Double(written) / Double(total))
+        var lastError: Error = URLError(.unknown)
+        for attempt in 0..<3 {
+            if attempt > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(0.5 * Double(1 << (attempt - 1)) * 1_000_000_000))
+                if Task.isCancelled { throw CancellationError() }
+            }
+            do {
+                let (tempURL, response) = try await session.download(from: url) { written, total in
+                    guard total > 0 else { return }
+                    progress?(Double(written) / Double(total))
+                }
+                try ensureOK(response)
+                // Reject a confirmed empty file so a truncated asset never renders as a black wallpaper.
+                if let attrs = try? FileManager.default.attributesOfItem(atPath: tempURL.path),
+                   let size = (attrs[.size] as? NSNumber)?.int64Value, size == 0 {
+                    try? FileManager.default.removeItem(at: tempURL)
+                    throw URLError(.zeroByteResource)
+                }
+                return tempURL
+            } catch let error as URLError where error.code == .cancelled {
+                throw error
+            } catch let error as APIError {
+                if case .http(let code) = error, (400..<500).contains(code) { throw error }  // client error — fail fast
+                lastError = error   // 5xx — retry
+            } catch {
+                if Task.isCancelled { throw error }
+                if !ResilientFetch.isRetryable(error) { throw error }   // timed-out → don't repeat a long wait
+                lastError = error
+            }
         }
-        try ensureOK(response)
-        return tempURL
+        throw lastError
     }
 
     // MARK: - Helpers

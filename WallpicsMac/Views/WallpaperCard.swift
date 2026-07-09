@@ -69,7 +69,8 @@ struct WallpaperCard: View {
     @ViewBuilder
     private var thumbnail: some View {
         if let animated = wallpaper.animatedPreviewURL {
-            AnimatedWebPView(url: animated, fallbackURL: wallpaper.thumbnailURL, isActive: isHovering)
+            AnimatedWebPView(url: animated, fallbackURL: wallpaper.thumbnailURL,
+                             isActive: isHovering, placeholderTint: Self.tint(for: wallpaper.id))
         } else {
             ThumbnailView(
                 url: wallpaper.thumbnailURL,
