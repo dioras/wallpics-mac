@@ -15,3 +15,8 @@ sqlite_mcp_server*.db
 # Legacy reference (pre-refactor monolith)
 WallpicsMac/App/AppDelegate_legacy_reference.txt
 
+
+# Wallpets asset pipeline (dev-only): venv, pose caches, QA sheets
+tools/wallpets/.venv/
+tools/wallpets/cache/
+tools/wallpets/qa/

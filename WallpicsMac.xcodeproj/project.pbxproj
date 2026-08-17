@@ -11,11 +11,17 @@
 		04FD7C7DD4D878EC0D695BD9 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9EA0551C7CFCB3404F76EE0 /* Cocoa.framework */; };
 		0B4C2D7BF9036EA1A0004570 /* WidgetTemplateData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BEC354024929BF3887BAB31 /* WidgetTemplateData.swift */; };
 		17E2115CE8E510B7F5B5CB47 /* WidgetImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29D6BE80656AF7DD6C119A6 /* WidgetImage.swift */; };
+		188D66852705DCC88A5CBA4C /* PoseSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2E16913F0A4AA9723725A6 /* PoseSequence.swift */; };
+		238A5A34677F3AE2BF95CC01 /* PetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5405E1FB6D0C87FC9419E919 /* PetsView.swift */; };
 		28CDED18A879E29656671E9E /* WidgetCatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F924FF12FB8CEECBD4EA2F /* WidgetCatalogModels.swift */; };
 		298F095D6E939507443C7908 /* WidgetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7AB3753E268B72CB297CDC /* WidgetsView.swift */; };
 		3C528F6BF6D90B8B75AA516E /* WidgetLiveAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36677C4EC799AC98D6770014 /* WidgetLiveAPI.swift */; };
 		3DEA13BD627CA9FF4B8A39A3 /* MatchesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6CE6072430F21D53FB796D4 /* MatchesWidget.swift */; };
 		449E671B08600ECE8BBA8BA5 /* DesktopWidgetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C2F9BC6D0A476338D677DB /* DesktopWidgetManager.swift */; };
+		496B294D114BBCB32A8C77A9 /* PetPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4D3AB19457602F0D5D61EB /* PetPreviewView.swift */; };
+		4B0E31D1DB6FA5634D6C043F /* PetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4356AAB60512E94D3030A1EB /* PetStore.swift */; };
+		4CDD9445096B4E4DD582085E /* PetCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1363DAAA59CFC600046B6C1 /* PetCatalog.swift */; };
+		545E9DBD2CFF674DAC818F80 /* DesktopPetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5A6A491A7B056E9B6BA6E5 /* DesktopPetManager.swift */; };
 		59DB8CEE49132CEBACECC953 /* WidgetEditorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74DD3CAEE2516BF272B3479 /* WidgetEditorModel.swift */; };
 		5ECA8C63270AEA74197101B2 /* WidgetTemplateConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CD6D58BF5865CECF199BDD /* WidgetTemplateConfig.swift */; };
 		61CA52C315FD608EC89223EB /* WidgetsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */; };
@@ -80,9 +86,15 @@
 		AC0000A000000000000009 /* UploadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000009 /* UploadsView.swift */; };
 		AC0000A000000000000099 /* HWheelScroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000099 /* HWheelScroll.swift */; };
 		B56B5E45C3CF13F1B91D4EF9 /* WallpicsPhotoWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAD64552A46CD4C3AB449DF4 /* WallpicsPhotoWidget.swift */; };
+		BEED5DBC7B8468B837C7F6F2 /* DesktopPetWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3900E5799CE0DFDB8095859 /* DesktopPetWindow.swift */; };
 		C706000A029426925A98EC2E /* WidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C5C425870D8FF97C70E085 /* WidgetModels.swift */; };
+		DB350630BC7E36FC994A939F /* Pets in Resources */ = {isa = PBXBuildFile; fileRef = ADFE8DCA3245E9E941422184 /* Pets */; };
 		DC44CFC23A302EC527823E6D /* WidgetBundleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC5E6B57B74DF56E4D4630E /* WidgetBundleStore.swift */; };
+		EB347DC536C79EEEC882C43F /* PetRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 308F4D48172C2D0468B561F9 /* PetRenderer.swift */; };
 		EC909DF5EFAEEDD79C83A861 /* SelectWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3CE76D02AAD667C56E43A8 /* SelectWidgetIntent.swift */; };
+		ECA8939D52F1D2D821F36D1D /* PetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F527D996D2CA2F8DD3B6A988 /* PetModels.swift */; };
+		EE61B7122AE5A7B2B7FD1F14 /* GazeMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934FC454DA24FD293408097B /* GazeMap.swift */; };
+		EFFAE9B1E8381164D7B32BD5 /* PetsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F13445A4CEC2879E73FDD38 /* PetsViewModel.swift */; };
 		F310155BD39D4412E0A1C0F8 /* WidgetSharedExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F5A43595EF0B78D10A68D1 /* WidgetSharedExport.swift */; };
 		F82C9776D3E0E5DBF6D603EA /* WallpicsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3691DDD0E08111A43D91D9FB /* WallpicsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -118,17 +130,23 @@
 		2613285DE4217B686CFC9458 /* WidgetPlacement.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetPlacement.swift; sourceTree = "<group>"; };
 		26FCA84474CBC35EE7E13D44 /* WidgetRenderView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetRenderView.swift; sourceTree = "<group>"; };
 		279A58E939A5FD364E8160CB /* WallpicsWidgetExtension.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = WallpicsWidgetExtension.entitlements; sourceTree = "<group>"; };
+		308F4D48172C2D0468B561F9 /* PetRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetRenderer.swift; sourceTree = "<group>"; };
 		36677C4EC799AC98D6770014 /* WidgetLiveAPI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetLiveAPI.swift; sourceTree = "<group>"; };
 		3691DDD0E08111A43D91D9FB /* WallpicsWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WallpicsWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3BEC354024929BF3887BAB31 /* WidgetTemplateData.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetTemplateData.swift; sourceTree = "<group>"; };
+		4356AAB60512E94D3030A1EB /* PetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetStore.swift; sourceTree = "<group>"; };
 		438ECF57B372488E4FA596B4 /* WallpicsWidgetBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WallpicsWidgetBundle.swift; sourceTree = "<group>"; };
 		43CD6D58BF5865CECF199BDD /* WidgetTemplateConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetTemplateConfig.swift; sourceTree = "<group>"; };
 		4915D64E49376ED002DD0DB2 /* WidgetSharedStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WidgetSharedStore.swift; path = Shared/WidgetSharedStore.swift; sourceTree = "<group>"; };
 		4A4318819C553015843F9648 /* WidgetEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetEditorView.swift; sourceTree = "<group>"; };
+		5405E1FB6D0C87FC9419E919 /* PetsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetsView.swift; sourceTree = "<group>"; };
 		59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetsViewModel.swift; sourceTree = "<group>"; };
+		5F13445A4CEC2879E73FDD38 /* PetsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetsViewModel.swift; sourceTree = "<group>"; };
 		6CD0FB93DA94C15043B5DCF7 /* WidgetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
 		7FC5E6B57B74DF56E4D4630E /* WidgetBundleStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetBundleStore.swift; sourceTree = "<group>"; };
 		8E7AB3753E268B72CB297CDC /* WidgetsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetsView.swift; sourceTree = "<group>"; };
+		934FC454DA24FD293408097B /* GazeMap.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GazeMap.swift; sourceTree = "<group>"; };
+		9B5A6A491A7B056E9B6BA6E5 /* DesktopPetManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesktopPetManager.swift; sourceTree = "<group>"; };
 		9C87E7F7B86C667D7F1FD40C /* DIYFrameBaker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DIYFrameBaker.swift; sourceTree = "<group>"; };
 		A2000001000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A2000002000000000000001 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -136,6 +154,7 @@
 		A2000004000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A2000006000000000000001 /* WallpicsMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WallpicsMac.entitlements; sourceTree = "<group>"; };
 		A3000001000000000000001 /* WallpicsMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WallpicsMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A3900E5799CE0DFDB8095859 /* DesktopPetWindow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesktopPetWindow.swift; sourceTree = "<group>"; };
 		AD000001000000000000001 /* Wallpaper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wallpaper.swift; sourceTree = "<group>"; };
 		AD000002000000000000001 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		AD000003000000000000001 /* SubscriptionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionState.swift; sourceTree = "<group>"; };
@@ -181,9 +200,13 @@
 		AD0000A000000000000008 /* AnimatedWebPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedWebPView.swift; sourceTree = "<group>"; };
 		AD0000A000000000000009 /* UploadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadsView.swift; sourceTree = "<group>"; };
 		AD0000A000000000000099 /* HWheelScroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HWheelScroll.swift; sourceTree = "<group>"; };
+		ADFE8DCA3245E9E941422184 /* Pets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder; path = Pets; sourceTree = "<group>"; };
 		AEE5F6D360845697647D3808 /* WidgetPaths.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetPaths.swift; sourceTree = "<group>"; };
+		B1363DAAA59CFC600046B6C1 /* PetCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetCatalog.swift; sourceTree = "<group>"; };
 		B1F924FF12FB8CEECBD4EA2F /* WidgetCatalogModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetCatalogModels.swift; sourceTree = "<group>"; };
 		B29D6BE80656AF7DD6C119A6 /* WidgetImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetImage.swift; sourceTree = "<group>"; };
+		BC2E16913F0A4AA9723725A6 /* PoseSequence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PoseSequence.swift; sourceTree = "<group>"; };
+		BE4D3AB19457602F0D5D61EB /* PetPreviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetPreviewView.swift; sourceTree = "<group>"; };
 		C6CE6072430F21D53FB796D4 /* MatchesWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MatchesWidget.swift; sourceTree = "<group>"; };
 		C9C2F9BC6D0A476338D677DB /* DesktopWidgetManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesktopWidgetManager.swift; sourceTree = "<group>"; };
 		C9EA0551C7CFCB3404F76EE0 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
@@ -192,6 +215,7 @@
 		E6F5A43595EF0B78D10A68D1 /* WidgetSharedExport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSharedExport.swift; sourceTree = "<group>"; };
 		E74DD3CAEE2516BF272B3479 /* WidgetEditorModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetEditorModel.swift; sourceTree = "<group>"; };
 		EE3CE76D02AAD667C56E43A8 /* SelectWidgetIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SelectWidgetIntent.swift; sourceTree = "<group>"; };
+		F527D996D2CA2F8DD3B6A988 /* PetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetModels.swift; sourceTree = "<group>"; };
 		F84EE652DF247E02687ABFFD /* WidgetTiles.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetTiles.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -257,6 +281,17 @@
 				4A4318819C553015843F9648 /* WidgetEditorView.swift */,
 			);
 			path = Editors;
+			sourceTree = "<group>";
+		};
+		3D1E9ACAC26D7C4D6114AF1A /* Render */ = {
+			isa = PBXGroup;
+			children = (
+				BC2E16913F0A4AA9723725A6 /* PoseSequence.swift */,
+				934FC454DA24FD293408097B /* GazeMap.swift */,
+				308F4D48172C2D0468B561F9 /* PetRenderer.swift */,
+			);
+			name = Render;
+			path = Render;
 			sourceTree = "<group>";
 		};
 		452ED1A2986AA53F1FF13449 /* Frameworks */ = {
@@ -342,6 +377,7 @@
 				AE000009000000000000001 /* Paywall */,
 				AE00000A000000000000001 /* Resources */,
 				0C2BF0C943174F902D2575C8 /* Widgets */,
+				D04D92B7D7AB5A8BDE97A398 /* Pets */,
 			);
 			path = WallpicsMac;
 			sourceTree = "<group>";
@@ -466,8 +502,19 @@
 				AD000061000000000000001 /* PrivacyInfo.xcprivacy */,
 				AD000062000000000000001 /* StoreKitTesting.storekit */,
 				AD000071000000000000001 /* Localizable.xcstrings */,
+				ADFE8DCA3245E9E941422184 /* Pets */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		B03AC1B14CA27D7701807B3A /* Desktop */ = {
+			isa = PBXGroup;
+			children = (
+				A3900E5799CE0DFDB8095859 /* DesktopPetWindow.swift */,
+				9B5A6A491A7B056E9B6BA6E5 /* DesktopPetManager.swift */,
+			);
+			name = Desktop;
+			path = Desktop;
 			sourceTree = "<group>";
 		};
 		B2C0AACC20D527CF36FB5E96 /* DIY */ = {
@@ -483,6 +530,49 @@
 			children = (
 				59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */,
 			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		BB7DDF0CA5D877F49AE327A7 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				F527D996D2CA2F8DD3B6A988 /* PetModels.swift */,
+				B1363DAAA59CFC600046B6C1 /* PetCatalog.swift */,
+				4356AAB60512E94D3030A1EB /* PetStore.swift */,
+			);
+			name = Core;
+			path = Core;
+			sourceTree = "<group>";
+		};
+		CC94CA9DB419C385611F627A /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				5405E1FB6D0C87FC9419E919 /* PetsView.swift */,
+				BE4D3AB19457602F0D5D61EB /* PetPreviewView.swift */,
+			);
+			name = Views;
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D04D92B7D7AB5A8BDE97A398 /* Pets */ = {
+			isa = PBXGroup;
+			children = (
+				BB7DDF0CA5D877F49AE327A7 /* Core */,
+				3D1E9ACAC26D7C4D6114AF1A /* Render */,
+				B03AC1B14CA27D7701807B3A /* Desktop */,
+				EA42D93C3B06C6A1B5CC2FA1 /* ViewModels */,
+				CC94CA9DB419C385611F627A /* Views */,
+			);
+			name = Pets;
+			path = Pets;
+			sourceTree = "<group>";
+		};
+		EA42D93C3B06C6A1B5CC2FA1 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				5F13445A4CEC2879E73FDD38 /* PetsViewModel.swift */,
+			);
+			name = ViewModels;
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
@@ -597,6 +687,7 @@
 				AC000061000000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 				AC000062000000000000001 /* StoreKitTesting.storekit in Resources */,
 				AC000071000000000000001 /* Localizable.xcstrings in Resources */,
+				DB350630BC7E36FC994A939F /* Pets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -692,6 +783,17 @@
 				987B7FA73C84D28929172375 /* WidgetTemplateView.swift in Sources */,
 				68461D3FC3445F66414C8F83 /* DIYFrameBaker.swift in Sources */,
 				F310155BD39D4412E0A1C0F8 /* WidgetSharedExport.swift in Sources */,
+				ECA8939D52F1D2D821F36D1D /* PetModels.swift in Sources */,
+				4CDD9445096B4E4DD582085E /* PetCatalog.swift in Sources */,
+				4B0E31D1DB6FA5634D6C043F /* PetStore.swift in Sources */,
+				188D66852705DCC88A5CBA4C /* PoseSequence.swift in Sources */,
+				EE61B7122AE5A7B2B7FD1F14 /* GazeMap.swift in Sources */,
+				EB347DC536C79EEEC882C43F /* PetRenderer.swift in Sources */,
+				BEED5DBC7B8468B837C7F6F2 /* DesktopPetWindow.swift in Sources */,
+				545E9DBD2CFF674DAC818F80 /* DesktopPetManager.swift in Sources */,
+				EFFAE9B1E8381164D7B32BD5 /* PetsViewModel.swift in Sources */,
+				238A5A34677F3AE2BF95CC01 /* PetsView.swift in Sources */,
+				496B294D114BBCB32A8C77A9 /* PetPreviewView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -710,10 +812,12 @@
 		761B8E4D97F741382F47F665 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = WallpicsWidgetExtension/WallpicsWidgetExtension.entitlements;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = "WallpicsWidgetExtension/WallpicsWidgetExtension-Local.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 48;
-				DEVELOPMENT_TEAM = QE3Q29UECT;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsWidgetExtension/Info.plist;
@@ -725,6 +829,7 @@
 				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WallpicsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -863,13 +968,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = WallpicsMac/WallpicsMac.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = "WallpicsMac/WallpicsMac-Local.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 48;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = QE3Q29UECT;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WallpicsMac;
@@ -882,6 +988,7 @@
 				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -898,7 +1005,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 48;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = QE3Q29UECT;
+				DEVELOPMENT_TEAM = Y2QL97Z4A6;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsMac/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WallpicsMac;
@@ -923,7 +1030,7 @@
 				CODE_SIGN_ENTITLEMENTS = WallpicsWidgetExtension/WallpicsWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 48;
-				DEVELOPMENT_TEAM = QE3Q29UECT;
+				DEVELOPMENT_TEAM = Y2QL97Z4A6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WallpicsWidgetExtension/Info.plist;

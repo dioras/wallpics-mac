@@ -86,6 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         WallpaperRenderer.shared.restoreLast()
 
         DesktopWidgetManager.shared.restoreAll()
+        DesktopPetManager.shared.restoreAll()
         WidgetSharedExport.sync()
         // Publish the backend widget gallery to the App Group so the native macOS picker lists
         // every WallPics widget, not just ones the user created.
@@ -109,6 +110,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let renderer = WallpaperRenderer.shared
         renderer.setPaused(!settings.playOnBatteryPower && source == .battery, reason: .onBattery)
         renderer.setPaused(settings.pauseOnLowPowerMode && lowPower, reason: .lowPower)
+
+        let pets = DesktopPetManager.shared
+        pets.setPaused(!settings.playOnBatteryPower && source == .battery, reason: .onBattery)
+        pets.setPaused(settings.pauseOnLowPowerMode && lowPower, reason: .lowPower)
     }
 
     // MARK: - Main menu
@@ -185,6 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Show WallPics", action: #selector(showMainWindow), keyEquivalent: "o"))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Pause Wallpaper", action: #selector(togglePause), keyEquivalent: "p"))
+        menu.addItem(NSMenuItem(title: "Pause Pets", action: #selector(togglePetPause), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit WallPics", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
@@ -199,5 +205,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func togglePause() {
         let renderer = WallpaperRenderer.shared
         renderer.setPaused(!renderer.isPaused, reason: .userToggle)
+    }
+
+    @objc private func togglePetPause() {
+        DesktopPetManager.shared.toggleUserPause()
     }
 }

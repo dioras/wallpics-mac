@@ -1,0 +1,351 @@
+import SwiftUI
+
+struct PetsView: View {
+    @Bindable var model: PetsViewModel
+
+    private let columns = [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: Theme.Space.l)]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.Space.l) {
+                header
+                if let active = model.active {
+                    activePetCard(active)
+                }
+                toolbar
+                content
+            }
+            .padding(.horizontal, Theme.Space.xl)
+            .padding(.bottom, Theme.Space.xxl)
+        }
+        .scrollContentBackground(.hidden)
+        .background(.black)
+        .environment(\.colorScheme, .dark)
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Pets")
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundStyle(.white)
+                Text("Put a companion on your desktop. It watches your cursor.")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+            Spacer()
+            if model.active != nil {
+                Button {
+                    model.desktop.toggleUserPause()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: model.desktop.isPaused ? "play.fill" : "pause.fill")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(model.desktop.isPaused ? "Resume" : "Pause")
+                            .font(.callout.weight(.semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 9)
+                }
+                .buttonStyle(.plain)
+                .liquidGlass(in: Capsule())
+            }
+        }
+        .padding(.top, Theme.Space.xl)
+    }
+
+    private func activePetCard(_ pet: PetSpecies) -> some View {
+        HStack(alignment: .top, spacing: Theme.Space.l) {
+            PetPreviewView(species: pet)
+                .frame(width: 150, height: 170)
+                .allowsHitTesting(false)
+
+            VStack(alignment: .leading, spacing: Theme.Space.m) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pet.name)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("On your desktop, behind your icons.")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+
+                if let failure = model.desktop.loadFailure {
+                    HStack(spacing: Theme.Space.s) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.yellow)
+                        Text("This pet couldn't load — \(failure)")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.75))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: Theme.Space.s)
+                        Button("Retry") { model.retry() }
+                            .buttonStyle(.plain)
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .foregroundStyle(.black)
+                            .background(.white, in: Capsule())
+                    }
+                    .padding(Theme.Space.s)
+                    .background(.yellow.opacity(0.10), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
+                }
+
+                optionRow(title: String(localized: "Size")) {
+                    ForEach(PetSize.allCases) { size in
+                        PetChip(title: size.label, isSelected: model.store.placement?.size == size) {
+                            model.setSize(size)
+                        }
+                    }
+                }
+
+                optionRow(title: String(localized: "Position")) {
+                    ForEach(PetAnchor.allCases) { anchor in
+                        PetChip(
+                            title: anchor.label,
+                            symbol: anchor.symbol,
+                            isSelected: model.store.placement?.anchor == anchor
+                        ) {
+                            model.setAnchor(anchor)
+                        }
+                    }
+                }
+
+                HStack(spacing: Theme.Space.m) {
+                    Toggle(isOn: Binding(
+                        get: { model.store.placement?.allScreens ?? true },
+                        set: { model.setAllScreens($0) }
+                    )) {
+                        Text("Show on every display").font(.callout)
+                    }
+                    .toggleStyle(.switch)
+                    .tint(Theme.accent)
+
+                    Spacer()
+
+                    Button("Remove from Desktop") { model.removeFromDesktop() }
+                        .buttonStyle(.plain)
+                        .font(.callout.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .foregroundStyle(.white)
+                        .background(.white.opacity(0.10), in: Capsule())
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(Theme.Space.l)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private func optionRow<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.45))
+            HStack(spacing: Theme.Space.s) { content() }
+        }
+    }
+
+    private var toolbar: some View {
+        HStack(spacing: Theme.Space.m) {
+            Text("All Pets")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+            Spacer()
+            searchField.frame(maxWidth: 260)
+        }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: Theme.Space.s) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+            TextField("Search pets", text: $model.query)
+                .textFieldStyle(.plain)
+                .font(.callout)
+            if !model.query.isEmpty {
+                Button { model.query = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, Theme.Space.m)
+        .padding(.vertical, 6)
+        .liquidGlass(in: Capsule())
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if model.isCatalogMissing {
+            missingCatalogState
+        } else if model.filtered.isEmpty {
+            emptySearchState
+        } else {
+            LazyVGrid(columns: columns, spacing: Theme.Space.l) {
+                ForEach(model.filtered) { pet in
+                    PetTile(pet: pet, isPlaced: model.store.isActive(pet.slug))
+                        .onTapGesture { model.place(pet) }
+                        .contextMenu {
+                            Button {
+                                model.place(pet)
+                            } label: {
+                                Label("Put on Desktop", systemImage: "pawprint.fill")
+                            }
+                            if model.store.isActive(pet.slug) {
+                                Button(role: .destructive) {
+                                    model.removeFromDesktop()
+                                } label: {
+                                    Label("Remove from Desktop", systemImage: "trash")
+                                }
+                            }
+                        }
+                }
+            }
+            .animation(Motion.reward, value: model.store.placement?.speciesSlug)
+        }
+    }
+
+    private var emptySearchState: some View {
+        VStack(spacing: Theme.Space.m) {
+            Image(systemName: "pawprint")
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(.white.opacity(0.45))
+                .modifier(BreatheEffect())
+            Text("No pets found")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+            Text("Try a different name.")
+                .font(.callout)
+                .foregroundStyle(.white.opacity(0.55))
+        }
+        .frame(maxWidth: .infinity, minHeight: 260)
+    }
+
+    private var missingCatalogState: some View {
+        VStack(spacing: Theme.Space.m) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 40, weight: .light))
+                .foregroundStyle(.white.opacity(0.5))
+            Text("Pet pack unavailable")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+            Text("The bundled pets could not be read. Reinstalling WallPics restores them.")
+                .font(.callout)
+                .foregroundStyle(.white.opacity(0.55))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 380)
+        }
+        .frame(maxWidth: .infinity, minHeight: 260)
+    }
+}
+
+struct PetTile: View {
+    let pet: PetSpecies
+    let isPlaced: Bool
+    @State private var isHovering = false
+
+    var body: some View {
+        ZStack {
+            Color.white.opacity(0.05)
+            if let image = PetPosterCache.image(for: pet.posterURL) {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .padding(.top, 12)
+            } else {
+                Image(systemName: "pawprint.fill")
+                    .font(.system(size: 34, weight: .light))
+                    .foregroundStyle(.white.opacity(0.35))
+            }
+        }
+        .aspectRatio(1, contentMode: .fill)
+        .clipped()
+        .overlay { restingScrim }
+        .overlay(alignment: .bottomLeading) { caption }
+        .overlay(alignment: .topLeading) { placedBadge }
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                .strokeBorder(
+                    isPlaced ? Theme.accent.opacity(0.9) : .white.opacity(isHovering ? 0.16 : 0.06),
+                    lineWidth: isPlaced ? 2 : 1
+                )
+        }
+        .scaleEffect(isHovering ? 1.025 : 1)
+        .shadow(color: .black.opacity(isHovering ? 0.35 : 0.12), radius: isHovering ? 16 : 6, y: isHovering ? 8 : 3)
+        .animation(Motion.hover, value: isHovering)
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .onHover { inside in
+            isHovering = inside
+            if inside { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
+        }
+        .help(pet.name)
+    }
+
+    private var restingScrim: some View {
+        LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .bottom, endPoint: .center)
+    }
+
+    private var caption: some View {
+        Text(pet.name)
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .shadow(color: .black.opacity(0.85), radius: 3, y: 1)
+            .padding(10)
+    }
+
+    @ViewBuilder
+    private var placedBadge: some View {
+        if isPlaced {
+            BadgePill(background: Theme.accent) {
+                Text(verbatim: "ON DESKTOP")
+            }
+        }
+    }
+}
+
+struct PetChip: View {
+    let title: String
+    var symbol: String?
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                if let symbol {
+                    Image(systemName: symbol).font(.system(size: 10, weight: .bold))
+                }
+                Text(title).font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(isSelected ? .black : .white)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(isSelected ? Color.white : Color.white.opacity(0.07), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .help(title)
+    }
+}
+
+
+enum PetPosterCache {
+    private static let cache = NSCache<NSURL, NSImage>()
+
+    static func image(for url: URL) -> NSImage? {
+        if let hit = cache.object(forKey: url as NSURL) { return hit }
+        guard let image = NSImage(contentsOf: url) else { return nil }
+        cache.setObject(image, forKey: url as NSURL)
+        return image
+    }
+}

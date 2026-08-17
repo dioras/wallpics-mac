@@ -738,6 +738,9 @@
     "All %@" : {
 
     },
+    "All Pets" : {
+
+    },
     "All set." : {
       "localizations" : {
         "de" : {
@@ -978,6 +981,15 @@
       }
     },
     "Both" : {
+
+    },
+    "Bottom Center" : {
+
+    },
+    "Bottom Left" : {
+
+    },
+    "Bottom Right" : {
 
     },
     "Bring to Front" : {
@@ -1666,6 +1678,9 @@
     "Customize and place live widgets on your desktop." : {
 
     },
+    "Customize…" : {
+
+    },
     "Date" : {
 
     },
@@ -2278,6 +2293,9 @@
     "Large" : {
 
     },
+    "Left Edge" : {
+
+    },
     "Live" : {
 
     },
@@ -2682,6 +2700,9 @@
         }
       }
     },
+    "No matches available" : {
+
+    },
     "No matches in the loaded wallpapers" : {
       "localizations" : {
         "de" : {
@@ -2727,6 +2748,9 @@
           }
         }
       }
+    },
+    "No pets found" : {
+
     },
     "No purchases found to restore." : {
       "localizations" : {
@@ -2970,6 +2994,9 @@
     "On your desktop — click to remove" : {
 
     },
+    "On your desktop, behind your icons." : {
+
+    },
     "Open" : {
 
     },
@@ -3026,6 +3053,9 @@
 
     },
     "or click to choose from your Mac" : {
+
+    },
+    "Pause" : {
 
     },
     "Pause in Low Power Mode" : {
@@ -3120,6 +3150,12 @@
           }
         }
       }
+    },
+    "Pet pack unavailable" : {
+
+    },
+    "Pets" : {
+
     },
     "Photo" : {
 
@@ -3385,6 +3421,9 @@
     "Polaroid Widget" : {
 
     },
+    "Position" : {
+
+    },
     "Priority access to new drops" : {
       "localizations" : {
         "de" : {
@@ -3568,6 +3607,12 @@
           }
         }
       }
+    },
+    "Put a companion on your desktop. It watches your cursor." : {
+
+    },
+    "Put on Desktop" : {
+
     },
     "Quit WallPics" : {
       "extractionState" : "stale",
@@ -3947,6 +3992,9 @@
         }
       }
     },
+    "Resume" : {
+
+    },
     "Retry" : {
       "localizations" : {
         "de" : {
@@ -3993,10 +4041,16 @@
         }
       }
     },
+    "Right Edge" : {
+
+    },
     "Rounded" : {
 
     },
     "Save Widget" : {
+
+    },
+    "Search pets" : {
 
     },
     "Search wallpapers" : {
@@ -4247,6 +4301,9 @@
 
     },
     "Show me how" : {
+
+    },
+    "Show on every display" : {
 
     },
     "Show WallPics" : {
@@ -4692,6 +4749,9 @@
     "Text color" : {
 
     },
+    "The bundled pets could not be read. Reinstalling WallPics restores them." : {
+
+    },
     "This wallpaper isn't available right now." : {
 
     },
@@ -4704,7 +4764,13 @@
     "Time" : {
 
     },
+    "TODAY'S MATCHES" : {
+
+    },
     "Try a different category or search." : {
+
+    },
+    "Try a different name." : {
 
     },
     "Try Again" : {

@@ -1,0 +1,65 @@
+{
+ "version": 1,
+ "pets": [
+  {
+   "slug": "panther",
+   "name": "Panther",
+   "width": 578,
+   "height": 720
+  },
+  {
+   "slug": "axolotl",
+   "name": "Axolotl",
+   "width": 1368,
+   "height": 720
+  },
+  {
+   "slug": "doberman",
+   "name": "Doberman",
+   "width": 736,
+   "height": 720
+  },
+  {
+   "slug": "panda",
+   "name": "Panda",
+   "width": 862,
+   "height": 720
+  },
+  {
+   "slug": "poodle",
+   "name": "Poodle",
+   "width": 762,
+   "height": 720
+  },
+  {
+   "slug": "golden",
+   "name": "Golden Retriever",
+   "width": 626,
+   "height": 720
+  },
+  {
+   "slug": "hamster",
+   "name": "Hamster",
+   "width": 868,
+   "height": 720
+  },
+  {
+   "slug": "wolf",
+   "name": "Wolf",
+   "width": 1008,
+   "height": 720
+  },
+  {
+   "slug": "kitten",
+   "name": "Kitten",
+   "width": 822,
+   "height": 720
+  },
+  {
+   "slug": "pig",
+   "name": "Pig",
+   "width": 1194,
+   "height": 720
+  }
+ ]
+}

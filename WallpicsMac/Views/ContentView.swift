@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var browseModel = BrowseViewModel()
     @State private var favoritesModel = FavoritesViewModel()
     @State private var widgetsModel = WidgetsViewModel()
+    @State private var petsModel = PetsViewModel()
 
     var body: some View {
         @Bindable var env = env
@@ -87,6 +88,9 @@ struct ContentView: View {
         case .widgets:
             WidgetsView(model: widgetsModel)
                 .padding(.top, 54)
+        case .pets:
+            PetsView(model: petsModel)
+                .padding(.top, 54)
         case .settings:
             SettingsView()
                 .padding(.top, 54)
@@ -118,6 +122,7 @@ private struct TopNavBar: View {
                     navPill(.browse)
                     navPill(.uploads)
                     navPill(.widgets)
+                    navPill(.pets)
                     navPill(.favorites)
                 }
                 .padding(3)
