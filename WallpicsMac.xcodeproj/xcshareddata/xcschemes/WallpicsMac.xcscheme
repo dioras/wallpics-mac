@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "A6000001000000000000001"
-               BuildableName = "WallpicsMac.app"
+               BuildableName = "WallPics.app"
                BlueprintName = "WallpicsMac"
                ReferencedContainer = "container:WallpicsMac.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A6000001000000000000001"
-            BuildableName = "WallpicsMac.app"
+            BuildableName = "WallPics.app"
             BlueprintName = "WallpicsMac"
             ReferencedContainer = "container:WallpicsMac.xcodeproj">
          </BuildableReference>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "A6000001000000000000001"
-            BuildableName = "WallpicsMac.app"
+            BuildableName = "WallPics.app"
             BlueprintName = "WallpicsMac"
             ReferencedContainer = "container:WallpicsMac.xcodeproj">
          </BuildableReference>
