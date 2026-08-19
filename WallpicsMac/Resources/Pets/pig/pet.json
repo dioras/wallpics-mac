@@ -1,8 +1,8 @@
 {
  "slug": "pig",
  "name": "Pig",
- "width": 1194,
- "height": 720,
+ "width": 1492,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": 0.0886,
    "dy": -0.34
   }
- ]
+ ],
+ "subjectTop": 0.1644,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.8356
 }

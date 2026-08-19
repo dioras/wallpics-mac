@@ -1,8 +1,8 @@
 {
  "slug": "doberman",
  "name": "Doberman",
- "width": 736,
- "height": 720,
+ "width": 930,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": 0.0324,
    "dy": -0.0194
   }
- ]
+ ],
+ "subjectTop": 0.1078,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.8922
 }

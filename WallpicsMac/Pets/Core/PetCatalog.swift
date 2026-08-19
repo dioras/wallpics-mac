@@ -22,6 +22,8 @@ enum PetCatalog {
         let poseCount: Int
         let neutralPose: Int
         let faceCenter: Point
+        let subjectHeight: Double?
+        let subjectBottom: Double?
         let angleBuckets: Int
         let angleTable: [Int]
         let mirrorTable: [Bool]?
@@ -79,6 +81,8 @@ enum PetCatalog {
                 poseCount: meta.poseCount,
                 neutralPose: meta.neutralPose,
                 faceCenter: CGPoint(x: meta.faceCenter.x, y: meta.faceCenter.y),
+                subjectHeight: CGFloat(min(max(meta.subjectHeight ?? 1, 0.2), 1)),
+                subjectBottom: CGFloat(min(max(meta.subjectBottom ?? 1, 0.2), 1)),
                 angleTable: meta.angleTable,
                 mirrorTable: meta.mirrorTable ?? Array(repeating: false, count: meta.angleTable.count),
                 pivotUp: meta.pivotUp ?? meta.neutralPose,

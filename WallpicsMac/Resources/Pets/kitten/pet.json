@@ -1,8 +1,8 @@
 {
  "slug": "kitten",
  "name": "Kitten",
- "width": 822,
- "height": 720,
+ "width": 1048,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": -0.0341,
    "dy": -0.108
   }
- ]
+ ],
+ "subjectTop": 0.1233,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.8767
 }

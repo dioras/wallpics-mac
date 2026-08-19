@@ -1,8 +1,8 @@
 {
  "slug": "poodle",
  "name": "Poodle",
- "width": 762,
- "height": 720,
+ "width": 954,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": 0.0285,
    "dy": 0.0343
   }
- ]
+ ],
+ "subjectTop": 0.0944,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.9056
 }

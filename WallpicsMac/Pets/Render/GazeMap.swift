@@ -5,6 +5,7 @@ struct GazeTarget: Equatable {
     var pose: Int
     var mirrored: Bool
     var upperHalf: Bool
+    var horizontal: Double = 0
 }
 
 struct GazeMap {
@@ -39,7 +40,8 @@ struct GazeMap {
         return GazeTarget(
             pose: min(max(angleTable[index], 0), max(poseCount - 1, 0)),
             mirrored: index < mirrorTable.count ? mirrorTable[index] : false,
-            upperHalf: sin(radians) >= 0
+            upperHalf: sin(radians) >= 0,
+            horizontal: cos(radians)
         )
     }
 

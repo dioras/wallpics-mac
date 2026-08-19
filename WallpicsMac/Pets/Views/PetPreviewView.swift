@@ -85,14 +85,17 @@ final class PetPreviewNSView: NSView {
 
     private func layoutPet() {
         guard let renderer else { return }
-        let aspect = renderer.species.aspectRatio
-        var height = bounds.height
+        let species = renderer.species
+        let aspect = species.aspectRatio
+        var height = bounds.height / species.subjectHeight
         var width = height * aspect
         if width > bounds.width {
             width = bounds.width
             height = width / max(aspect, 0.01)
         }
-        let rect = CGRect(x: (bounds.width - width) / 2, y: 0, width: width, height: height)
+        let rect = CGRect(x: (bounds.width - width) / 2,
+                          y: -(1 - species.subjectBottom) * height,
+                          width: width, height: height)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         renderer.layer.frame = rect

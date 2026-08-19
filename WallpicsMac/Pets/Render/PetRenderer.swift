@@ -17,6 +17,7 @@ final class PetRenderer {
     private(set) var isLoaded = false
     private(set) var decodeCount = 0
     private(set) var isMirrored = false
+    private static let mirrorDeadBand: Double = 0.22
     private(set) var loadFailure: String?
     var onLoadFailure: ((String?) -> Void)?
 
@@ -71,14 +72,15 @@ final class PetRenderer {
             cursor: cursor,
             petRect: petRect,
             faceCenter: species.faceCenter,
-            deadZone: min(petRect.width, petRect.height) * 0.18
+            deadZone: petRect.height * species.subjectHeight * 0.12
         )
 
         let lastPose = sequence.count - 1
         var stepTarget = min(target.pose, lastPose)
         if target.mirrored != isMirrored {
+            let committedToSide = abs(target.horizontal) > Self.mirrorDeadBand
             let pivot = min(map.pivot(upperHalf: target.upperHalf), lastPose)
-            if abs(playhead.value - Double(pivot)) < 1.5 {
+            if committedToSide && abs(playhead.value - Double(pivot)) < 1.5 {
                 setMirrored(target.mirrored)
             } else {
                 stepTarget = pivot

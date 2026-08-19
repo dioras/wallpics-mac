@@ -1,8 +1,8 @@
 {
  "slug": "wolf",
  "name": "Wolf",
- "width": 1008,
- "height": 720,
+ "width": 1228,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": 0.0136,
    "dy": -0.3069
   }
- ]
+ ],
+ "subjectTop": 0.1778,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.8222
 }

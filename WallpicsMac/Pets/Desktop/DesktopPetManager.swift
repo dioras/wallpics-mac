@@ -158,9 +158,11 @@ final class DesktopPetManager {
     }
 
     private func globalRect(species: PetSpecies, placement: PetPlacement, screen: NSScreen) -> CGRect {
-        let height = placement.size.pointHeight
-        let size = CGSize(width: height * species.aspectRatio, height: height)
-        return placement.anchor.rect(for: size, in: screen.visibleFrame, margin: 28)
+        let frameHeight = placement.size.pointHeight / species.subjectHeight
+        let size = CGSize(width: frameHeight * species.aspectRatio, height: frameHeight)
+        var rect = placement.anchor.rect(for: size, in: screen.frame, margin: 28)
+        rect.origin.y -= (1 - species.subjectBottom) * frameHeight
+        return rect
     }
 
     private func localRect(species: PetSpecies, placement: PetPlacement, screen: NSScreen) -> CGRect {

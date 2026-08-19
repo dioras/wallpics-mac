@@ -1,8 +1,8 @@
 {
  "slug": "hamster",
  "name": "Hamster",
- "width": 868,
- "height": 720,
+ "width": 1086,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": 0.0385,
    "dy": -1.0004
   }
- ]
+ ],
+ "subjectTop": 0.1433,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.8567
 }

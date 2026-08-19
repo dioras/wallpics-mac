@@ -4752,6 +4752,9 @@
     "The bundled pets could not be read. Reinstalling WallPics restores them." : {
 
     },
+    "This pet couldn't load — %@" : {
+
+    },
     "This wallpaper isn't available right now." : {
 
     },

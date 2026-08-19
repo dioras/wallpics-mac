@@ -1,8 +1,8 @@
 {
  "slug": "panther",
  "name": "Panther",
- "width": 578,
- "height": 720,
+ "width": 1170,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": 0.0424,
    "dy": -0.0003
   }
- ]
+ ],
+ "subjectTop": 0.2656,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.7344
 }

@@ -1,8 +1,8 @@
 {
  "slug": "axolotl",
  "name": "Axolotl",
- "width": 1368,
- "height": 720,
+ "width": 1334,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": -0.0075,
    "dy": 0.9994
   }
- ]
+ ],
+ "subjectTop": 0.2489,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.7511
 }

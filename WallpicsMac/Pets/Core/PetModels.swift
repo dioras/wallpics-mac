@@ -9,6 +9,8 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
     let poseCount: Int
     let neutralPose: Int
     let faceCenter: CGPoint
+    let subjectHeight: CGFloat
+    let subjectBottom: CGFloat
     let angleTable: [Int]
     let mirrorTable: [Bool]
     let pivotUp: Int

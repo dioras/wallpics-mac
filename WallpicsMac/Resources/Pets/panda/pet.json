@@ -1,8 +1,8 @@
 {
  "slug": "panda",
  "name": "Panda",
- "width": 862,
- "height": 720,
+ "width": 936,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": -0.1205,
    "dy": -0.1434
   }
- ]
+ ],
+ "subjectTop": 0.2433,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.7567
 }

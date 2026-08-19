@@ -1,8 +1,8 @@
 {
  "slug": "golden",
  "name": "Golden Retriever",
- "width": 626,
- "height": 720,
+ "width": 794,
+ "height": 900,
  "poseCount": 180,
  "neutralPose": 0,
  "faceCenter": {
@@ -865,5 +865,8 @@
    "dx": 0.0887,
    "dy": 0.0037
   }
- ]
+ ],
+ "subjectTop": 0.0989,
+ "subjectBottom": 1.0,
+ "subjectHeight": 0.9011
 }
