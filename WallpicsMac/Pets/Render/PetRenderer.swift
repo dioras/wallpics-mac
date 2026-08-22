@@ -66,18 +66,21 @@ final class PetRenderer {
     }
 
     @discardableResult
-    func tick(dt: Double, cursor: CGPoint, petRect: CGRect) -> Bool {
+    func tick(dt: Double, cursor: CGPoint, petRect: CGRect,
+              sensitivity: PetSensitivity = .normal) -> Bool {
         guard let sequence else { return false }
+        playhead.apply(sensitivity: sensitivity, gazeSpan: species.gazeSpan)
         let target = map.target(
             cursor: cursor,
             petRect: petRect,
             faceCenter: species.faceCenter,
-            deadZone: petRect.height * species.subjectHeight * 0.12
+            deadZone: petRect.height * species.subjectHeight * sensitivity.deadZoneFraction
         )
 
         let lastPose = sequence.count - 1
         var stepTarget = min(target.pose, lastPose)
-        if target.mirrored != isMirrored {
+        let wantsFlip = !target.holdsMirror && target.mirrored != isMirrored
+        if wantsFlip {
             let committedToSide = abs(target.horizontal) > Self.mirrorDeadBand
             let pivot = min(map.pivot(upperHalf: target.upperHalf), lastPose)
             if committedToSide && abs(playhead.value - Double(pivot)) < 1.5 {
@@ -92,7 +95,7 @@ final class PetRenderer {
         if pose != lastEnqueuedPose {
             enqueue(pose: pose)
         }
-        return pose != stepTarget || target.mirrored != isMirrored
+        return pose != stepTarget
     }
 
     private func setMirrored(_ mirrored: Bool) {

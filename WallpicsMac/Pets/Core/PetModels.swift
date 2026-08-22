@@ -19,6 +19,11 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
     let posterURL: URL
 
     var id: String { slug }
+
+    var gazeSpan: Int {
+        guard let lo = angleTable.min(), let hi = angleTable.max() else { return max(poseCount - 1, 1) }
+        return max(hi - lo, 1)
+    }
     var aspectRatio: CGFloat {
         pixelHeight > 0 ? CGFloat(pixelWidth) / CGFloat(pixelHeight) : 1
     }
@@ -42,6 +47,52 @@ enum PetSize: String, Codable, CaseIterable, Identifiable, Sendable {
         case .small: return String(localized: "Small")
         case .medium: return String(localized: "Medium")
         case .large: return String(localized: "Large")
+        }
+    }
+}
+
+enum PetSensitivity: String, Codable, CaseIterable, Identifiable, Sendable {
+    case calm, normal, alert
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .calm: return String(localized: "Calm")
+        case .normal: return String(localized: "Normal")
+        case .alert: return String(localized: "Alert")
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .calm: return String(localized: "Follows slowly, ignores small moves")
+        case .normal: return String(localized: "Balanced tracking")
+        case .alert: return String(localized: "Snaps to the cursor straight away")
+        }
+    }
+
+    var responsePerSecond: Double {
+        switch self {
+        case .calm: return 6.5
+        case .normal: return 11
+        case .alert: return 18
+        }
+    }
+
+    var turnsPerSecond: Double {
+        switch self {
+        case .calm: return 1.1
+        case .normal: return 1.8
+        case .alert: return 3.0
+        }
+    }
+
+    var deadZoneFraction: CGFloat {
+        switch self {
+        case .calm: return 0.18
+        case .normal: return 0.12
+        case .alert: return 0.06
         }
     }
 }
@@ -100,6 +151,32 @@ struct PetPlacement: Codable, Equatable, Sendable {
     var size: PetSize = .medium
     var anchor: PetAnchor = .bottomTrailing
     var allScreens: Bool = true
+    var sensitivity: PetSensitivity = .normal
+    var showsProfileBackdrop: Bool = false
+
+    init(speciesSlug: String,
+         size: PetSize = .medium,
+         anchor: PetAnchor = .bottomTrailing,
+         allScreens: Bool = true,
+         sensitivity: PetSensitivity = .normal,
+         showsProfileBackdrop: Bool = false) {
+        self.speciesSlug = speciesSlug
+        self.size = size
+        self.anchor = anchor
+        self.allScreens = allScreens
+        self.sensitivity = sensitivity
+        self.showsProfileBackdrop = showsProfileBackdrop
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        speciesSlug = try c.decode(String.self, forKey: .speciesSlug)
+        size = try c.decodeIfPresent(PetSize.self, forKey: .size) ?? .medium
+        anchor = try c.decodeIfPresent(PetAnchor.self, forKey: .anchor) ?? .bottomTrailing
+        allScreens = try c.decodeIfPresent(Bool.self, forKey: .allScreens) ?? true
+        sensitivity = try c.decodeIfPresent(PetSensitivity.self, forKey: .sensitivity) ?? .normal
+        showsProfileBackdrop = try c.decodeIfPresent(Bool.self, forKey: .showsProfileBackdrop) ?? false
+    }
 }
 
 struct PetsState: Codable, Sendable {

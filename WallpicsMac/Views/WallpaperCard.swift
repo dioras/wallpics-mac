@@ -20,8 +20,8 @@ struct WallpaperCard: View {
         .clipped()
         .overlay { hoverScrim }
         .overlay(alignment: .bottomLeading) { caption }
-        .overlay(alignment: .topLeading) { kindBadge }
-        .overlay(alignment: .topTrailing) { premiumBadge }
+        .overlay(alignment: .topLeading) { statusBadges }
+        .overlay(alignment: .topTrailing) { typeBadge }
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
@@ -80,52 +80,62 @@ struct WallpaperCard: View {
     }
 
     @ViewBuilder
-    private var kindBadge: some View {
+    private var statusBadges: some View {
         HStack(spacing: 0) {
             if wallpaper.isNew {
-                BadgePill(background: .green) {
-                    Text(verbatim: "NEW")
-                }
+                BadgePill(role: .status) { Text(verbatim: "NEW") }
             }
-            switch wallpaper.mediaType {
-            case .photo:
-                EmptyView()
-            case .live:
-                BadgePill(background: .black.opacity(0.65)) {
-                    Circle().fill(.red).frame(width: 5, height: 5)
-                    Text(verbatim: "LIVE")
-                }
-            case .shader:
-                BadgePill(background: .black.opacity(0.65)) {
-                    Image(systemName: "sparkles").font(.system(size: 7, weight: .bold))
-                    Text(verbatim: "SHADER")
-                }
+            if wallpaper.isPremiumContent {
+                BadgePill(role: .status) { Text(verbatim: "PRO") }
             }
         }
     }
 
     @ViewBuilder
-    private var premiumBadge: some View {
-        if wallpaper.isPremiumContent {
-            BadgePill(background: .orange) {
-                Text(verbatim: "PRO")
-            }
+    private var typeBadge: some View {
+        switch wallpaper.mediaType {
+        case .photo:
+            EmptyView()
+        case .live:
+            BadgePill(role: .type) { Text(verbatim: "LIVE") }
+        case .shader:
+            BadgePill(role: .type) { Text(verbatim: "SHADER") }
         }
     }
 }
 
-/// Compact corner badge in the One4Wall idiom: bold mini-caps on a solid rounded chip.
+/// One badge component for the whole app. Position carries the meaning: status badges
+/// (NEW, PRO, ON DESKTOP) sit top-leading, content-type badges (LIVE, SHADER, TAP) top-trailing.
 struct BadgePill<Content: View>: View {
-    let background: Color
+    enum Role {
+        case status
+        case type
+
+        var background: Color {
+            switch self {
+            case .status: return .white
+            case .type: return .black.opacity(0.68)
+            }
+        }
+
+        var foreground: Color {
+            switch self {
+            case .status: return .black
+            case .type: return .white
+            }
+        }
+    }
+
+    var role: Role = .status
     @ViewBuilder var content: Content
 
     var body: some View {
         HStack(spacing: 4) { content }
             .font(.system(size: 9, weight: .heavy))
-            .foregroundStyle(.white)
+            .foregroundStyle(role.foreground)
             .padding(.horizontal, 7)
             .padding(.vertical, 4)
-            .background(background, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .background(role.background, in: Capsule(style: .continuous))
             .padding(8)
     }
 }

@@ -7,6 +7,7 @@ struct WidgetsView: View {
     @State private var editor: WidgetEditorModel?
     @State private var desktop = DesktopWidgetManager.shared
     @State private var showNativeGuide = false
+    @AppStorage("didDismissNativeWidgetCallout") private var didDismissNativeCallout = false
 
     private let columns = [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: Theme.Space.l)]
 
@@ -14,7 +15,7 @@ struct WidgetsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Space.l) {
                 header
-                nativeWidgetCallout
+                if !didDismissNativeCallout { nativeWidgetCallout }
                 toolbar
                 content
             }
@@ -105,7 +106,20 @@ struct WidgetsView: View {
             Button("Show me how") { showNativeGuide = true }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 14).padding(.vertical, 8)
-                .foregroundStyle(.white).background(Theme.accent, in: Capsule())
+                .foregroundStyle(.white)
+                .overlay(Capsule().strokeBorder(.white.opacity(0.45), lineWidth: 1))
+
+            Button {
+                didDismissNativeCallout = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .frame(width: 22, height: 22)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(String(localized: "Dismiss"))
         }
         .padding(Theme.Space.m)
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
@@ -156,7 +170,7 @@ struct WidgetsView: View {
         } else {
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
                 ForEach(model.filteredItems) { item in
-                    WidgetGalleryTile(item: item)
+                    WidgetGalleryTile(item: item, isPlaced: model.isCatalogItemPlaced(item))
                         .onTapGesture { placeOnDesktop(item) }
                         .contextMenu {
                             Button { placeOnDesktop(item) } label: {

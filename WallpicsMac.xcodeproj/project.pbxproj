@@ -12,10 +12,12 @@
 		0B4C2D7BF9036EA1A0004570 /* WidgetTemplateData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BEC354024929BF3887BAB31 /* WidgetTemplateData.swift */; };
 		17E2115CE8E510B7F5B5CB47 /* WidgetImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B29D6BE80656AF7DD6C119A6 /* WidgetImage.swift */; };
 		188D66852705DCC88A5CBA4C /* PoseSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2E16913F0A4AA9723725A6 /* PoseSequence.swift */; };
+		1966A8567F28C575C4BEAF90 /* PetBackdropRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7368A70FE50B58309EB60A2C /* PetBackdropRenderer.swift */; };
 		238A5A34677F3AE2BF95CC01 /* PetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5405E1FB6D0C87FC9419E919 /* PetsView.swift */; };
 		28CDED18A879E29656671E9E /* WidgetCatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F924FF12FB8CEECBD4EA2F /* WidgetCatalogModels.swift */; };
 		298F095D6E939507443C7908 /* WidgetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7AB3753E268B72CB297CDC /* WidgetsView.swift */; };
 		3C528F6BF6D90B8B75AA516E /* WidgetLiveAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36677C4EC799AC98D6770014 /* WidgetLiveAPI.swift */; };
+		3CEE18171E2C47CDEDB03EF6 /* PetProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5082EB304CAF7639AB89236D /* PetProfile.swift */; };
 		3DEA13BD627CA9FF4B8A39A3 /* MatchesWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6CE6072430F21D53FB796D4 /* MatchesWidget.swift */; };
 		449E671B08600ECE8BBA8BA5 /* DesktopWidgetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C2F9BC6D0A476338D677DB /* DesktopWidgetManager.swift */; };
 		496B294D114BBCB32A8C77A9 /* PetPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4D3AB19457602F0D5D61EB /* PetPreviewView.swift */; };
@@ -26,6 +28,7 @@
 		5ECA8C63270AEA74197101B2 /* WidgetTemplateConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43CD6D58BF5865CECF199BDD /* WidgetTemplateConfig.swift */; };
 		61CA52C315FD608EC89223EB /* WidgetsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */; };
 		68461D3FC3445F66414C8F83 /* DIYFrameBaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C87E7F7B86C667D7F1FD40C /* DIYFrameBaker.swift */; };
+		6B828942A0E9CBB701997114 /* PetBackdropWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC4EE85B7D7BB6F78241FF56 /* PetBackdropWindow.swift */; };
 		73D761E29FE5056C85A72142 /* WallpicsWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 438ECF57B372488E4FA596B4 /* WallpicsWidgetBundle.swift */; };
 		7BD3955EB231ABDEF6F40300 /* WidgetTiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84EE652DF247E02687ABFFD /* WidgetTiles.swift */; };
 		7C5AE7A9F2BFD7D3EF4B50FA /* WidgetEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4318819C553015843F9648 /* WidgetEditorView.swift */; };
@@ -94,6 +97,7 @@
 		EC909DF5EFAEEDD79C83A861 /* SelectWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3CE76D02AAD667C56E43A8 /* SelectWidgetIntent.swift */; };
 		ECA8939D52F1D2D821F36D1D /* PetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F527D996D2CA2F8DD3B6A988 /* PetModels.swift */; };
 		EE61B7122AE5A7B2B7FD1F14 /* GazeMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934FC454DA24FD293408097B /* GazeMap.swift */; };
+		EEE0A211842651AEE5D52471 /* PetBackdropService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F41D286E5352CC830959E9D /* PetBackdropService.swift */; };
 		EFFAE9B1E8381164D7B32BD5 /* PetsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F13445A4CEC2879E73FDD38 /* PetsViewModel.swift */; };
 		F310155BD39D4412E0A1C0F8 /* WidgetSharedExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F5A43595EF0B78D10A68D1 /* WidgetSharedExport.swift */; };
 		F82C9776D3E0E5DBF6D603EA /* WallpicsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 3691DDD0E08111A43D91D9FB /* WallpicsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -125,6 +129,7 @@
 
 /* Begin PBXFileReference section */
 		128817C116CCD7AB1F751D97 /* WidgetAssetResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetAssetResolver.swift; sourceTree = "<group>"; };
+		1F41D286E5352CC830959E9D /* PetBackdropService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetBackdropService.swift; sourceTree = "<group>"; };
 		215C2434A814A5F95DFA36B9 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		23C5C425870D8FF97C70E085 /* WidgetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetModels.swift; sourceTree = "<group>"; };
 		2613285DE4217B686CFC9458 /* WidgetPlacement.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetPlacement.swift; sourceTree = "<group>"; };
@@ -139,10 +144,12 @@
 		43CD6D58BF5865CECF199BDD /* WidgetTemplateConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetTemplateConfig.swift; sourceTree = "<group>"; };
 		4915D64E49376ED002DD0DB2 /* WidgetSharedStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WidgetSharedStore.swift; path = Shared/WidgetSharedStore.swift; sourceTree = "<group>"; };
 		4A4318819C553015843F9648 /* WidgetEditorView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetEditorView.swift; sourceTree = "<group>"; };
+		5082EB304CAF7639AB89236D /* PetProfile.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetProfile.swift; sourceTree = "<group>"; };
 		5405E1FB6D0C87FC9419E919 /* PetsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetsView.swift; sourceTree = "<group>"; };
 		59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetsViewModel.swift; sourceTree = "<group>"; };
 		5F13445A4CEC2879E73FDD38 /* PetsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetsViewModel.swift; sourceTree = "<group>"; };
 		6CD0FB93DA94C15043B5DCF7 /* WidgetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
+		7368A70FE50B58309EB60A2C /* PetBackdropRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetBackdropRenderer.swift; sourceTree = "<group>"; };
 		7FC5E6B57B74DF56E4D4630E /* WidgetBundleStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetBundleStore.swift; sourceTree = "<group>"; };
 		8E7AB3753E268B72CB297CDC /* WidgetsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetsView.swift; sourceTree = "<group>"; };
 		934FC454DA24FD293408097B /* GazeMap.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GazeMap.swift; sourceTree = "<group>"; };
@@ -206,6 +213,7 @@
 		B1F924FF12FB8CEECBD4EA2F /* WidgetCatalogModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetCatalogModels.swift; sourceTree = "<group>"; };
 		B29D6BE80656AF7DD6C119A6 /* WidgetImage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetImage.swift; sourceTree = "<group>"; };
 		BC2E16913F0A4AA9723725A6 /* PoseSequence.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PoseSequence.swift; sourceTree = "<group>"; };
+		BC4EE85B7D7BB6F78241FF56 /* PetBackdropWindow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetBackdropWindow.swift; sourceTree = "<group>"; };
 		BE4D3AB19457602F0D5D61EB /* PetPreviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetPreviewView.swift; sourceTree = "<group>"; };
 		C6CE6072430F21D53FB796D4 /* MatchesWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MatchesWidget.swift; sourceTree = "<group>"; };
 		C9C2F9BC6D0A476338D677DB /* DesktopWidgetManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesktopWidgetManager.swift; sourceTree = "<group>"; };
@@ -512,6 +520,9 @@
 			children = (
 				A3900E5799CE0DFDB8095859 /* DesktopPetWindow.swift */,
 				9B5A6A491A7B056E9B6BA6E5 /* DesktopPetManager.swift */,
+				7368A70FE50B58309EB60A2C /* PetBackdropRenderer.swift */,
+				1F41D286E5352CC830959E9D /* PetBackdropService.swift */,
+				BC4EE85B7D7BB6F78241FF56 /* PetBackdropWindow.swift */,
 			);
 			name = Desktop;
 			path = Desktop;
@@ -539,6 +550,7 @@
 				F527D996D2CA2F8DD3B6A988 /* PetModels.swift */,
 				B1363DAAA59CFC600046B6C1 /* PetCatalog.swift */,
 				4356AAB60512E94D3030A1EB /* PetStore.swift */,
+				5082EB304CAF7639AB89236D /* PetProfile.swift */,
 			);
 			name = Core;
 			path = Core;
@@ -794,6 +806,10 @@
 				EFFAE9B1E8381164D7B32BD5 /* PetsViewModel.swift in Sources */,
 				238A5A34677F3AE2BF95CC01 /* PetsView.swift in Sources */,
 				496B294D114BBCB32A8C77A9 /* PetPreviewView.swift in Sources */,
+				3CEE18171E2C47CDEDB03EF6 /* PetProfile.swift in Sources */,
+				1966A8567F28C575C4BEAF90 /* PetBackdropRenderer.swift in Sources */,
+				EEE0A211842651AEE5D52471 /* PetBackdropService.swift in Sources */,
+				6B828942A0E9CBB701997114 /* PetBackdropWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

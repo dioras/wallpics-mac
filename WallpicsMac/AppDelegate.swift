@@ -87,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         DesktopWidgetManager.shared.restoreAll()
         DesktopPetManager.shared.restoreAll()
+        PetBackdropService.shared.reapply()
         WidgetSharedExport.sync()
         // Publish the backend widget gallery to the App Group so the native macOS picker lists
         // every WallPics widget, not just ones the user created.
@@ -112,8 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         renderer.setPaused(settings.pauseOnLowPowerMode && lowPower, reason: .lowPower)
 
         let pets = DesktopPetManager.shared
-        pets.setPaused(!settings.playOnBatteryPower && source == .battery, reason: .onBattery)
-        pets.setPaused(settings.pauseOnLowPowerMode && lowPower, reason: .lowPower)
+        pets.setPaused(false, reason: .onBattery)
+        pets.setPaused(false, reason: .lowPower)
     }
 
     // MARK: - Main menu

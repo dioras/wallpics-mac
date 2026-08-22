@@ -126,6 +126,18 @@ struct WidgetCatalogItem: Codable, Hashable, Identifiable {
         return typeKeyAliases[s] ?? s
     }
 
+    /// Family the gallery tile should render at. Backend sends supported_families
+    /// (systemSmall / systemMedium / systemLarge, or plain small/medium/large);
+    /// fall back to the kind's own default when it is missing.
+    var galleryFamily: WidgetFamily {
+        for raw in supportedFamilies ?? [] {
+            let key = raw.lowercased().replacingOccurrences(of: "system", with: "")
+                .trimmingCharacters(in: .whitespaces)
+            if let family = WidgetFamily(rawValue: key) { return family }
+        }
+        return resolvedKind.supportedFamilies.first ?? .small
+    }
+
     var resolvedKind: WidgetKind {
         let type = (widgetType ?? "").lowercased()
         let key = typeKey ?? ""

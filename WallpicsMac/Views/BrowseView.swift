@@ -61,7 +61,7 @@ struct BrowseView: View {
                         Text("All Wallpapers")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(.white)
-                        Text(model.sortOrder.label)
+                        Text("\(model.wallpapers.count) wallpapers")
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.5))
                     }

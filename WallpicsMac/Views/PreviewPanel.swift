@@ -112,9 +112,9 @@ struct FeaturedHero: View {
                         Button {
                             Task { await favorites.toggle(wallpaper) }
                         } label: {
-                            Image(systemName: fav ? "heart.fill" : "heart")
+                            Image(systemName: fav ? "star.fill" : "star")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(fav ? AnyShapeStyle(.red) : AnyShapeStyle(.white))
+                                .foregroundStyle(fav ? AnyShapeStyle(.yellow) : AnyShapeStyle(.white))
                                 .frame(width: 36, height: 36)
                                 .background(.white.opacity(0.16), in: Circle())
                                 .overlay(Circle().strokeBorder(.white.opacity(0.2), lineWidth: 1))
@@ -130,10 +130,16 @@ struct FeaturedHero: View {
                                 .transition(.opacity)
                         } else if !store.state.isPro {
                             Button { PaywallPresenter.show() } label: {
-                                Text("Free includes a small watermark — remove")
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.6))
-                                    .underline()
+                                HStack(spacing: 6) {
+                                    Image(systemName: "seal")
+                                        .font(.system(size: 11, weight: .semibold))
+                                    Text("Remove watermark")
+                                        .font(.callout.weight(.semibold))
+                                }
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 9)
+                                .overlay(Capsule().strokeBorder(.white.opacity(0.45), lineWidth: 1))
                             }
                             .buttonStyle(.plain)
                         }

@@ -58,7 +58,23 @@ final class WidgetsViewModel {
             }
         }
         walk(categories)
-        return leaves
+        var seen = Set<String>()
+        return leaves.filter { node in
+            let key = (node.name ?? "").lowercased().trimmingCharacters(in: .whitespaces)
+            return seen.insert(key).inserted
+        }
+    }
+
+    func isCatalogItemPlaced(_ item: WidgetCatalogItem) -> Bool {
+        let name = (item.name ?? item.resolvedKind.displayName)
+            .lowercased().trimmingCharacters(in: .whitespaces)
+        let kind = item.resolvedKind
+        let desktop = DesktopWidgetManager.shared
+        return store.instances.contains { instance in
+            instance.kind == kind
+                && instance.name.lowercased().trimmingCharacters(in: .whitespaces) == name
+                && desktop.isPlaced(instance.id)
+        }
     }
 
     func loadIfNeeded() async {

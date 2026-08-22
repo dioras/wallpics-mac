@@ -9,13 +9,17 @@ struct FavoritesView: View {
     var body: some View {
         Group {
             if model.wallpapers.isEmpty {
-                ContentUnavailableView {
-                    Label("No favorites yet", systemImage: "star")
-                } description: {
-                    Text("Tap the star on any wallpaper while browsing to save it here.")
-                } actions: {
-                    Button("Open Browse") { env.selectedSection = .browse }
-                        .buttonStyle(.borderedProminent)
+                VStack {
+                    ContentUnavailableView {
+                        Label("No favorites yet", systemImage: "star")
+                    } description: {
+                        Text("Click the star on any wallpaper while browsing to save it here.")
+                    } actions: {
+                        Button("Open Browse") { env.selectedSection = .browse }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    .frame(maxHeight: 600)
+                    Spacer(minLength: 0)
                 }
             } else {
                 ScrollView {

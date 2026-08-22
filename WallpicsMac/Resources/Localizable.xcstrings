@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "/ day" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -380,6 +383,9 @@
     "%lld percent" : {
 
     },
+    "%lld wallpapers" : {
+
+    },
     "%lld wallpapers ready to use." : {
 
     },
@@ -732,6 +738,9 @@
     "Add WallPics as a real native macOS widget. Apple only allows this through the system Widget gallery — placing from a tile below is an instant app overlay instead." : {
 
     },
+    "Alert" : {
+
+    },
     "All" : {
 
     },
@@ -934,6 +943,9 @@
     "Background" : {
 
     },
+    "Balanced tracking" : {
+
+    },
     "Best value" : {
       "localizations" : {
         "de" : {
@@ -990,6 +1002,12 @@
 
     },
     "Bottom Right" : {
+
+    },
+    "Breed" : {
+
+    },
+    "Breed:" : {
 
     },
     "Bring to Front" : {
@@ -1233,6 +1251,9 @@
         }
       }
     },
+    "Calm" : {
+
+    },
     "Cancel" : {
 
     },
@@ -1376,6 +1397,9 @@
       }
     },
     "Classic" : {
+
+    },
+    "Click the star on any wallpaper while browsing to save it here." : {
 
     },
     "Click to place on your desktop" : {
@@ -1690,6 +1714,15 @@
     "Delete Widget" : {
 
     },
+    "Dislikes" : {
+
+    },
+    "Dislikes:" : {
+
+    },
+    "Dismiss" : {
+
+    },
     "DIY Animated" : {
 
     },
@@ -1853,10 +1886,10 @@
         }
       }
     },
-    "Font" : {
+    "Follows slowly, ignores small moves" : {
 
     },
-    "Free includes a small watermark — remove" : {
+    "Font" : {
 
     },
     "Free Plan" : {
@@ -2050,6 +2083,12 @@
     "Garage Door" : {
 
     },
+    "Gender" : {
+
+    },
+    "Gender:" : {
+
+    },
     "Get Started" : {
       "localizations" : {
         "de" : {
@@ -2141,6 +2180,12 @@
           }
         }
       }
+    },
+    "Guardian" : {
+
+    },
+    "Guardian:" : {
+
     },
     "Image" : {
 
@@ -2294,6 +2339,12 @@
 
     },
     "Left Edge" : {
+
+    },
+    "Likes" : {
+
+    },
+    "Likes:" : {
 
     },
     "Live" : {
@@ -2553,6 +2604,12 @@
     "Name" : {
 
     },
+    "Name card backdrop" : {
+
+    },
+    "Name:" : {
+
+    },
     "Network problem. Check your connection." : {
       "localizations" : {
         "de" : {
@@ -2652,6 +2709,9 @@
       }
     },
     "Next Photo" : {
+
+    },
+    "No display available for the backdrop" : {
 
     },
     "No favorites yet" : {
@@ -2848,6 +2908,9 @@
 
     },
     "No widgets yet" : {
+
+    },
+    "Normal" : {
 
     },
     "Not Now" : {
@@ -3055,9 +3118,6 @@
     "or click to choose from your Mac" : {
 
     },
-    "Pause" : {
-
-    },
     "Pause in Low Power Mode" : {
       "localizations" : {
         "de" : {
@@ -3103,6 +3163,9 @@
           }
         }
       }
+    },
+    "Pause pet" : {
+
     },
     "Pause Wallpaper" : {
       "extractionState" : "stale",
@@ -3150,6 +3213,18 @@
           }
         }
       }
+    },
+    "Paused" : {
+
+    },
+    "Paused by you" : {
+
+    },
+    "Paused while the display sleeps" : {
+
+    },
+    "Pet Notes" : {
+
     },
     "Pet pack unavailable" : {
 
@@ -3708,6 +3783,9 @@
         }
       }
     },
+    "Remove %@ from Desktop" : {
+
+    },
     "Remove from Desktop" : {
 
     },
@@ -3850,7 +3928,13 @@
         }
       }
     },
+    "Replaces your wallpaper with a plain card showing this pet's details." : {
+
+    },
     "Replay Onboarding" : {
+
+    },
+    "Reset to default" : {
 
     },
     "Resolution" : {
@@ -3992,7 +4076,7 @@
         }
       }
     },
-    "Resume" : {
+    "Resume pet" : {
 
     },
     "Retry" : {
@@ -4103,6 +4187,9 @@
 
     },
     "See all" : {
+
+    },
+    "Sensitivity" : {
 
     },
     "Serif" : {
@@ -4357,6 +4444,9 @@
 
     },
     "Small" : {
+
+    },
+    "Snaps to the cursor straight away" : {
 
     },
     "Sort wallpapers" : {
@@ -4652,6 +4742,7 @@
 
     },
     "Tap the star on any wallpaper while browsing to save it here." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {

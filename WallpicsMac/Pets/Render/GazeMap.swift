@@ -6,6 +6,7 @@ struct GazeTarget: Equatable {
     var mirrored: Bool
     var upperHalf: Bool
     var horizontal: Double = 0
+    var holdsMirror: Bool = false
 }
 
 struct GazeMap {
@@ -46,7 +47,7 @@ struct GazeMap {
     }
 
     func target(cursor: CGPoint, petRect: CGRect, faceCenter: CGPoint, deadZone: CGFloat) -> GazeTarget {
-        let neutral = GazeTarget(pose: neutralPose, mirrored: false, upperHalf: true)
+        let neutral = GazeTarget(pose: neutralPose, mirrored: false, upperHalf: true, holdsMirror: true)
         guard petRect.width > 0, petRect.height > 0 else { return neutral }
         let face = CGPoint(
             x: petRect.minX + faceCenter.x * petRect.width,
@@ -67,6 +68,11 @@ struct PetPlayhead {
     var value: Double
     var responsePerSecond: Double = 11
     var maxPosesPerSecond: Double = 260
+
+    mutating func apply(sensitivity: PetSensitivity, gazeSpan: Int) {
+        responsePerSecond = sensitivity.responsePerSecond
+        maxPosesPerSecond = max(60, sensitivity.turnsPerSecond * Double(gazeSpan))
+    }
 
     init(pose: Int) {
         value = Double(pose)

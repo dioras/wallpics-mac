@@ -12,6 +12,13 @@ final class DesktopPetManager {
     }
 
     private(set) var isPaused = false
+
+    var pauseSummary: String? {
+        guard isPaused else { return nil }
+        if pauseReasons.contains(.userToggle) { return String(localized: "Paused by you") }
+        if pauseReasons.contains(.screenSleep) { return String(localized: "Paused while the display sleeps") }
+        return String(localized: "Paused")
+    }
     private(set) var isRunning = false
     private(set) var loadFailure: String?
 
@@ -157,6 +164,10 @@ final class DesktopPetManager {
         }
     }
 
+    func petFrame(species: PetSpecies, placement: PetPlacement, screen: NSScreen) -> CGRect {
+        globalRect(species: species, placement: placement, screen: screen)
+    }
+
     private func globalRect(species: PetSpecies, placement: PetPlacement, screen: NSScreen) -> CGRect {
         let frameHeight = placement.size.pointHeight / species.subjectHeight
         let size = CGSize(width: frameHeight * species.aspectRatio, height: frameHeight)
@@ -176,6 +187,13 @@ final class DesktopPetManager {
         start()
     }
 
+    func reassertAboveBackdrop() {
+        for window in windows.values {
+            window.level = DesktopPetWindow.behindIconsLevel
+            window.orderFrontRegardless()
+        }
+    }
+
     private func reassertWindows() {
         for window in windows.values {
             window.level = DesktopPetWindow.behindIconsLevel
@@ -185,10 +203,13 @@ final class DesktopPetManager {
 
     private func resumeTicking() {
         guard displayLink == nil, !isPaused, isRunning else { return }
+        let screen = NSScreen.main ?? NSScreen.screens.first
+        guard let link = screen?.displayLink(target: self, selector: #selector(handleTick)) else {
+            Log.app.error("DesktopPetManager: could not create a display link for the pet")
+            return
+        }
         idleTimer?.invalidate()
         idleTimer = nil
-        let screen = NSScreen.main ?? NSScreen.screens.first
-        guard let link = screen?.displayLink(target: self, selector: #selector(handleTick)) else { return }
         link.add(to: .main, forMode: .common)
         displayLink = link
         lastTickTime = CACurrentMediaTime()
@@ -235,7 +256,8 @@ final class DesktopPetManager {
         for (id, window) in windows {
             guard let renderer = renderers[id], let screen = window.screen ?? NSScreen.screens.first(where: { $0.displayID == id }) else { continue }
             let rect = globalRect(species: species, placement: placement, screen: screen)
-            moving = renderer.tick(dt: dt, cursor: cursor, petRect: rect) || moving
+            moving = renderer.tick(dt: dt, cursor: cursor, petRect: rect,
+                                   sensitivity: placement.sensitivity) || moving
         }
 
         if moving || cursorMoved {

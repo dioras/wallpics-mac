@@ -41,7 +41,7 @@ struct PetsView: View {
                     HStack(spacing: 6) {
                         Image(systemName: model.desktop.isPaused ? "play.fill" : "pause.fill")
                             .font(.system(size: 11, weight: .bold))
-                        Text(model.desktop.isPaused ? "Resume" : "Pause")
+                        Text(model.desktop.isPaused ? "Resume pet" : "Pause pet")
                             .font(.callout.weight(.semibold))
                     }
                     .foregroundStyle(.white)
@@ -66,9 +66,19 @@ struct PetsView: View {
                     Text(pet.name)
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
-                    Text("On your desktop, behind your icons.")
+                    if let paused = model.desktop.pauseSummary {
+                        HStack(spacing: 5) {
+                            Image(systemName: "pause.circle.fill")
+                                .font(.system(size: 11))
+                            Text(paused)
+                        }
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(.yellow.opacity(0.85))
+                    } else {
+                        Text("On your desktop, behind your icons.")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
                 }
 
                 if let failure = model.desktop.loadFailure {
@@ -113,25 +123,69 @@ struct PetsView: View {
                     }
                 }
 
-                HStack(spacing: Theme.Space.m) {
+                optionRow(title: String(localized: "Sensitivity")) {
+                    ForEach(PetSensitivity.allCases) { level in
+                        PetChip(title: level.label,
+                                isSelected: model.store.placement?.sensitivity == level) {
+                            model.setSensitivity(level)
+                        }
+                    }
+                }
+
+                Text(model.store.placement?.sensitivity.detail ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.45))
+
+                VStack(alignment: .leading, spacing: Theme.Space.s) {
                     Toggle(isOn: Binding(
-                        get: { model.store.placement?.allScreens ?? true },
-                        set: { model.setAllScreens($0) }
+                        get: { model.store.placement?.showsProfileBackdrop ?? false },
+                        set: { model.setProfileBackdrop($0) }
                     )) {
-                        Text("Show on every display").font(.callout)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Name card backdrop").font(.callout)
+                            Text("Replaces your wallpaper with a plain card showing this pet's details.")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.45))
+                        }
                     }
                     .toggleStyle(.switch)
                     .tint(Theme.accent)
 
-                    Spacer()
+                    if let failure = model.backdrop.lastError {
+                        Text(failure)
+                            .font(.caption)
+                            .foregroundStyle(.yellow.opacity(0.9))
+                    }
 
-                    Button("Remove from Desktop") { model.removeFromDesktop() }
-                        .buttonStyle(.plain)
-                        .font(.callout.weight(.semibold))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .foregroundStyle(.white)
-                        .background(.white.opacity(0.10), in: Capsule())
+                    if model.store.placement?.showsProfileBackdrop == true {
+                        PetProfileEditor(model: model, species: pet)
+                    }
+                }
+
+                Toggle(isOn: Binding(
+                    get: { model.store.placement?.allScreens ?? true },
+                    set: { model.setAllScreens($0) }
+                )) {
+                    Text("Show on every display").font(.callout)
+                }
+                .toggleStyle(.switch)
+                .tint(Theme.accent)
+
+                Divider().overlay(.white.opacity(0.12))
+
+                HStack {
+                    Spacer()
+                    Button {
+                        model.removeFromDesktop()
+                    } label: {
+                        Label(String(localized: "Remove \(pet.name) from Desktop"), systemImage: "trash")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .overlay(Capsule().strokeBorder(.red.opacity(0.55), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -307,7 +361,7 @@ struct PetTile: View {
     @ViewBuilder
     private var placedBadge: some View {
         if isPlaced {
-            BadgePill(background: Theme.accent) {
+            BadgePill(role: .status) {
                 Text(verbatim: "ON DESKTOP")
             }
         }
@@ -328,10 +382,11 @@ struct PetChip: View {
                 }
                 Text(title).font(.caption.weight(.semibold))
             }
-            .foregroundStyle(isSelected ? .black : .white)
+            .foregroundStyle(.white)
             .padding(.horizontal, 11)
             .padding(.vertical, 6)
-            .background(isSelected ? Color.white : Color.white.opacity(0.07), in: Capsule())
+            .background(isSelected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Color.white.opacity(0.07)),
+                        in: Capsule())
         }
         .buttonStyle(.plain)
         .help(title)
@@ -347,5 +402,85 @@ enum PetPosterCache {
         guard let image = NSImage(contentsOf: url) else { return nil }
         cache.setObject(image, forKey: url as NSURL)
         return image
+    }
+}
+
+
+struct PetProfileEditor: View {
+    @Bindable var model: PetsViewModel
+    let species: PetSpecies
+
+    @State private var draft: PetProfile = .empty
+    @State private var loadedSlug: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            field(String(localized: "Name"), text: $draft.displayName)
+            field(String(localized: "Breed"), text: $draft.breed)
+            field(String(localized: "Gender"), text: $draft.gender)
+            field(String(localized: "Likes"), text: $draft.likes)
+            field(String(localized: "Dislikes"), text: $draft.dislikes)
+
+            HStack(alignment: .top, spacing: Theme.Space.s) {
+                Text("Guardian")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .frame(width: 74, alignment: .leading)
+                Text(model.guardianName)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.45))
+            }
+
+            Text("Pet Notes")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.55))
+            TextEditor(text: $draft.notes)
+                .font(.caption)
+                .scrollContentBackground(.hidden)
+                .frame(height: 54)
+                .padding(6)
+                .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack {
+                Spacer()
+                Button("Reset to default") {
+                    model.profiles.reset(species)
+                    draft = model.profile(for: species)
+                    model.updateProfile(draft, for: species)
+                }
+                .buttonStyle(.plain)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+        .padding(Theme.Space.s)
+        .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
+        .onAppear(perform: load)
+        .onChange(of: species.slug) { _, _ in load() }
+        .onChange(of: draft) { _, new in
+            guard loadedSlug == species.slug else { return }
+            model.updateProfile(new, for: species)
+        }
+    }
+
+    private func load() {
+        draft = model.profile(for: species)
+        loadedSlug = species.slug
+    }
+
+    private func field(_ label: String, text: Binding<String>) -> some View {
+        HStack(spacing: Theme.Space.s) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.55))
+                .frame(width: 74, alignment: .leading)
+            TextField("", text: text)
+                .textFieldStyle(.plain)
+                .font(.caption)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
     }
 }

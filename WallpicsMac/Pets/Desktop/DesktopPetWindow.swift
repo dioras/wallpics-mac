@@ -29,7 +29,7 @@ final class DesktopPetWindow: NSWindow {
     override var canBecomeMain: Bool { false }
 
     static var behindIconsLevel: NSWindow.Level {
-        NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) + 1)
+        NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)) + 2)
     }
 }
 

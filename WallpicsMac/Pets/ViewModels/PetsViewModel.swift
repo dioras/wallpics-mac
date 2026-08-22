@@ -9,6 +9,8 @@ final class PetsViewModel {
     let species: [PetSpecies] = PetCatalog.all
     let store = PetStore.shared
     let desktop = DesktopPetManager.shared
+    let profiles = PetProfileStore.shared
+    let backdrop = PetBackdropService.shared
 
     var filtered: [PetSpecies] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -23,9 +25,13 @@ final class PetsViewModel {
     func place(_ pet: PetSpecies) {
         store.activate(pet)
         desktop.start()
+        if let placement = store.placement, placement.showsProfileBackdrop {
+            backdrop.apply(species: pet, placement: placement)
+        }
     }
 
     func removeFromDesktop() {
+        backdrop.clear()
         store.clear()
         desktop.stop()
     }
@@ -49,4 +55,29 @@ final class PetsViewModel {
         store.update { $0.allScreens = value }
         desktop.refresh()
     }
+
+    func setSensitivity(_ value: PetSensitivity) {
+        store.update { $0.sensitivity = value }
+    }
+
+    func setProfileBackdrop(_ enabled: Bool) {
+        store.update { $0.showsProfileBackdrop = enabled }
+        guard let placement = store.placement, let species = active else { return }
+        if enabled {
+            backdrop.apply(species: species, placement: placement)
+        } else {
+            backdrop.clear()
+        }
+    }
+
+    func profile(for species: PetSpecies) -> PetProfile { profiles.profile(for: species) }
+
+    func updateProfile(_ profile: PetProfile, for species: PetSpecies) {
+        profiles.update(profile, for: species)
+        if store.placement?.showsProfileBackdrop == true, let placement = store.placement {
+            backdrop.apply(species: species, placement: placement)
+        }
+    }
+
+    var guardianName: String { profiles.guardianName }
 }
