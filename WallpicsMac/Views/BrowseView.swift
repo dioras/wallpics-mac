@@ -70,7 +70,7 @@ struct BrowseView: View {
                     // tucked-away top-right icon), as a visible pill rather than a bare glyph.
                     SortMenu(sortOrder: model.sortOrder, onSort: model.setSort)
                 }
-                .padding(.horizontal, Theme.Space.l)
+                .padding(.horizontal, Theme.Space.xl)
                 .padding(.top, Theme.Space.xl)
                 .padding(.bottom, Theme.Space.s)
             }
@@ -101,7 +101,7 @@ struct BrowseView: View {
 
             if let error = model.errorMessage {
                 ErrorBanner(message: error) { Task { await model.reload() } }
-                    .padding(.horizontal, Theme.Space.l)
+                    .padding(.horizontal, Theme.Space.xl)
                     .padding(.bottom, Theme.Space.l)
             }
 
@@ -149,7 +149,7 @@ struct BrowseView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, Theme.Space.l)
+            .padding(.horizontal, Theme.Space.xl)
             .padding(.vertical, Theme.Space.l)
             .animation(Motion.hover, value: featuredWallpaper?.id)
         }
@@ -171,7 +171,7 @@ struct BrowseView: View {
                         }
                     }
                 }
-                .padding(.horizontal, Theme.Space.l)
+                .padding(.horizontal, Theme.Space.xl)
             }
             .frame(height: 40)
             if let parent = model.selectedCategory, !model.availableSubcategories.isEmpty {
@@ -187,7 +187,7 @@ struct BrowseView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, Theme.Space.l)
+                    .padding(.horizontal, Theme.Space.xl)
                 }
                 .frame(height: 32)
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -242,7 +242,7 @@ private struct BrowseToolbar: View {
             CollectionFilter(selection: collection, onSelect: onCollection)
             Spacer()
         }
-        .padding(.horizontal, Theme.Space.l)
+        .padding(.horizontal, Theme.Space.xl)
         .padding(.top, Theme.Space.l)
         .padding(.bottom, Theme.Space.m)
     }
@@ -350,7 +350,7 @@ private struct SectionHeader: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, Theme.Space.l)
+        .padding(.horizontal, Theme.Space.xl)
         .padding(.top, Theme.Space.xl)
         .padding(.bottom, Theme.Space.s)
     }
@@ -371,10 +371,10 @@ private struct CategoryChip: View {
                 .lineLimit(1)
                 .padding(.horizontal, isSub ? Theme.Space.m : 15)
                 .padding(.vertical, isSub ? 5 : 7)
-                .foregroundStyle(isSelected ? AnyShapeStyle(.black) : AnyShapeStyle(.white.opacity(0.75)))
+                .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.white.opacity(0.75)))
                 .background {
                     if isSelected {
-                        Capsule().fill(.white)
+                        Capsule().fill(Theme.accent)
                     } else {
                         Capsule().fill(.white.opacity(0.07))
                     }

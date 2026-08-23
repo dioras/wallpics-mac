@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct WidgetGalleryTile: View {
+    static let artworkHeight: CGFloat = 150
+
     let item: WidgetCatalogItem
     var isPlaced: Bool = false
     @State private var isHovering = false
@@ -19,6 +21,7 @@ struct WidgetGalleryTile: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(width: Self.artworkHeight * item.galleryFamily.aspectRatio)
         .animation(Motion.hover, value: isHovering)
         .onHover { inside in
             isHovering = inside
@@ -29,8 +32,8 @@ struct WidgetGalleryTile: View {
 
     private var artwork: some View {
         ThumbnailView(url: item.thumbnailURL, placeholderTint: .white.opacity(0.06))
-            .aspectRatio(item.galleryFamily.aspectRatio, contentMode: .fill)
-            .frame(maxWidth: .infinity)
+            .frame(width: Self.artworkHeight * item.galleryFamily.aspectRatio,
+                   height: Self.artworkHeight)
             .clipped()
             .overlay(alignment: .topLeading) { placedBadge }
             .overlay(alignment: .topTrailing) { interactiveBadge }

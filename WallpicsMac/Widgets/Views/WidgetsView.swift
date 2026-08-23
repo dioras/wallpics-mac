@@ -168,7 +168,7 @@ struct WidgetsView: View {
         } else if model.filteredItems.isEmpty {
             emptyGalleryState
         } else {
-            LazyVGrid(columns: columns, spacing: Theme.Space.l) {
+            GalleryFlow(spacing: Theme.Space.l) {
                 ForEach(model.filteredItems) { item in
                     WidgetGalleryTile(item: item, isPlaced: model.isCatalogItemPlaced(item))
                         .onTapGesture { placeOnDesktop(item) }
@@ -479,6 +479,44 @@ private struct NativeWidgetGuide: View {
                     continuation.resume(returning: false)
                 }
             }
+        }
+    }
+}
+
+
+/// Left-aligned wrapping row layout: every tile keeps its own width (native widget
+/// aspect at a shared height) and rows wrap like text.
+struct GalleryFlow: Layout {
+    var spacing: CGFloat = 16
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? 800
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > width {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: width, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX, y = bounds.minY, rowHeight: CGFloat = 0
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            view.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }

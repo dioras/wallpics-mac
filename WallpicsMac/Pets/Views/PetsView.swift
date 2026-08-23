@@ -111,15 +111,20 @@ struct PetsView: View {
                     }
                 }
 
-                optionRow(title: String(localized: "Position")) {
-                    ForEach(PetAnchor.allCases) { anchor in
-                        PetChip(
-                            title: anchor.label,
-                            symbol: anchor.symbol,
-                            isSelected: model.store.placement?.anchor == anchor
-                        ) {
-                            model.setAnchor(anchor)
-                        }
+                HStack(alignment: .top, spacing: Theme.Space.m) {
+                    Text("Position")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.55))
+                        .frame(width: 74, alignment: .leading)
+                        .padding(.top, 6)
+                    PetPositionGrid(selection: model.store.placement?.anchor) { anchor in
+                        model.setAnchor(anchor)
+                    }
+                    if let anchor = model.store.placement?.anchor {
+                        Text(anchor.label)
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.45))
+                            .padding(.top, 6)
                     }
                 }
 
@@ -481,6 +486,51 @@ struct PetProfileEditor: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+}
+
+
+struct PetPositionGrid: View {
+    let selection: PetAnchor?
+    let action: (PetAnchor) -> Void
+
+    private static let cells: [[PetAnchor?]] = [
+        [nil, nil, nil],
+        [.leading, nil, .trailing],
+        [.bottomLeading, .bottomCenter, .bottomTrailing]
+    ]
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ForEach(0..<3, id: \.self) { row in
+                HStack(spacing: 4) {
+                    ForEach(0..<3, id: \.self) { col in
+                        cell(Self.cells[row][col])
+                    }
+                }
+            }
+        }
+        .padding(5)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func cell(_ anchor: PetAnchor?) -> some View {
+        if let anchor {
+            Button {
+                action(anchor)
+            } label: {
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(selection == anchor ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Color.white.opacity(0.10)))
+                    .frame(width: 26, height: 20)
+            }
+            .buttonStyle(.plain)
+            .help(anchor.label)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                .fill(.white.opacity(0.03))
+                .frame(width: 26, height: 20)
         }
     }
 }

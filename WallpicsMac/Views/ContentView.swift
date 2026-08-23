@@ -192,10 +192,15 @@ private struct TopNavBar: View {
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .padding(.horizontal, Theme.Space.l)
+        .padding(.horizontal, Theme.Space.xl)
         .padding(.vertical, 9)
-        // No bar background — the pills float over the hero, One4Wall style; each cluster
-        // carries its own glass so it stays legible on any artwork.
+        // One chrome treatment everywhere: the pills keep their glass, and a shared top
+        // scrim keeps the bar and traffic lights legible over any artwork.
+        .background {
+            LinearGradient(colors: [.black.opacity(0.5), .black.opacity(0.22), .clear],
+                           startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea(edges: .top)
+        }
         .animation(Motion.hover, value: selection)
     }
 
@@ -204,12 +209,9 @@ private struct TopNavBar: View {
         return Button {
             selection = section
         } label: {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 5) {
-                    Image(systemName: section.symbol)
-                    Text(section.label).lineLimit(1).fixedSize()
-                }
+            HStack(spacing: 5) {
                 Image(systemName: section.symbol)
+                Text(section.label).lineLimit(1).fixedSize()
             }
             .font(.callout.weight(.medium))
             .padding(.horizontal, Theme.Space.l)
