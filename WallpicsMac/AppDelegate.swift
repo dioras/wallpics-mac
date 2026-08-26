@@ -87,6 +87,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         DesktopWidgetManager.shared.restoreAll()
         DesktopPetManager.shared.restoreAll()
+        Task {
+            await RemotePetService.shared.refresh()
+            if !DesktopPetManager.shared.isRunning {
+                DesktopPetManager.shared.restoreAll()
+                PetBackdropService.shared.reapply()
+            }
+        }
         PetBackdropService.shared.reapply()
         WidgetSharedExport.sync()
         // Publish the backend widget gallery to the App Group so the native macOS picker lists

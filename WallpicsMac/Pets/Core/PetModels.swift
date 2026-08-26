@@ -15,6 +15,7 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
     let mirrorTable: [Bool]
     let pivotUp: Int
     let pivotDown: Int
+    var wrapsAround: Bool = false
     let mediaURL: URL
     let posterURL: URL
 

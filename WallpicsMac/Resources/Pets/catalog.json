@@ -18,6 +18,12 @@
    "name": "Leopard",
    "width": 972,
    "height": 900
+  },
+  {
+   "slug": "ginger-full",
+   "name": "Ginger FULL (test)",
+   "width": 894,
+   "height": 900
   }
  ]
 }

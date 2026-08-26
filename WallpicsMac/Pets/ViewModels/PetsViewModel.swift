@@ -6,7 +6,24 @@ import Observation
 final class PetsViewModel {
     var query: String = ""
 
-    let species: [PetSpecies] = PetCatalog.all
+    private(set) var species: [PetSpecies] = PetCatalog.all
+    @ObservationIgnored private var remoteObserver: NSObjectProtocol?
+
+    init() {
+        remoteObserver = NotificationCenter.default.addObserver(
+            forName: RemotePetService.didUpdate, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.species = PetCatalog.all }
+        }
+        Task { await RemotePetService.shared.refresh() }
+    }
+
+    deinit {
+        if let remoteObserver {
+            NotificationCenter.default.removeObserver(remoteObserver)
+        }
+    }
+
     let store = PetStore.shared
     let desktop = DesktopPetManager.shared
     let profiles = PetProfileStore.shared

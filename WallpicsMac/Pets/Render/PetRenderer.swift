@@ -80,18 +80,20 @@ final class PetRenderer {
         let lastPose = sequence.count - 1
         var stepTarget = min(target.pose, lastPose)
         let wantsFlip = !target.holdsMirror && target.mirrored != isMirrored
-        if wantsFlip {
-            let committedToSide = abs(target.horizontal) > Self.mirrorDeadBand
+        if wantsFlip && abs(target.horizontal) > Self.mirrorDeadBand {
             let pivot = min(map.pivot(upperHalf: target.upperHalf), lastPose)
-            if committedToSide && abs(playhead.value - Double(pivot)) < 1.5 {
+            if abs(playhead.value - Double(pivot)) < 1.5 {
                 setMirrored(target.mirrored)
             } else {
                 stepTarget = pivot
             }
         }
 
-        playhead.step(dt: dt, target: stepTarget, upperBound: sequence.count - 1)
-        let pose = playhead.poseIndex
+        playhead.step(dt: dt, target: stepTarget, upperBound: sequence.count - 1,
+                      wraps: species.wrapsAround)
+        let pose = species.wrapsAround
+            ? playhead.poseIndex % sequence.count
+            : min(playhead.poseIndex, lastPose)
         if pose != lastEnqueuedPose {
             enqueue(pose: pose)
         }

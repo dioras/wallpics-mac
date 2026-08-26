@@ -57,9 +57,13 @@ struct PetsView: View {
 
     private func activePetCard(_ pet: PetSpecies) -> some View {
         HStack(alignment: .top, spacing: Theme.Space.l) {
-            PetPreviewView(species: pet)
-                .frame(width: 150, height: 170)
-                .allowsHitTesting(false)
+            PetPlacementPreview(
+                species: pet,
+                size: model.store.placement?.size ?? .medium,
+                anchor: model.store.placement?.anchor ?? .bottomTrailing
+            )
+            .frame(maxWidth: .infinity)
+            .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: Theme.Space.m) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -111,20 +115,19 @@ struct PetsView: View {
                     }
                 }
 
-                HStack(alignment: .top, spacing: Theme.Space.m) {
+                VStack(alignment: .leading, spacing: Theme.Space.s) {
                     Text("Position")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.55))
-                        .frame(width: 74, alignment: .leading)
-                        .padding(.top, 6)
-                    PetPositionGrid(selection: model.store.placement?.anchor) { anchor in
-                        model.setAnchor(anchor)
-                    }
-                    if let anchor = model.store.placement?.anchor {
-                        Text(anchor.label)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.45))
-                            .padding(.top, 6)
+                        .foregroundStyle(.white.opacity(0.45))
+                    HStack(spacing: Theme.Space.m) {
+                        PetPositionGrid(selection: model.store.placement?.anchor) { anchor in
+                            model.setAnchor(anchor)
+                        }
+                        if let anchor = model.store.placement?.anchor {
+                            Text(anchor.label)
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.45))
+                        }
                     }
                 }
 
@@ -183,17 +186,18 @@ struct PetsView: View {
                     Button {
                         model.removeFromDesktop()
                     } label: {
-                        Label(String(localized: "Remove \(pet.name) from Desktop"), systemImage: "trash")
-                            .font(.callout.weight(.semibold))
+                        Label(String(localized: "Remove from Desktop"), systemImage: "trash")
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(.red)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
                             .overlay(Capsule().strokeBorder(.red.opacity(0.55), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
+                    .help(String(localized: "Remove \(pet.name) from Desktop"))
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: 340, alignment: .leading)
         }
         .padding(Theme.Space.l)
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
@@ -430,7 +434,7 @@ struct PetProfileEditor: View {
                 Text("Guardian")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.55))
-                    .frame(width: 74, alignment: .leading)
+                    .frame(width: 64, alignment: .leading)
                 Text(model.guardianName)
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.45))
@@ -442,7 +446,7 @@ struct PetProfileEditor: View {
             TextEditor(text: $draft.notes)
                 .font(.caption)
                 .scrollContentBackground(.hidden)
-                .frame(height: 54)
+                .frame(height: 44)
                 .padding(6)
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
@@ -478,7 +482,7 @@ struct PetProfileEditor: View {
             Text(label)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.55))
-                .frame(width: 74, alignment: .leading)
+                .frame(width: 64, alignment: .leading)
             TextField("", text: text)
                 .textFieldStyle(.plain)
                 .font(.caption)
@@ -487,6 +491,55 @@ struct PetProfileEditor: View {
                 .padding(.vertical, 5)
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
+    }
+}
+
+
+struct PetPlacementPreview: View {
+    let species: PetSpecies
+    let size: PetSize
+    let anchor: PetAnchor
+
+    private var screenFrame: CGRect {
+        NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1512, height: 982)
+    }
+
+    private var heightFactor: CGFloat {
+        switch size {
+        case .small: return 0.42
+        case .medium: return 0.56
+        case .large: return 0.72
+        }
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let mock = CGRect(origin: .zero, size: proxy.size)
+            let subjectHeight = mock.height * heightFactor
+            let petSize = CGSize(width: subjectHeight * species.aspectRatio / species.subjectHeight,
+                                 height: subjectHeight)
+            let rect = anchor.rect(for: petSize, in: mock, margin: 10)
+
+            ZStack(alignment: .top) {
+                LinearGradient(colors: [Color(red: 0.16, green: 0.19, blue: 0.30),
+                                        Color(red: 0.08, green: 0.09, blue: 0.15)],
+                               startPoint: .top, endPoint: .bottom)
+                Rectangle()
+                    .fill(.white.opacity(0.08))
+                    .frame(height: 5)
+                PetPreviewView(species: species)
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: mock.height - rect.midY)
+                    .animation(Motion.reward, value: anchor)
+                    .animation(Motion.reward, value: size)
+            }
+        }
+        .aspectRatio(screenFrame.width / max(screenFrame.height, 1), contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+        )
     }
 }
 

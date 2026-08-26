@@ -80,11 +80,16 @@ struct PetPlayhead {
 
     var poseIndex: Int { Int(value.rounded()) }
 
-    mutating func step(dt: Double, target: Int, upperBound: Int) {
-        let goal = Double(target)
-        let delta = goal - value
+    mutating func step(dt: Double, target: Int, upperBound: Int, wraps: Bool = false) {
+        let count = Double(upperBound + 1)
+        var goal = Double(target)
+        var delta = goal - value
+        if wraps, upperBound > 0, abs(delta) > count / 2 {
+            delta -= delta > 0 ? count : -count
+            goal = value + delta
+        }
         if abs(delta) < 0.01 {
-            value = goal
+            value = normalized(goal, count: count, upperBound: upperBound, wraps: wraps)
             return
         }
         var advance = delta * min(1, dt * responsePerSecond)
@@ -95,6 +100,13 @@ struct PetPlayhead {
         } else {
             value += advance
         }
-        value = min(max(value, 0), Double(max(upperBound, 0)))
+        value = normalized(value, count: count, upperBound: upperBound, wraps: wraps)
+    }
+
+    private func normalized(_ raw: Double, count: Double, upperBound: Int, wraps: Bool) -> Double {
+        guard wraps, count > 0 else {
+            return min(max(raw, 0), Double(max(upperBound, 0)))
+        }
+        return raw - floor(raw / count) * count
     }
 }
