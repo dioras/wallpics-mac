@@ -143,8 +143,14 @@ final class RemotePetService {
         let id: Int
         let name: String
         let video: URL
+        let videoMov: URL?
         let thumbnail: URL
         let gaze: Gaze
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, video, thumbnail, gaze
+            case videoMov = "video_mov"
+        }
     }
 
     func refresh() async {
@@ -196,8 +202,9 @@ final class RemotePetService {
         let dir = try Self.cacheDir(petId: pet.id)
         _ = try await cachedFile(remote: pet.thumbnail, in: dir, name: "poster.png",
                                  mimePrefix: "image/")
-        let ext = pet.video.pathExtension.isEmpty ? "mov" : pet.video.pathExtension
-        _ = try await cachedFile(remote: pet.video, in: dir, name: "pet." + ext,
+        let source = pet.videoMov ?? pet.video
+        let ext = source.pathExtension.isEmpty ? "mov" : source.pathExtension
+        _ = try await cachedFile(remote: source, in: dir, name: "pet." + ext,
                                  mimePrefix: "video/")
         if let meta = try? JSONEncoder().encode(pet) {
             try? meta.write(to: dir.appendingPathComponent("meta.json"))
