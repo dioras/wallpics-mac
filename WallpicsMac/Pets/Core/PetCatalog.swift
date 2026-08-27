@@ -205,6 +205,10 @@ final class RemotePetService {
         return try Self.buildSpecies(pet: pet, dir: dir)
     }
 
+    private struct GazeOverride: Decodable {
+        let invertMirror: Bool?
+    }
+
     private static func buildSpecies(pet: RemotePet, dir: URL) throws -> PetSpecies {
         let gaze = pet.gaze
         let mirrorCount = gaze.mirrorTable?.count ?? gaze.angleBuckets
@@ -213,6 +217,8 @@ final class RemotePetService {
               gaze.poseCount > 0 else {
             throw URLError(.cannotParseResponse)
         }
+        let override = (try? Data(contentsOf: dir.appendingPathComponent("override.json")))
+            .flatMap { try? JSONDecoder().decode(GazeOverride.self, from: $0) }
         let fm = FileManager.default
         let posterURL = dir.appendingPathComponent("poster.png")
         guard fm.fileExists(atPath: posterURL.path) else {
@@ -236,6 +242,10 @@ final class RemotePetService {
             throw URLError(.cannotDecodeContentData)
         }
         let clamp = { (v: Int) in min(max(v, 0), gaze.poseCount - 1) }
+        var mirrorTable = gaze.mirrorTable ?? Array(repeating: false, count: gaze.angleTable.count)
+        if override?.invertMirror == true {
+            mirrorTable = mirrorTable.map { !$0 }
+        }
         return PetSpecies(
             slug: "remote-\(pet.id)",
             name: pet.name,
@@ -247,7 +257,7 @@ final class RemotePetService {
             subjectHeight: CGFloat(min(max(gaze.subjectHeight ?? 1, 0.2), 1)),
             subjectBottom: CGFloat(min(max(gaze.subjectBottom ?? 1, 0.2), 1)),
             angleTable: gaze.angleTable,
-            mirrorTable: gaze.mirrorTable ?? Array(repeating: false, count: gaze.angleTable.count),
+            mirrorTable: mirrorTable,
             pivotUp: clamp(gaze.pivotUp ?? gaze.neutralPose),
             pivotDown: clamp(gaze.pivotDown ?? gaze.neutralPose),
             wrapsAround: gaze.wraps ?? false,
