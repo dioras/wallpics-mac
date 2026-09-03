@@ -130,8 +130,21 @@ final class RemotePetService {
             }
         }
         let status: String
-        let data: [RemotePet]
+        let data: [LossyPet]
         let info: PageInfo?
+    }
+
+    private struct LossyPet: Decodable {
+        let pet: RemotePet?
+
+        init(from decoder: Decoder) throws {
+            do {
+                pet = try RemotePet(from: decoder)
+            } catch {
+                Log.api.error("RemotePetService: skipping undecodable pet entry — \(String(describing: error), privacy: .public)")
+                pet = nil
+            }
+        }
     }
 
     private struct RemotePet: Codable {
@@ -153,7 +166,7 @@ final class RemotePetService {
             let wraps: Bool?
         }
         let id: Int
-        let name: String
+        let name: String?
         let description: String?
         let isPremium: Bool?
         let video: URL
@@ -207,7 +220,7 @@ final class RemotePetService {
         while page <= Self.maxPages {
             let listing = try await fetchListing(page: page, timestamp: timestamp)
             pagesFetched += 1
-            for pet in listing.data where seen.insert(pet.id).inserted {
+            for pet in listing.data.compactMap(\.pet) where seen.insert(pet.id).inserted {
                 collected.append(pet)
             }
             guard let info = listing.info else {
@@ -320,9 +333,10 @@ final class RemotePetService {
             pivotDown = clamp(pivots.down)
         }
         let summary = pet.description?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = pet.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return PetSpecies(
             slug: "remote-\(pet.id)",
-            name: pet.name,
+            name: trimmedName.isEmpty ? String(localized: "Pet \(pet.id)") : trimmedName,
             pixelWidth: width,
             pixelHeight: height,
             poseCount: gaze.poseCount,
