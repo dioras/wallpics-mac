@@ -7,6 +7,7 @@ actor WallpaperAPI {
 
     private let baseURL = URL(string: "https://backend.wallpics.app")!
     private let session: URLSession
+    private let uploadSession: URLSession
     private let decoder: JSONDecoder
     private var guestID: String?
 
@@ -37,6 +38,12 @@ actor WallpaperAPI {
         cfg.timeoutIntervalForResource = 60
         cfg.waitsForConnectivity = true
         self.session = URLSession(configuration: cfg)
+
+        let uploadConfig = URLSessionConfiguration.default
+        uploadConfig.timeoutIntervalForRequest = 60
+        uploadConfig.timeoutIntervalForResource = 600
+        uploadConfig.waitsForConnectivity = true
+        self.uploadSession = URLSession(configuration: uploadConfig)
 
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
@@ -250,6 +257,92 @@ actor WallpaperAPI {
         } catch {
             Log.api.debug("Download stat failed (non-fatal)")
         }
+    }
+
+    func submitPet(name: String?, description: String?, photos: [PetSubmissionPhoto]) async throws -> Int? {
+        guard !photos.isEmpty else { throw PetSubmissionError.noPhotos }
+        guard photos.count <= PetSubmissionRules.maxPhotos else {
+            throw PetSubmissionError.tooManyPhotos(max: PetSubmissionRules.maxPhotos)
+        }
+        _ = try await ensureGuestID()
+
+        var req = URLRequest(url: baseURL.appendingPathComponent("api/pets/store"))
+        req.httpMethod = "POST"
+        applyAuthHeaders(to: &req)
+        let boundary = "WallpicsFormBoundary\(UUID().uuidString)"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        let body = Self.encodeMultipart(boundary: boundary, name: name, description: description, photos: photos)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await uploadSession.upload(for: req, from: body)
+        } catch {
+            Log.api.error("Pet submission upload failed — \(error.localizedDescription, privacy: .public)")
+            throw PetSubmissionError.transport
+        }
+
+        struct PetStoreResponse: Decodable {
+            struct Payload: Decodable {
+                let id: Int?
+                let message: String?
+            }
+            let status: String?
+            let message: String?
+            let data: Payload?
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                status = try container.decodeIfPresent(String.self, forKey: .status)
+                message = try container.decodeIfPresent(String.self, forKey: .message)
+                data = try? container.decodeIfPresent(Payload.self, forKey: .data)
+            }
+
+            enum CodingKeys: String, CodingKey { case status, message, data }
+        }
+        let parsed = try? JSONDecoder().decode(PetStoreResponse.self, from: data)
+
+        guard let http = response as? HTTPURLResponse else { throw PetSubmissionError.transport }
+        let serverMessage = parsed?.message ?? parsed?.data?.message
+        guard (200..<300).contains(http.statusCode) else {
+            let message = serverMessage ?? String(localized: "Server returned status \(http.statusCode).")
+            Log.api.error("Pet submission rejected (\(http.statusCode, privacy: .public)) — \(message, privacy: .public)")
+            throw PetSubmissionError.server(message)
+        }
+        guard let parsed, parsed.status == nil || parsed.status == "success" else {
+            let message = serverMessage ?? String(localized: "Unexpected server response.")
+            Log.api.error("Pet submission returned \(http.statusCode, privacy: .public) with a non-success body — \(message, privacy: .public)")
+            throw PetSubmissionError.server(message)
+        }
+        if parsed.data?.id == nil {
+            Log.api.notice("Pet submission accepted without a pet id in the response")
+        }
+        return parsed.data?.id
+    }
+
+    static func encodeMultipart(boundary: String, name: String?, description: String?, photos: [PetSubmissionPhoto]) -> Data {
+        var body = Data()
+        func append(_ text: String) { body.append(Data(text.utf8)) }
+
+        func field(_ key: String, _ value: String) {
+            append("--\(boundary)\r\n")
+            append("Content-Disposition: form-data; name=\"\(key)\"\r\n\r\n")
+            append("\(value)\r\n")
+        }
+
+        if let name, !name.isEmpty { field("name", name) }
+        if let description, !description.isEmpty { field("description", description) }
+
+        for photo in photos {
+            append("--\(boundary)\r\n")
+            append("Content-Disposition: form-data; name=\"photos[]\"; filename=\"\(photo.fileName)\"\r\n")
+            append("Content-Type: image/jpeg\r\n\r\n")
+            body.append(photo.data)
+            append("\r\n")
+        }
+
+        append("--\(boundary)--\r\n")
+        return body
     }
 
     // MARK: - Image fetching

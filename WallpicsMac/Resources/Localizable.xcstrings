@@ -192,6 +192,9 @@
         }
       }
     },
+    "%@ couldn't be read as an image." : {
+
+    },
     "%@ free, then %@. Cancel anytime." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -238,6 +241,19 @@
           }
         }
       }
+    },
+    "%@ is larger than %lld MB." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is larger than %2$lld MB."
+          }
+        }
+      }
+    },
+    "%@ is waiting for review. It appears here once approved." : {
+
     },
     "%@, auto-renews. Cancel anytime." : {
       "extractionState" : "manual",
@@ -376,6 +392,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 个月"
+          }
+        }
+      }
+    },
+    "%lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld"
           }
         }
       }
@@ -726,6 +752,9 @@
     "Add a native WallPics widget" : {
 
     },
+    "Add at least one photo of your pet." : {
+
+    },
     "Add photo" : {
 
     },
@@ -736,6 +765,9 @@
 
     },
     "Add WallPics as a real native macOS widget. Apple only allows this through the system Widget gallery — placing from a tile below is an instant app overlay instead." : {
+
+    },
+    "Add your pet" : {
 
     },
     "Alert" : {
@@ -797,6 +829,12 @@
       }
     },
     "All Wallpapers" : {
+
+    },
+    "Animated, plays on your desktop" : {
+
+    },
+    "Anything we should know (optional)" : {
 
     },
     "Appearance" : {
@@ -1690,6 +1728,9 @@
         }
       }
     },
+    "Couldn't load the home rails." : {
+
+    },
     "Couldn't load widgets" : {
 
     },
@@ -1714,6 +1755,9 @@
     "Delete Widget" : {
 
     },
+    "Desktop companions that watch your cursor" : {
+
+    },
     "Dislikes" : {
 
     },
@@ -1724,6 +1768,9 @@
 
     },
     "DIY Animated" : {
+
+    },
+    "Done" : {
 
     },
     "Downloads" : {
@@ -1777,6 +1824,9 @@
 
     },
     "Drag a video here" : {
+
+    },
+    "Drag photos here" : {
 
     },
     "Drag the preview to reposition" : {
@@ -2187,6 +2237,9 @@
     "Guardian:" : {
 
     },
+    "Home" : {
+
+    },
     "Image" : {
 
     },
@@ -2237,6 +2290,9 @@
         }
       }
     },
+    "In review" : {
+
+    },
     "Invalid request URL." : {
       "localizations" : {
         "de" : {
@@ -2282,6 +2338,9 @@
           }
         }
       }
+    },
+    "It will appear in your pets once it's approved" : {
+
     },
     "Keep your wallpaper running?" : {
 
@@ -2602,6 +2661,9 @@
 
     },
     "Name" : {
+
+    },
+    "Name (optional)" : {
 
     },
     "Name card backdrop" : {
@@ -3060,6 +3122,12 @@
     "On your desktop, behind your icons." : {
 
     },
+    "One pet per photo, front view plus a couple of angles works best" : {
+
+    },
+    "Only images can be sent — anything else was skipped." : {
+
+    },
     "Open" : {
 
     },
@@ -3242,6 +3310,9 @@
 
     },
     "Photos (carousel)" : {
+
+    },
+    "Photos are only used to build your pet" : {
 
     },
     "Photos, videos, GIFs, Metal shaders and Rive animations — they all work, watermark-free with Pro." : {
@@ -3789,6 +3860,12 @@
     "Remove from Desktop" : {
 
     },
+    "Remove from list" : {
+
+    },
+    "Remove photo" : {
+
+    },
     "Remove the watermark and support a small, independent team." : {
       "localizations" : {
         "de" : {
@@ -3927,6 +4004,9 @@
           }
         }
       }
+    },
+    "Rendered live on your GPU" : {
+
     },
     "Replaces your wallpaper with a plain card showing this pet's details." : {
 
@@ -4189,7 +4269,19 @@
     "See all" : {
 
     },
+    "Send 3–5 photos. We turn them into a desktop pet and add it to your list once it's approved (usually within 48 hours)." : {
+
+    },
+    "Send photos of your pet and we'll turn it into a desktop companion" : {
+
+    },
     "Sensitivity" : {
+
+    },
+    "Sent for review" : {
+
+    },
+    "Sent for review, but the entry couldn't be saved to your list." : {
 
     },
     "Serif" : {
@@ -4449,6 +4541,9 @@
     "Snaps to the cursor straight away" : {
 
     },
+    "Some dropped items couldn't be read and were skipped." : {
+
+    },
     "Sort wallpapers" : {
 
     },
@@ -4501,6 +4596,9 @@
     "Startup" : {
 
     },
+    "Still wallpapers, up to 4K" : {
+
+    },
     "Stunning 4K wallpapers, hand-picked and refreshed daily." : {
       "localizations" : {
         "de" : {
@@ -4548,6 +4646,9 @@
       }
     },
     "Style" : {
+
+    },
+    "Submit" : {
 
     },
     "Subscribe for %@" : {
@@ -4867,6 +4968,9 @@
     "Try a different name." : {
 
     },
+    "Try again" : {
+
+    },
     "Try Again" : {
       "localizations" : {
         "de" : {
@@ -4912,6 +5016,9 @@
           }
         }
       }
+    },
+    "Unexpected server response." : {
+
     },
     "Unlock Pro to remove this watermark" : {
       "localizations" : {
@@ -5098,6 +5205,9 @@
         }
       }
     },
+    "Uploading…" : {
+
+    },
     "Uploads" : {
 
     },
@@ -5250,6 +5360,9 @@
           }
         }
       }
+    },
+    "WallPics Pro is required for this pet" : {
+
     },
     "Want it to snap with your other desktop widgets?" : {
 
@@ -5404,6 +5517,12 @@
     "Windows XP" : {
 
     },
+    "You can send up to %lld photos — the extras were skipped." : {
+
+    },
+    "You can send up to %lld photos." : {
+
+    },
     "You're all set." : {
       "localizations" : {
         "de" : {
@@ -5449,6 +5568,9 @@
           }
         }
       }
+    },
+    "Your pet" : {
+
     },
     "Your Uploads" : {
       "extractionState" : "manual",

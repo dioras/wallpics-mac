@@ -112,14 +112,26 @@ final class RemotePetService {
     private var refreshTask: Task<Void, Never>?
 
     private static let listURL = URL(string: "https://backend.wallpics.app/api/pets")!
+    private static let pageSize = 24
+    private static let maxPages = 20
 
     private init() {
         pets = Self.hydrateFromDisk()
     }
 
     private struct Listing: Decodable {
+        struct PageInfo: Decodable {
+            let currentPage: Int
+            let lastPage: Int
+
+            enum CodingKeys: String, CodingKey {
+                case currentPage = "current_page"
+                case lastPage = "last_page"
+            }
+        }
         let status: String
         let data: [RemotePet]
+        let info: PageInfo?
     }
 
     private struct RemotePet: Codable {
@@ -142,13 +154,16 @@ final class RemotePetService {
         }
         let id: Int
         let name: String
+        let description: String?
+        let isPremium: Bool?
         let video: URL
         let videoMov: URL?
         let thumbnail: URL
         let gaze: Gaze
 
         enum CodingKeys: String, CodingKey {
-            case id, name, video, thumbnail, gaze
+            case id, name, description, video, thumbnail, gaze
+            case isPremium = "is_premium"
             case videoMov = "video_mov"
         }
     }
@@ -166,9 +181,9 @@ final class RemotePetService {
 
     private func performRefresh() async {
         do {
-            let listing = try await fetchListing()
+            let (remotePets, pageCount) = try await fetchAllPages()
             var loaded: [PetSpecies] = []
-            for pet in listing.data {
+            for pet in remotePets {
                 do {
                     loaded.append(try await materialize(pet))
                 } catch {
@@ -176,14 +191,48 @@ final class RemotePetService {
                 }
             }
             pets = loaded
+            Log.api.info("RemotePetService: loaded \(loaded.count) pets from \(pageCount) page(s)")
             NotificationCenter.default.post(name: Self.didUpdate, object: nil)
         } catch {
             Log.api.error("RemotePetService: listing failed — \(String(describing: error), privacy: .public)")
         }
     }
 
-    private func fetchListing() async throws -> Listing {
-        var request = URLRequest(url: Self.listURL)
+    private func fetchAllPages() async throws -> ([RemotePet], Int) {
+        let timestamp = Int(Date().timeIntervalSince1970)
+        var collected: [RemotePet] = []
+        var seen: Set<Int> = []
+        var pagesFetched = 0
+        var page = 1
+        while page <= Self.maxPages {
+            let listing = try await fetchListing(page: page, timestamp: timestamp)
+            pagesFetched += 1
+            for pet in listing.data where seen.insert(pet.id).inserted {
+                collected.append(pet)
+            }
+            guard let info = listing.info else {
+                Log.api.notice("RemotePetService: listing has no page info, stopping after page \(page)")
+                break
+            }
+            guard info.currentPage < info.lastPage else { break }
+            page += 1
+        }
+        if page > Self.maxPages {
+            Log.api.error("RemotePetService: stopped after \(Self.maxPages) pages, catalog truncated")
+        }
+        return (collected, pagesFetched)
+    }
+
+    private func fetchListing(page: Int, timestamp: Int) async throws -> Listing {
+        var components = URLComponents(url: Self.listURL, resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "paginated", value: "1"),
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "per_page", value: String(Self.pageSize)),
+            URLQueryItem(name: "timestamp", value: String(timestamp))
+        ]
+        guard let url = components?.url else { throw URLError(.badURL) }
+        var request = URLRequest(url: url)
         let time = String(Int(Date().timeIntervalSince1970))
         let token = Insecure.MD5.hash(data: Data((time + "wall").utf8))
             .map { String(format: "%02x", $0) }.joined()
@@ -253,6 +302,24 @@ final class RemotePetService {
         if override?.invertMirror == true {
             mirrorTable = mirrorTable.map { !$0 }
         }
+        let wraps = gaze.wraps ?? false
+        var angleTable = gaze.angleTable.map(clamp)
+        var gazeLoop: ClosedRange<Int>?
+        var pivotUp = clamp(gaze.pivotUp ?? gaze.neutralPose)
+        var pivotDown = clamp(gaze.pivotDown ?? gaze.neutralPose)
+        if wraps {
+            let repaired = GazeTableRepair.circular(angleTable, poseCount: gaze.poseCount)
+            if repaired.replacedBuckets > 0 {
+                Log.api.info("RemotePetService: pet \(pet.id) gaze table repaired, \(repaired.replacedBuckets) buckets replaced, loop \(repaired.loop.lowerBound)-\(repaired.loop.upperBound)")
+            }
+            angleTable = repaired.table
+            gazeLoop = repaired.loop
+        } else {
+            let pivots = GazeTableRepair.pivots(for: angleTable, fallback: gaze.neutralPose)
+            pivotUp = clamp(pivots.up)
+            pivotDown = clamp(pivots.down)
+        }
+        let summary = pet.description?.trimmingCharacters(in: .whitespacesAndNewlines)
         return PetSpecies(
             slug: "remote-\(pet.id)",
             name: pet.name,
@@ -263,11 +330,14 @@ final class RemotePetService {
             faceCenter: CGPoint(x: gaze.faceCenter.x, y: gaze.faceCenter.y),
             subjectHeight: CGFloat(min(max(gaze.subjectHeight ?? 1, 0.2), 1)),
             subjectBottom: CGFloat(min(max(gaze.subjectBottom ?? 1, 0.2), 1)),
-            angleTable: gaze.angleTable,
+            angleTable: angleTable,
             mirrorTable: mirrorTable,
-            pivotUp: clamp(gaze.pivotUp ?? gaze.neutralPose),
-            pivotDown: clamp(gaze.pivotDown ?? gaze.neutralPose),
-            wrapsAround: gaze.wraps ?? false,
+            pivotUp: pivotUp,
+            pivotDown: pivotDown,
+            wrapsAround: wraps,
+            gazeLoop: gazeLoop,
+            isPremium: pet.isPremium ?? false,
+            summary: (summary?.isEmpty ?? true) ? nil : summary,
             mediaURL: mediaURL,
             posterURL: posterURL
         )

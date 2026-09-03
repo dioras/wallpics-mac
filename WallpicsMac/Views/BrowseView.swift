@@ -7,8 +7,12 @@ struct BrowseView: View {
     private let columns = [GridItem(.adaptive(minimum: 230, maximum: 340), spacing: Theme.Space.l)]
 
     private var featuredWallpaper: Wallpaper? {
-        env.selectedWallpaper ?? model.filteredWallpapers.first
+        if let chosen = env.selectedWallpaper ?? model.filteredWallpapers.first { return chosen }
+        guard !model.isSearching else { return nil }
+        return model.popularRail.first ?? model.homeRails[.live]?.first
     }
+
+    private var showsHome: Bool { model.mode == .home && !model.isSearching }
 
     private var gridWallpapers: [Wallpaper] {
         if model.isSearching { return model.filteredWallpapers }
@@ -49,8 +53,13 @@ struct BrowseView: View {
 
             BrowseToolbar(
                 collection: model.collection,
+                isHome: model.mode == .home,
+                onHome: model.showHome,
                 onCollection: model.setCollection
             )
+            if showsHome {
+                homeRails
+            } else {
             if !model.categories.isEmpty && !model.isSearching {
                 categoryRows
             }
@@ -113,16 +122,95 @@ struct BrowseView: View {
                 }
             }
             }
+            }
         }
         .scrollContentBackground(.hidden)
         .background(.black)
-        .refreshable { await model.reload() }
+        .refreshable {
+            if model.mode == .home {
+                await model.loadHomeRails()
+            } else {
+                await model.reload()
+            }
+        }
         .task {
+            await model.loadHomeRailsIfNeeded()
             await model.loadCategoriesIfNeeded()
             await model.loadPopularRail()
         }
         }
         .ignoresSafeArea(edges: .top)
+    }
+
+    private var homeRails: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Self.homeOrder) { col in
+                if let items = model.homeRails[col], !items.isEmpty {
+                    SectionHeader(title: col.label, subtitle: col.homeSubtitle) {
+                        model.setCollection(col)
+                    }
+                    wallpaperRail(items)
+                }
+            }
+            petsRail
+            if model.isLoadingHome && model.homeRails.isEmpty {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Theme.Space.xxl)
+            }
+            if model.homeRailsFailed {
+                ErrorBanner(message: String(localized: "Couldn't load the home rails.")) {
+                    Task { await model.loadHomeRails() }
+                }
+                .padding(.horizontal, Theme.Space.xl)
+                .padding(.top, Theme.Space.l)
+            }
+        }
+        .padding(.bottom, Theme.Space.xxl)
+    }
+
+    private static let homeOrder: [WallpaperCollection] = [.live, .normal, .shader]
+    private static let railCardWidth: CGFloat = 232
+
+    private func wallpaperRail(_ items: [Wallpaper]) -> some View {
+        HWheelScroll {
+            HStack(spacing: Theme.Space.m) {
+                ForEach(items) { wallpaper in
+                    WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
+                        .frame(width: Self.railCardWidth)
+                        .onTapGesture {
+                            withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
+                        }
+                }
+            }
+            .padding(.horizontal, Theme.Space.xl)
+            .padding(.vertical, Theme.Space.m)
+        }
+        .frame(height: 176)
+    }
+
+    @ViewBuilder
+    private var petsRail: some View {
+        let pets = PetCatalog.all
+        if !pets.isEmpty {
+            SectionHeader(title: String(localized: "Pets"),
+                          subtitle: String(localized: "Desktop companions that watch your cursor")) {
+                env.selectedSection = .pets
+            }
+            HWheelScroll {
+                HStack(spacing: Theme.Space.m) {
+                    ForEach(pets) { pet in
+                        PetTile(pet: pet, isPlaced: PetStore.shared.isActive(pet.slug))
+                            .frame(width: 150, height: 150)
+                            .onTapGesture { env.selectedSection = .pets }
+                    }
+                }
+                .padding(.horizontal, Theme.Space.xl)
+                .padding(.vertical, Theme.Space.m)
+            }
+            .frame(height: 176)
+        }
     }
 
     /// The small strip over the featured hero — this is "Most Popular" now. Tapping a card features
@@ -235,11 +323,13 @@ struct BrowseView: View {
 
 private struct BrowseToolbar: View {
     let collection: WallpaperCollection
+    let isHome: Bool
+    let onHome: () -> Void
     let onCollection: (WallpaperCollection) -> Void
 
     var body: some View {
         HStack(spacing: Theme.Space.m) {
-            CollectionFilter(selection: collection, onSelect: onCollection)
+            CollectionFilter(selection: isHome ? nil : collection, onHome: onHome, onSelect: onCollection)
             Spacer()
         }
         .padding(.horizontal, Theme.Space.xl)
@@ -285,37 +375,54 @@ private struct SortMenu: View {
 /// Primary mode switch between the three wallpaper collections (Photos / Live / Shaders).
 /// A capsule of segments matching the toolbar's liquid-glass language; active segment fills accent.
 private struct CollectionFilter: View {
-    let selection: WallpaperCollection
+    let selection: WallpaperCollection?
+    let onHome: () -> Void
     let onSelect: (WallpaperCollection) -> Void
 
     var body: some View {
         HStack(spacing: 2) {
+            segment(title: String(localized: "Home"), systemImage: "house.fill", active: selection == nil, action: onHome)
             ForEach(WallpaperCollection.allCases) { item in
-                let active = item == selection
-                Button { onSelect(item) } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: item.systemImage)
-                        Text(item.label).lineLimit(1)
-                    }
-                    .font(.callout.weight(.medium))
-                    .padding(.horizontal, Theme.Space.m)
-                    .padding(.vertical, 6)
-                    .foregroundStyle(active ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
-                    .background {
-                        if active {
-                            Capsule().fill(Theme.accent)
-                                .shadow(color: Theme.accent.opacity(0.35), radius: 6, y: 2)
-                        }
-                    }
-                    .contentShape(Capsule())
+                segment(title: item.label, systemImage: item.systemImage, active: item == selection) {
+                    onSelect(item)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(3)
         .liquidGlass(in: Capsule())
         .fixedSize()
         .animation(Motion.hover, value: selection)
+    }
+
+    private func segment(title: String, systemImage: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                Text(title).lineLimit(1)
+            }
+            .font(.callout.weight(.medium))
+            .padding(.horizontal, Theme.Space.m)
+            .padding(.vertical, 6)
+            .foregroundStyle(active ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+            .background {
+                if active {
+                    Capsule().fill(Theme.accent)
+                        .shadow(color: Theme.accent.opacity(0.35), radius: 6, y: 2)
+                }
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+extension WallpaperCollection {
+    var homeSubtitle: String {
+        switch self {
+        case .normal: return String(localized: "Still wallpapers, up to 4K")
+        case .live: return String(localized: "Animated, plays on your desktop")
+        case .shader: return String(localized: "Rendered live on your GPU")
+        }
     }
 }
 

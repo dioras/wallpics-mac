@@ -46,9 +46,9 @@ struct GazeMap {
         )
     }
 
-    func target(cursor: CGPoint, petRect: CGRect, faceCenter: CGPoint, deadZone: CGFloat) -> GazeTarget {
+    func target(cursor: CGPoint?, petRect: CGRect, faceCenter: CGPoint, deadZone: CGFloat) -> GazeTarget {
         let neutral = GazeTarget(pose: neutralPose, mirrored: false, upperHalf: true, holdsMirror: true)
-        guard petRect.width > 0, petRect.height > 0 else { return neutral }
+        guard let cursor, petRect.width > 0, petRect.height > 0 else { return neutral }
         let face = CGPoint(
             x: petRect.minX + faceCenter.x * petRect.width,
             y: petRect.maxY - faceCenter.y * petRect.height
@@ -69,6 +69,13 @@ struct PetPlayhead {
     var responsePerSecond: Double = 11
     var maxPosesPerSecond: Double = 260
 
+    private struct Route {
+        var first: Double
+        var teleportTo: Double?
+        var second: Double
+        var total: Double
+    }
+
     mutating func apply(sensitivity: PetSensitivity, gazeSpan: Int) {
         responsePerSecond = sensitivity.responsePerSecond
         maxPosesPerSecond = max(60, sensitivity.turnsPerSecond * Double(gazeSpan))
@@ -80,27 +87,53 @@ struct PetPlayhead {
 
     var poseIndex: Int { Int(value.rounded()) }
 
-    mutating func step(dt: Double, target: Int, upperBound: Int, wraps: Bool = false) {
+    mutating func step(dt: Double, target: Int, upperBound: Int, wraps: Bool = false,
+                       chord: ClosedRange<Int>? = nil) {
         let count = Double(upperBound + 1)
-        var goal = Double(target)
-        var delta = goal - value
-        if wraps, upperBound > 0, abs(delta) > count / 2 {
-            delta -= delta > 0 ? count : -count
-            goal = value + delta
-        }
-        if abs(delta) < 0.01 {
+        let wrapping = wraps && upperBound > 0
+        let route = plan(to: Double(target), count: count, wrapping: wrapping, chord: chord)
+        let goal = route.teleportTo == nil ? value + route.first : Double(target)
+        if route.total < 0.01 {
             value = normalized(goal, count: count, upperBound: upperBound, wraps: wraps)
             return
         }
-        var advance = delta * min(1, dt * responsePerSecond)
+        var advance = route.total * min(1, dt * responsePerSecond)
         let limit = maxPosesPerSecond * dt
-        if abs(advance) > limit { advance = advance > 0 ? limit : -limit }
-        if abs(delta) <= limit && abs(delta) < 1 {
+        if advance > limit { advance = limit }
+        if route.total <= limit && route.total < 1 {
             value = goal
+        } else if let landing = route.teleportTo, advance >= abs(route.first) {
+            let remaining = advance - abs(route.first)
+            value = landing + (route.second >= 0 ? remaining : -remaining)
         } else {
-            value += advance
+            value += route.first >= 0 ? advance : -advance
         }
         value = normalized(value, count: count, upperBound: upperBound, wraps: wraps)
+    }
+
+    private func delta(from a: Double, to b: Double, count: Double, wrapping: Bool) -> Double {
+        var d = b - a
+        if wrapping, abs(d) > count / 2 {
+            d -= d > 0 ? count : -count
+        }
+        return d
+    }
+
+    private func plan(to target: Double, count: Double, wrapping: Bool, chord: ClosedRange<Int>?) -> Route {
+        let direct = delta(from: value, to: target, count: count, wrapping: wrapping)
+        var best = Route(first: direct, teleportTo: nil, second: 0, total: abs(direct))
+        guard wrapping, let chord, chord.lowerBound < chord.upperBound else { return best }
+        let lo = Double(chord.lowerBound)
+        let hi = Double(chord.upperBound)
+        for (entry, exit) in [(lo, hi), (hi, lo)] {
+            let approach = delta(from: value, to: entry, count: count, wrapping: wrapping)
+            let departure = delta(from: exit, to: target, count: count, wrapping: wrapping)
+            let total = abs(approach) + abs(departure)
+            if total < best.total - 0.5 {
+                best = Route(first: approach, teleportTo: exit, second: departure, total: total)
+            }
+        }
+        return best
     }
 
     private func normalized(_ raw: Double, count: Double, upperBound: Int, wraps: Bool) -> Double {

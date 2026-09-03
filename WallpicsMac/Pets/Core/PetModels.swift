@@ -16,10 +16,18 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
     let pivotUp: Int
     let pivotDown: Int
     var wrapsAround: Bool = false
+    var gazeLoop: ClosedRange<Int>? = nil
+    var isPremium: Bool = false
+    var summary: String? = nil
     let mediaURL: URL
     let posterURL: URL
 
     var id: String { slug }
+
+    var remoteID: Int? {
+        guard slug.hasPrefix("remote-") else { return nil }
+        return Int(slug.dropFirst("remote-".count))
+    }
 
     var gazeSpan: Int {
         guard let lo = angleTable.min(), let hi = angleTable.max() else { return max(poseCount - 1, 1) }
@@ -37,9 +45,9 @@ enum PetSize: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var pointHeight: CGFloat {
         switch self {
-        case .small: return 190
-        case .medium: return 280
-        case .large: return 380
+        case .small: return 300
+        case .medium: return 460
+        case .large: return 700
         }
     }
 
@@ -177,6 +185,14 @@ struct PetPlacement: Codable, Equatable, Sendable {
         allScreens = try c.decodeIfPresent(Bool.self, forKey: .allScreens) ?? true
         sensitivity = try c.decodeIfPresent(PetSensitivity.self, forKey: .sensitivity) ?? .normal
         showsProfileBackdrop = try c.decodeIfPresent(Bool.self, forKey: .showsProfileBackdrop) ?? false
+    }
+}
+
+enum PetAccess {
+    static func requiresPaywall(pet: PetSpecies, state: SubscriptionState) -> Bool {
+        guard pet.isPremium, !state.isPro else { return false }
+        if case .free = state { return true }
+        return false
     }
 }
 

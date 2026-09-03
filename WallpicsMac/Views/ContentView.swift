@@ -35,6 +35,9 @@ struct ContentView: View {
             if !newValue.isEmpty && env.selectedSection != .browse {
                 env.selectedSection = .browse
             }
+            if !newValue.isEmpty && browseModel.mode == .home {
+                browseModel.setCollection(browseModel.collection)
+            }
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .navigationTitle("WallPics")
@@ -113,9 +116,11 @@ private struct TopNavBar: View {
                     AppIconView(size: 24)
                     Text(verbatim: "WallPics")
                         .font(.system(size: 14, weight: .bold))
+                        .lineLimit(1)
                 }
                 .padding(.horizontal, Theme.Space.m)
                 .padding(.vertical, 5)
+                .fixedSize()
                 .liquidGlass(in: Capsule())
 
                 HStack(spacing: 2) {

@@ -66,7 +66,7 @@ final class PetRenderer {
     }
 
     @discardableResult
-    func tick(dt: Double, cursor: CGPoint, petRect: CGRect,
+    func tick(dt: Double, cursor: CGPoint?, petRect: CGRect,
               sensitivity: PetSensitivity = .normal) -> Bool {
         guard let sequence else { return false }
         playhead.apply(sensitivity: sensitivity, gazeSpan: species.gazeSpan)
@@ -89,8 +89,9 @@ final class PetRenderer {
             }
         }
 
+        let chord = species.gazeLoop.map { min($0.lowerBound, lastPose)...min($0.upperBound, lastPose) }
         playhead.step(dt: dt, target: stepTarget, upperBound: sequence.count - 1,
-                      wraps: species.wrapsAround)
+                      wraps: species.wrapsAround, chord: chord)
         let pose = species.wrapsAround
             ? playhead.poseIndex % sequence.count
             : min(playhead.poseIndex, lastPose)

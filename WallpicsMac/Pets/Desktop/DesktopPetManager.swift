@@ -33,6 +33,7 @@ final class DesktopPetManager {
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
 
     private let idleGracePeriod: CFTimeInterval = 1.2
+    private static let maxSubjectScreenFraction: CGFloat = 0.8
 
     private init() {
         let center = NotificationCenter.default
@@ -73,6 +74,12 @@ final class DesktopPetManager {
         guard let placement = PetStore.shared.placement,
               let species = PetCatalog.species(slug: placement.speciesSlug) else {
             stop()
+            return
+        }
+        guard !PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state) else {
+            stop()
+            loadFailure = String(localized: "WallPics Pro is required for this pet")
+            Log.app.notice("DesktopPetManager: \(species.slug, privacy: .public) not started, subscription lapsed")
             return
         }
         isRunning = true
@@ -169,7 +176,8 @@ final class DesktopPetManager {
     }
 
     private func globalRect(species: PetSpecies, placement: PetPlacement, screen: NSScreen) -> CGRect {
-        let frameHeight = placement.size.pointHeight / species.subjectHeight
+        let subjectHeight = min(placement.size.pointHeight, screen.frame.height * Self.maxSubjectScreenFraction)
+        let frameHeight = subjectHeight / species.subjectHeight
         let size = CGSize(width: frameHeight * species.aspectRatio, height: frameHeight)
         var rect = placement.anchor.rect(for: size, in: screen.frame, margin: 28)
         rect.origin.y -= (1 - species.subjectBottom) * frameHeight
@@ -230,6 +238,12 @@ final class DesktopPetManager {
         let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
+                if let placement = PetStore.shared.placement,
+                   let species = PetCatalog.species(slug: placement.speciesSlug),
+                   PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state) {
+                    self.start()
+                    return
+                }
                 let cursor = NSEvent.mouseLocation
                 guard hypot(cursor.x - self.lastCursor.x, cursor.y - self.lastCursor.y) > 1.5 else { return }
                 self.resumeTicking()
@@ -243,6 +257,10 @@ final class DesktopPetManager {
         guard isRunning, !isPaused,
               let placement = PetStore.shared.placement,
               let species = PetCatalog.species(slug: placement.speciesSlug) else { return }
+        if PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state) {
+            start()
+            return
+        }
 
         let now = CACurrentMediaTime()
         let dt = min(max(now - lastTickTime, 1.0 / 240.0), 1.0 / 15.0)
@@ -256,7 +274,8 @@ final class DesktopPetManager {
         for (id, window) in windows {
             guard let renderer = renderers[id], let screen = window.screen ?? NSScreen.screens.first(where: { $0.displayID == id }) else { continue }
             let rect = globalRect(species: species, placement: placement, screen: screen)
-            moving = renderer.tick(dt: dt, cursor: cursor, petRect: rect,
+            let visibleCursor = screen.frame.contains(cursor) ? cursor : nil
+            moving = renderer.tick(dt: dt, cursor: visibleCursor, petRect: rect,
                                    sensitivity: placement.sensitivity) || moving
         }
 

@@ -13,7 +13,12 @@ final class PetsViewModel {
         remoteObserver = NotificationCenter.default.addObserver(
             forName: RemotePetService.didUpdate, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.species = PetCatalog.all }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.species = PetCatalog.all
+                let remoteIDs = Set(RemotePetService.shared.pets.compactMap { $0.remoteID })
+                self.submissions.reconcile(approvedServerIDs: remoteIDs)
+            }
         }
         Task { await RemotePetService.shared.refresh() }
     }
@@ -28,6 +33,7 @@ final class PetsViewModel {
     let desktop = DesktopPetManager.shared
     let profiles = PetProfileStore.shared
     let backdrop = PetBackdropService.shared
+    let submissions = PetSubmissionStore.shared
 
     var filtered: [PetSpecies] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)

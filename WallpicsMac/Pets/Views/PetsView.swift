@@ -2,25 +2,54 @@ import SwiftUI
 
 struct PetsView: View {
     @Bindable var model: PetsViewModel
+    @Environment(StoreKitService.self) private var store
+    @State private var submission = PetSubmissionModel()
+    @State private var showsSubmitSheet = false
 
     private let columns = [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: Theme.Space.l)]
+    private static let previewMaxHeight: CGFloat = 400
+    private static let activeColumnWidth: CGFloat = 660
+    private static let sideBySideMinWidth: CGFloat = 1180
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Theme.Space.l) {
-                header
-                if let active = model.active {
-                    activePetCard(active)
+        GeometryReader { geo in
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Space.l) {
+                    header
+                    if let active = model.active, geo.size.width >= Self.sideBySideMinWidth {
+                        HStack(alignment: .top, spacing: Theme.Space.l) {
+                            activePetCard(active, sideBySide: true)
+                                .frame(width: Self.activeColumnWidth)
+                            VStack(alignment: .leading, spacing: Theme.Space.l) {
+                                toolbar
+                                content
+                            }
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                        }
+                    } else {
+                        if let active = model.active {
+                            activePetCard(active, sideBySide: false)
+                        }
+                        toolbar
+                        content
+                    }
                 }
-                toolbar
-                content
+                .padding(.horizontal, Theme.Space.xl)
+                .padding(.bottom, Theme.Space.xxl)
             }
-            .padding(.horizontal, Theme.Space.xl)
-            .padding(.bottom, Theme.Space.xxl)
         }
         .scrollContentBackground(.hidden)
         .background(.black)
         .environment(\.colorScheme, .dark)
+        .sheet(isPresented: $showsSubmitSheet, onDismiss: resetSubmissionIfFinished) {
+            PetSubmitSheet(model: submission) { showsSubmitSheet = false }
+        }
+    }
+
+    private func resetSubmissionIfFinished() {
+        if case .done = submission.phase {
+            submission = PetSubmissionModel()
+        }
     }
 
     private var header: some View {
@@ -55,14 +84,14 @@ struct PetsView: View {
         .padding(.top, Theme.Space.xl)
     }
 
-    private func activePetCard(_ pet: PetSpecies) -> some View {
-        HStack(alignment: .top, spacing: Theme.Space.l) {
+    private func activePetCard(_ pet: PetSpecies, sideBySide: Bool) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.l) {
             PetPlacementPreview(
                 species: pet,
                 size: model.store.placement?.size ?? .medium,
                 anchor: model.store.placement?.anchor ?? .bottomTrailing
             )
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: sideBySide ? nil : Self.previewMaxHeight, alignment: .topLeading)
             .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: Theme.Space.m) {
@@ -107,42 +136,46 @@ struct PetsView: View {
                     .background(.yellow.opacity(0.10), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
                 }
 
-                optionRow(title: String(localized: "Size")) {
-                    ForEach(PetSize.allCases) { size in
-                        PetChip(title: size.label, isSelected: model.store.placement?.size == size) {
-                            model.setSize(size)
+                HStack(alignment: .top, spacing: Theme.Space.xl) {
+                    optionRow(title: String(localized: "Size")) {
+                        ForEach(PetSize.allCases) { size in
+                            PetChip(title: size.label, isSelected: model.store.placement?.size == size) {
+                                model.setSize(size)
+                            }
+                        }
+                    }
+                    optionRow(title: String(localized: "Sensitivity")) {
+                        ForEach(PetSensitivity.allCases) { level in
+                            PetChip(title: level.label,
+                                    isSelected: model.store.placement?.sensitivity == level) {
+                                model.setSensitivity(level)
+                            }
                         }
                     }
                 }
 
-                VStack(alignment: .leading, spacing: Theme.Space.s) {
-                    Text("Position")
-                        .font(.caption.weight(.semibold))
+                HStack(alignment: .top, spacing: Theme.Space.xl) {
+                    VStack(alignment: .leading, spacing: Theme.Space.s) {
+                        Text("Position")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.45))
+                        HStack(spacing: Theme.Space.m) {
+                            PetPositionGrid(selection: model.store.placement?.anchor) { anchor in
+                                model.setAnchor(anchor)
+                            }
+                            if let anchor = model.store.placement?.anchor {
+                                Text(anchor.label)
+                                    .font(.caption)
+                                    .foregroundStyle(.white.opacity(0.45))
+                            }
+                        }
+                    }
+                    Text(model.store.placement?.sensitivity.detail ?? "")
+                        .font(.caption)
                         .foregroundStyle(.white.opacity(0.45))
-                    HStack(spacing: Theme.Space.m) {
-                        PetPositionGrid(selection: model.store.placement?.anchor) { anchor in
-                            model.setAnchor(anchor)
-                        }
-                        if let anchor = model.store.placement?.anchor {
-                            Text(anchor.label)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.45))
-                        }
-                    }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 18)
                 }
-
-                optionRow(title: String(localized: "Sensitivity")) {
-                    ForEach(PetSensitivity.allCases) { level in
-                        PetChip(title: level.label,
-                                isSelected: model.store.placement?.sensitivity == level) {
-                            model.setSensitivity(level)
-                        }
-                    }
-                }
-
-                Text(model.store.placement?.sensitivity.detail ?? "")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.45))
 
                 VStack(alignment: .leading, spacing: Theme.Space.s) {
                     Toggle(isOn: Binding(
@@ -197,7 +230,7 @@ struct PetsView: View {
                     .help(String(localized: "Remove \(pet.name) from Desktop"))
                 }
             }
-            .frame(width: 340, alignment: .leading)
+            .frame(maxWidth: sideBySide ? .infinity : 640, alignment: .leading)
         }
         .padding(Theme.Space.l)
         .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
@@ -223,7 +256,27 @@ struct PetsView: View {
                 .foregroundStyle(.white)
             Spacer()
             searchField.frame(maxWidth: 260)
+            addPetButton
         }
+    }
+
+    private var addPetButton: some View {
+        Button {
+            showsSubmitSheet = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .bold))
+                Text("Add your pet")
+                    .font(.callout.weight(.semibold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(Theme.accent.gradient, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .help(String(localized: "Send photos of your pet and we'll turn it into a desktop companion"))
     }
 
     private var searchField: some View {
@@ -254,12 +307,24 @@ struct PetsView: View {
             emptySearchState
         } else {
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
+                if model.query.isEmpty {
+                    ForEach(model.submissions.records) { record in
+                        PendingPetTile(record: record)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    model.submissions.remove(id: record.id)
+                                } label: {
+                                    Label("Remove from list", systemImage: "trash")
+                                }
+                            }
+                    }
+                }
                 ForEach(model.filtered) { pet in
                     PetTile(pet: pet, isPlaced: model.store.isActive(pet.slug))
-                        .onTapGesture { model.place(pet) }
+                        .onTapGesture { place(pet) }
                         .contextMenu {
                             Button {
-                                model.place(pet)
+                                place(pet)
                             } label: {
                                 Label("Put on Desktop", systemImage: "pawprint.fill")
                             }
@@ -274,6 +339,14 @@ struct PetsView: View {
                 }
             }
             .animation(Motion.reward, value: model.store.placement?.speciesSlug)
+        }
+    }
+
+    private func place(_ pet: PetSpecies) {
+        if PetAccess.requiresPaywall(pet: pet, state: store.state) {
+            PaywallPresenter.show()
+        } else {
+            model.place(pet)
         }
     }
 
@@ -369,13 +442,59 @@ struct PetTile: View {
 
     @ViewBuilder
     private var placedBadge: some View {
-        if isPlaced {
-            BadgePill(role: .status) {
-                Text(verbatim: "ON DESKTOP")
+        HStack(spacing: 0) {
+            if isPlaced {
+                BadgePill(role: .status) {
+                    Text(verbatim: "ON DESKTOP")
+                }
+            }
+            if pet.isPremium {
+                BadgePill(role: .status) {
+                    Text(verbatim: "PRO")
+                }
             }
         }
     }
 }
+
+struct PendingPetTile: View {
+    let record: PetSubmissionRecord
+
+    var body: some View {
+        ZStack {
+            Color.white.opacity(0.04)
+            VStack(spacing: Theme.Space.s) {
+                Image(systemName: "hourglass")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .modifier(BreatheEffect())
+                Text("In review")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.7))
+                Text(record.submittedAt, style: .date)
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+        }
+        .aspectRatio(1, contentMode: .fill)
+        .clipped()
+        .overlay(alignment: .bottomLeading) {
+            Text(record.name)
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .padding(10)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
+                .foregroundStyle(.white.opacity(0.18))
+        }
+        .help(String(localized: "\(record.name) is waiting for review. It appears here once approved."))
+    }
+}
+
 
 struct PetChip: View {
     let title: String
@@ -505,11 +624,7 @@ struct PetPlacementPreview: View {
     }
 
     private var heightFactor: CGFloat {
-        switch size {
-        case .small: return 0.42
-        case .medium: return 0.56
-        case .large: return 0.72
-        }
+        min(size.pointHeight / max(screenFrame.height, 1), 0.8)
     }
 
     var body: some View {

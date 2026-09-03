@@ -1,9 +1,20 @@
 import Foundation
 import Observation
 
+enum BrowseMode: Equatable {
+    case home
+    case collection
+}
+
 @MainActor
 @Observable
 final class BrowseViewModel {
+    var mode: BrowseMode = .home
+    var homeRails: [WallpaperCollection: [Wallpaper]] = [:]
+    var homeRailsFailed = false
+    var isLoadingHome = false
+    private static let railLength = 14
+
     var wallpapers: [Wallpaper] = []
     var imported: [Wallpaper] = []          // user uploads, shown under "Your Uploads"
     var isImporting = false
@@ -133,8 +144,58 @@ final class BrowseViewModel {
         Task { await reload() }
     }
 
+    func showHome() {
+        guard mode != .home else { return }
+        mode = .home
+        query = ""
+        Task { await loadHomeRailsIfNeeded() }
+    }
+
+    func loadHomeRailsIfNeeded() async {
+        guard homeRails.count < WallpaperCollection.allCases.count, !isLoadingHome else { return }
+        await loadHomeRails()
+    }
+
+    func loadHomeRails() async {
+        guard !isLoadingHome else { return }
+        isLoadingHome = true
+        homeRailsFailed = false
+        async let photos = Self.fetchRail(.normal)
+        async let live = Self.fetchRail(.live)
+        async let shaders = Self.fetchRail(.shader)
+        let results = await [(WallpaperCollection.normal, photos), (.live, live), (.shader, shaders)]
+        isLoadingHome = false
+        guard !Task.isCancelled else { return }
+        for (col, items) in results {
+            if let items, !items.isEmpty { homeRails[col] = items }
+        }
+        homeRailsFailed = homeRails.isEmpty
+        if homeRailsFailed {
+            Log.api.error("Browse home rails failed to load")
+        }
+    }
+
+    private nonisolated static func fetchRail(_ col: WallpaperCollection) async -> [Wallpaper]? {
+        do {
+            let page = try await WallpaperAPI.shared.desktopWallpapers(
+                collection: col, page: 1, perPage: railLength, sortOrder: .popular
+            )
+            return page.data
+        } catch {
+            Log.api.error("Browse rail \(col.rawValue, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
     func setCollection(_ newValue: WallpaperCollection) {
-        guard newValue != collection else { return }
+        let wasHome = mode == .home
+        mode = .collection
+        if newValue == collection {
+            guard wasHome else { return }
+            if wallpapers.isEmpty { Task { await reload() } }
+            if popularRail.isEmpty { Task { await loadPopularRail() } }
+            return
+        }
         collection = newValue
         query = ""
         selectedCategory = nil
