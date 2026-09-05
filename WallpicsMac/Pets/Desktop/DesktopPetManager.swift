@@ -148,7 +148,7 @@ final class DesktopPetManager {
                 windows[id] = window
             }
             let renderer: PetRenderer
-            if let existing = renderers[id], existing.species.slug == species.slug {
+            if let existing = renderers[id], existing.species == species {
                 renderer = existing
             } else {
                 renderer = PetRenderer(species: species)

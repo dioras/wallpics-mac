@@ -20,3 +20,7 @@ WallpicsMac/App/AppDelegate_legacy_reference.txt
 tools/wallpets/.venv/
 tools/wallpets/cache/
 tools/wallpets/qa/
+
+# local tool binaries
+Tools/GazeAnalyze/gazeanalyze
+Tools/GazeTests/gazetests*

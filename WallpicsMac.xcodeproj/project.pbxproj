@@ -99,7 +99,6 @@
 		EC909DF5EFAEEDD79C83A861 /* SelectWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3CE76D02AAD667C56E43A8 /* SelectWidgetIntent.swift */; };
 		ECA8939D52F1D2D821F36D1D /* PetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F527D996D2CA2F8DD3B6A988 /* PetModels.swift */; };
 		EE61B7122AE5A7B2B7FD1F14 /* GazeMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934FC454DA24FD293408097B /* GazeMap.swift */; };
-		7017CAB98E5088F6CB8D10A1 /* GazeTableRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B5968FABAC87D902899292B /* GazeTableRepair.swift */; };
 		EEE0A211842651AEE5D52471 /* PetBackdropService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F41D286E5352CC830959E9D /* PetBackdropService.swift */; };
 		EFFAE9B1E8381164D7B32BD5 /* PetsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F13445A4CEC2879E73FDD38 /* PetsViewModel.swift */; };
 		F310155BD39D4412E0A1C0F8 /* WidgetSharedExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6F5A43595EF0B78D10A68D1 /* WidgetSharedExport.swift */; };
@@ -158,7 +157,6 @@
 		7FC5E6B57B74DF56E4D4630E /* WidgetBundleStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetBundleStore.swift; sourceTree = "<group>"; };
 		8E7AB3753E268B72CB297CDC /* WidgetsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetsView.swift; sourceTree = "<group>"; };
 		934FC454DA24FD293408097B /* GazeMap.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GazeMap.swift; sourceTree = "<group>"; };
-		9B5968FABAC87D902899292B /* GazeTableRepair.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GazeTableRepair.swift; sourceTree = "<group>"; };
 		9B5A6A491A7B056E9B6BA6E5 /* DesktopPetManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DesktopPetManager.swift; sourceTree = "<group>"; };
 		9C87E7F7B86C667D7F1FD40C /* DIYFrameBaker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DIYFrameBaker.swift; sourceTree = "<group>"; };
 		A2000001000000000000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -302,7 +300,6 @@
 			children = (
 				BC2E16913F0A4AA9723725A6 /* PoseSequence.swift */,
 				934FC454DA24FD293408097B /* GazeMap.swift */,
-				9B5968FABAC87D902899292B /* GazeTableRepair.swift */,
 				308F4D48172C2D0468B561F9 /* PetRenderer.swift */,
 			);
 			name = Render;
@@ -811,7 +808,6 @@
 				92B1BFEC2DAF47A995376074 /* PetSubmission.swift in Sources */,
 				188D66852705DCC88A5CBA4C /* PoseSequence.swift in Sources */,
 				EE61B7122AE5A7B2B7FD1F14 /* GazeMap.swift in Sources */,
-				7017CAB98E5088F6CB8D10A1 /* GazeTableRepair.swift in Sources */,
 				EB347DC536C79EEEC882C43F /* PetRenderer.swift in Sources */,
 				BEED5DBC7B8468B837C7F6F2 /* DesktopPetWindow.swift in Sources */,
 				545E9DBD2CFF674DAC818F80 /* DesktopPetManager.swift in Sources */,

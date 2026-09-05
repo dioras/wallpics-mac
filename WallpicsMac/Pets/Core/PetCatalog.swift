@@ -164,6 +164,8 @@ final class RemotePetService {
             let subjectHeight: Double?
             let subjectBottom: Double?
             let wraps: Bool?
+            let loopStart: Int?
+            let loopEnd: Int?
         }
         let id: Int
         let name: String?
@@ -274,6 +276,14 @@ final class RemotePetService {
         return try Self.buildSpecies(pet: pet, dir: dir)
     }
 
+    private static func mediaFile(in dir: URL) -> URL? {
+        let fm = FileManager.default
+        let preferred = dir.appendingPathComponent("pet.mov")
+        if fm.fileExists(atPath: preferred.path) { return preferred }
+        return (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil))?
+            .first { $0.lastPathComponent.hasPrefix("pet.") && $0.pathExtension != "json" }
+    }
+
     private struct GazeOverride: Decodable {
         let invertMirror: Bool?
     }
@@ -293,14 +303,7 @@ final class RemotePetService {
         guard fm.fileExists(atPath: posterURL.path) else {
             throw URLError(.fileDoesNotExist)
         }
-        let preferred = dir.appendingPathComponent("pet.mov")
-        let mediaURL: URL
-        if fm.fileExists(atPath: preferred.path) {
-            mediaURL = preferred
-        } else if let found = (try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil))?
-            .first(where: { $0.lastPathComponent.hasPrefix("pet.") && $0.pathExtension != "json" }) {
-            mediaURL = found
-        } else {
+        guard let mediaURL = mediaFile(in: dir) else {
             throw URLError(.fileDoesNotExist)
         }
         guard let source = CGImageSourceCreateWithURL(posterURL as CFURL, nil),
@@ -316,21 +319,10 @@ final class RemotePetService {
             mirrorTable = mirrorTable.map { !$0 }
         }
         let wraps = gaze.wraps ?? false
-        var angleTable = gaze.angleTable.map(clamp)
+        let angleTable = gaze.angleTable.map(clamp)
         var gazeLoop: ClosedRange<Int>?
-        var pivotUp = clamp(gaze.pivotUp ?? gaze.neutralPose)
-        var pivotDown = clamp(gaze.pivotDown ?? gaze.neutralPose)
-        if wraps {
-            let repaired = GazeTableRepair.circular(angleTable, poseCount: gaze.poseCount)
-            if repaired.replacedBuckets > 0 {
-                Log.api.info("RemotePetService: pet \(pet.id) gaze table repaired, \(repaired.replacedBuckets) buckets replaced, loop \(repaired.loop.lowerBound)-\(repaired.loop.upperBound)")
-            }
-            angleTable = repaired.table
-            gazeLoop = repaired.loop
-        } else {
-            let pivots = GazeTableRepair.pivots(for: angleTable, fallback: gaze.neutralPose)
-            pivotUp = clamp(pivots.up)
-            pivotDown = clamp(pivots.down)
+        if wraps, let start = gaze.loopStart, let end = gaze.loopEnd, start < end {
+            gazeLoop = clamp(start)...clamp(end)
         }
         let summary = pet.description?.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedName = pet.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -346,8 +338,8 @@ final class RemotePetService {
             subjectBottom: CGFloat(min(max(gaze.subjectBottom ?? 1, 0.2), 1)),
             angleTable: angleTable,
             mirrorTable: mirrorTable,
-            pivotUp: pivotUp,
-            pivotDown: pivotDown,
+            pivotUp: clamp(gaze.pivotUp ?? gaze.neutralPose),
+            pivotDown: clamp(gaze.pivotDown ?? gaze.neutralPose),
             wrapsAround: wraps,
             gazeLoop: gazeLoop,
             isPremium: pet.isPremium ?? false,
