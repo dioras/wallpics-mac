@@ -32,6 +32,8 @@ enum PetCatalog {
         let pivotUp: Int?
         let pivotDown: Int?
         let wraps: Bool?
+        let loopStart: Int?
+        let loopEnd: Int?
     }
 
     static let bundled: [PetSpecies] = load()
@@ -46,6 +48,12 @@ enum PetCatalog {
 
     private static var root: URL? {
         Bundle.main.resourceURL?.appendingPathComponent("Pets", isDirectory: true)
+    }
+
+    private static func bundledLoop(_ meta: PetFile) -> ClosedRange<Int>? {
+        guard meta.wraps == true, let start = meta.loopStart, let end = meta.loopEnd, start < end else { return nil }
+        let last = max(meta.poseCount - 1, 0)
+        return min(max(start, 0), last)...min(max(end, 0), last)
     }
 
     private static func load() -> [PetSpecies] {
@@ -95,6 +103,7 @@ enum PetCatalog {
                 pivotUp: meta.pivotUp ?? meta.neutralPose,
                 pivotDown: meta.pivotDown ?? meta.neutralPose,
                 wrapsAround: meta.wraps ?? false,
+                gazeLoop: bundledLoop(meta),
                 mediaURL: mediaURL,
                 posterURL: posterURL
             )
@@ -264,9 +273,10 @@ final class RemotePetService {
 
     private func materialize(_ pet: RemotePet) async throws -> PetSpecies {
         let dir = try Self.cacheDir(petId: pet.id)
+        let source = pet.videoMov ?? pet.video
+        Self.evictStaleMedia(in: dir, source: source, thumbnail: pet.thumbnail)
         _ = try await cachedFile(remote: pet.thumbnail, in: dir, name: "poster.png",
                                  mimePrefix: "image/")
-        let source = pet.videoMov ?? pet.video
         let ext = source.pathExtension.isEmpty ? "mov" : source.pathExtension
         _ = try await cachedFile(remote: source, in: dir, name: "pet." + ext,
                                  mimePrefix: "video/")
@@ -274,6 +284,20 @@ final class RemotePetService {
             try? meta.write(to: dir.appendingPathComponent("meta.json"))
         }
         return try Self.buildSpecies(pet: pet, dir: dir)
+    }
+
+    private static func evictStaleMedia(in dir: URL, source: URL, thumbnail: URL) {
+        let fm = FileManager.default
+        guard let data = try? Data(contentsOf: dir.appendingPathComponent("meta.json")),
+              let cached = try? JSONDecoder().decode(RemotePet.self, from: data) else { return }
+        let cachedSource = cached.videoMov ?? cached.video
+        if cachedSource != source, let media = mediaFile(in: dir) {
+            try? fm.removeItem(at: media)
+            Log.api.info("RemotePetService: pet \(cached.id) video changed, re-downloading")
+        }
+        if cached.thumbnail != thumbnail {
+            try? fm.removeItem(at: dir.appendingPathComponent("poster.png"))
+        }
     }
 
     private static func mediaFile(in dir: URL) -> URL? {

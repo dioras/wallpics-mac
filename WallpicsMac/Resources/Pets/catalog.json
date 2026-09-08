@@ -24,6 +24,42 @@
    "name": "Ginger FULL (test)",
    "width": 894,
    "height": 900
+  },
+  {
+   "slug": "pm-13",
+   "name": "Golden Puppy PM",
+   "width": 874,
+   "height": 720
+  },
+  {
+   "slug": "pm-17",
+   "name": "Spotted Dachshund PM",
+   "width": 728,
+   "height": 720
+  },
+  {
+   "slug": "pm-8",
+   "name": "Goose PM",
+   "width": 562,
+   "height": 720
+  },
+  {
+   "slug": "pm-14",
+   "name": "Baby Duck PM",
+   "width": 618,
+   "height": 720
+  },
+  {
+   "slug": "pm-2",
+   "name": "Black Cat v2 PM",
+   "width": 540,
+   "height": 720
+  },
+  {
+   "slug": "pm-20",
+   "name": "Thrasher Cat PM",
+   "width": 598,
+   "height": 720
   }
  ]
 }
