@@ -113,6 +113,8 @@ struct PetPlayhead {
     private static let wrongSidePenalty: Double = 3
     private static let sideThreshold: Double = 0.2
     private static let detourBoost: Double = 2
+    private static let seamHoldFraction: Double = 0.12
+    private static let seamHoldMax: Double = 14
 
     private struct Route {
         var first: Double
@@ -132,15 +134,24 @@ struct PetPlayhead {
 
     var poseIndex: Int { Int(value.rounded()) }
 
+    @discardableResult
     mutating func step(dt: Double, target: Int, upperBound: Int, wraps: Bool = false,
-                       chord: ClosedRange<Int>? = nil) {
+                       chord: ClosedRange<Int>? = nil) -> Bool {
         let count = Double(upperBound + 1)
         let wrapping = wraps && upperBound > 0
+        if wrapping, let chord, chord.lowerBound < chord.upperBound {
+            if crossesLoopEdge(target: target, chord: chord) {
+                let moved = Int(value.rounded()) != target
+                value = Double(target)
+                return moved
+            }
+            if restsAcrossSeam(target: target, chord: chord) { return false }
+        }
         let route = plan(to: Double(target), count: count, wrapping: wrapping, chord: chord)
         let goal = route.teleportTo == nil ? value + route.first : Double(target)
         if route.total < 0.01 {
             value = normalized(goal, count: count, upperBound: upperBound, wraps: wraps)
-            return
+            return false
         }
         let hurry = boost(toward: target)
         var advance = route.total * min(1, dt * responsePerSecond * hurry)
@@ -155,6 +166,24 @@ struct PetPlayhead {
             value += route.first >= 0 ? advance : -advance
         }
         value = normalized(value, count: count, upperBound: upperBound, wraps: wraps)
+        return false
+    }
+
+    private func restsAcrossSeam(target: Int, chord: ClosedRange<Int>) -> Bool {
+        let lo = Double(chord.lowerBound)
+        let hi = Double(chord.upperBound)
+        let band = min(Self.seamHoldMax, (hi - lo) * Self.seamHoldFraction)
+        guard band >= 1 else { return false }
+        let t = Double(target)
+        let nearLow = { (x: Double) in x >= lo && x <= lo + band }
+        let nearHigh = { (x: Double) in x >= hi - band && x <= hi }
+        return (nearLow(t) && nearHigh(value)) || (nearHigh(t) && nearLow(value))
+    }
+
+    private func crossesLoopEdge(target: Int, chord: ClosedRange<Int>) -> Bool {
+        let insideNow = value >= Double(chord.lowerBound) && value <= Double(chord.upperBound)
+        let insideTarget = chord.contains(target)
+        return insideNow != insideTarget
     }
 
     private func delta(from a: Double, to b: Double, count: Double, wrapping: Bool) -> Double {

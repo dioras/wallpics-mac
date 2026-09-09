@@ -84,12 +84,12 @@ func testChordCrossingSkipsFrontDetour() {
     head.apply(sensitivity: .normal, gazeSpan: 150)
     var visited: [Int] = []
     for _ in 0..<400 {
-        head.step(dt: 1.0 / 60.0, target: 143, upperBound: 180, wraps: true, chord: 51...148)
+        head.step(dt: 1.0 / 60.0, target: 135, upperBound: 180, wraps: true, chord: 51...148)
         visited.append(head.poseIndex)
-        if head.poseIndex == 143 { break }
+        if head.poseIndex == 135 { break }
     }
-    check(visited.last == 143, "reaches target across chord", "\(visited.last ?? -1)")
-    check(!visited.contains(where: { (60..<140).contains($0) }), "never sweeps through the sides")
+    check(visited.last == 135, "reaches target across chord", "\(visited.last ?? -1)")
+    check(!visited.contains(where: { (60..<130).contains($0) }), "never sweeps through the sides")
     check(!visited.contains(where: { $0 < 51 || $0 > 148 }), "never enters the front tail")
     check(visited.count < 60, "crossing is quick", "\(visited.count)")
 }
@@ -179,10 +179,26 @@ func testSideAwareRouting() {
     check(quick.suffix(4).allSatisfy { abs($0 - right) <= 12 }, "arrival at the side is not rushed", "\(quick.suffix(4))")
 }
 
+func testCentreCuts() {
+    var head = PetPlayhead(pose: 168)
+    head.apply(sensitivity: .normal, gazeSpan: 150)
+    let cut = head.step(dt: 1.0 / 60.0, target: 60, upperBound: 180, wraps: true, chord: 51...148)
+    check(cut && head.poseIndex == 60, "centre to look is one cut", "cut=\(cut) pose=\(head.poseIndex)")
+    let back = head.step(dt: 1.0 / 60.0, target: 168, upperBound: 180, wraps: true, chord: 51...148)
+    check(back && head.poseIndex == 168, "look to centre is one cut", "cut=\(back) pose=\(head.poseIndex)")
+    var inside = PetPlayhead(pose: 60)
+    inside.apply(sensitivity: .normal, gazeSpan: 150)
+    let walked = inside.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 51...148)
+    check(!walked && inside.poseIndex > 60 && inside.poseIndex < 100, "inside the loop still walks", "pose=\(inside.poseIndex)")
+    var still = PetPlayhead(pose: 168)
+    check(!still.step(dt: 1.0 / 60.0, target: 168, upperBound: 180, wraps: true, chord: 51...148), "no cut when already there")
+}
+
 func testChordSnapsWhenClose() {
     var head = PetPlayhead(pose: 148)
-    head.step(dt: 1.0 / 60.0, target: 52, upperBound: 180, wraps: true, chord: 51...148)
-    check((51...53).contains(head.poseIndex), "teleport lands next to target", "\(head.value)")
+    head.apply(sensitivity: .normal, gazeSpan: 150)
+    head.step(dt: 1.0 / 60.0, target: 65, upperBound: 180, wraps: true, chord: 51...148)
+    check((51...64).contains(head.poseIndex), "teleport lands on the far side of the seam", "\(head.value)")
 }
 
 func testChordClampedToClipLength() {
@@ -228,7 +244,25 @@ testChordCrossingSkipsFrontDetour()
 testChordFromNeutralStaysOnTargetSide()
 testPetmakerRoutesNeverGlanceWrongWay()
 testSideAwareRouting()
+func testSeamHold() {
+    var head = PetPlayhead(pose: 146)
+    head.apply(sensitivity: .normal, gazeSpan: 150)
+    let moved = head.step(dt: 1.0 / 60.0, target: 54, upperBound: 180, wraps: true, chord: 51...148)
+    check(!moved && head.poseIndex == 146, "target just across the seam holds the pose", "pose=\(head.poseIndex)")
+    var far = PetPlayhead(pose: 146)
+    far.apply(sensitivity: .normal, gazeSpan: 150)
+    var visited: [Int] = []
+    for _ in 0..<200 {
+        far.step(dt: 1.0 / 60.0, target: 80, upperBound: 180, wraps: true, chord: 51...148)
+        visited.append(far.poseIndex)
+        if far.poseIndex == 80 { break }
+    }
+    check(visited.last == 80, "target well past the seam still crosses", "\(visited.last ?? -1)")
+}
+
 testChordSnapsWhenClose()
+testCentreCuts()
+testSeamHold()
 testChordClampedToClipLength()
 testOffScreenCursorReturnsToNeutral()
 testPremiumGate()

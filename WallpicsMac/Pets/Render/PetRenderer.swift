@@ -2,10 +2,25 @@ import AVFoundation
 import AppKit
 import CoreMedia
 
+final class PetStackLayer: CALayer {
+    override func layoutSublayers() {
+        super.layoutSublayers()
+        sublayers?.forEach { $0.frame = bounds }
+    }
+
+    override var contentsScale: CGFloat {
+        didSet { sublayers?.forEach { $0.contentsScale = contentsScale } }
+    }
+}
+
 @MainActor
 final class PetRenderer {
     let species: PetSpecies
-    let layer = AVSampleBufferDisplayLayer()
+    let layer = PetStackLayer()
+
+    private let displayLayers = [AVSampleBufferDisplayLayer(), AVSampleBufferDisplayLayer()]
+    private var activeIndex = 0
+    private static let dissolveDuration: CFTimeInterval = 0.16
 
     private let map: GazeMap
     private var playhead: PetPlayhead
@@ -29,10 +44,21 @@ final class PetRenderer {
             playhead.poseAngles = GazeMap.poseAngles(table: species.angleTable, poseCount: species.poseCount,
                                                      loop: species.gazeLoop, neutral: species.neutralPose)
         }
-        layer.videoGravity = .resizeAspect
         layer.isOpaque = false
         layer.backgroundColor = NSColor.clear.cgColor
+        layer.needsDisplayOnBoundsChange = false
+        for (index, display) in displayLayers.enumerated() {
+            display.videoGravity = .resizeAspect
+            display.isOpaque = false
+            display.backgroundColor = NSColor.clear.cgColor
+            display.opacity = index == activeIndex ? 1 : 0
+            display.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+            layer.addSublayer(display)
+        }
     }
+
+    private var activeLayer: AVSampleBufferDisplayLayer { displayLayers[activeIndex] }
+    private var standbyLayer: AVSampleBufferDisplayLayer { displayLayers[1 - activeIndex] }
 
     deinit {
         loadTask?.cancel()
@@ -94,13 +120,13 @@ final class PetRenderer {
         }
 
         let chord = species.gazeLoop.map { min($0.lowerBound, lastPose)...min($0.upperBound, lastPose) }
-        playhead.step(dt: dt, target: stepTarget, upperBound: sequence.count - 1,
-                      wraps: species.wrapsAround, chord: chord)
+        let cut = playhead.step(dt: dt, target: stepTarget, upperBound: sequence.count - 1,
+                                wraps: species.wrapsAround, chord: chord)
         let pose = species.wrapsAround
             ? playhead.poseIndex % sequence.count
             : min(playhead.poseIndex, lastPose)
         if pose != lastEnqueuedPose {
-            enqueue(pose: pose)
+            enqueue(pose: pose, dissolve: cut)
         }
         return pose != stepTarget
     }
@@ -114,12 +140,16 @@ final class PetRenderer {
         CATransaction.commit()
     }
 
-    private func enqueue(pose: Int) {
+    private func enqueue(pose: Int, dissolve: Bool = false) {
         guard let sequence else { return }
-        let renderer = layer.sampleBufferRenderer
+        let target = dissolve && lastEnqueuedPose >= 0 ? standbyLayer : activeLayer
+        let renderer = target.sampleBufferRenderer
         if renderer.status == .failed {
             Log.app.error("PetRenderer: \(self.species.slug, privacy: .public) renderer failed — \(renderer.error?.localizedDescription ?? "unknown", privacy: .public); flushing")
             renderer.flush()
+        }
+        if target === standbyLayer {
+            target.flushAndRemoveImage()
         }
         guard renderer.isReadyForMoreMediaData else { return }
         clock = CMTimeAdd(clock, CMTime(value: 1, timescale: 600))
@@ -127,6 +157,21 @@ final class PetRenderer {
         renderer.enqueue(buffer)
         lastEnqueuedPose = pose
         decodeCount += 1
+        if target === standbyLayer {
+            crossDissolve()
+        }
+    }
+
+    private func crossDissolve() {
+        let outgoing = activeLayer
+        let incoming = standbyLayer
+        activeIndex = 1 - activeIndex
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(Self.dissolveDuration)
+        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeInEaseOut))
+        incoming.opacity = 1
+        outgoing.opacity = 0
+        CATransaction.commit()
     }
 }
 
