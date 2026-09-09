@@ -94,7 +94,7 @@ func testChordCrossingSkipsFrontDetour() {
     check(visited.count < 60, "crossing is quick", "\(visited.count)")
 }
 
-func testChordFromNeutralPicksShortestRoute() {
+func testChordFromNeutralStaysOnTargetSide() {
     var head = PetPlayhead(pose: 168)
     head.apply(sensitivity: .normal, gazeSpan: 150)
     var visited: [Int] = []
@@ -105,7 +105,78 @@ func testChordFromNeutralPicksShortestRoute() {
     }
     check(visited.last == 60, "neutral to right-up arrives")
     check(!visited.contains(where: { (70..<140).contains($0) }), "neutral route does not sweep the sides")
-    check(!visited.contains(where: { $0 < 30 }), "neutral route does not go through 0 seam")
+    check(!visited.contains(where: { (100...148).contains($0) }), "neutral route never shows the far side of the loop")
+}
+
+func trajectory(from start: Int, to target: Int, chord: ClosedRange<Int>, upperBound: Int = 180, angles: [Double?] = []) -> [Int] {
+    var head = PetPlayhead(pose: start)
+    head.poseAngles = angles
+    head.apply(sensitivity: .normal, gazeSpan: 150)
+    var visited: [Int] = []
+    for _ in 0..<600 {
+        head.step(dt: 1.0 / 60.0, target: target, upperBound: upperBound, wraps: true, chord: chord)
+        visited.append(head.poseIndex)
+        if head.poseIndex == target { break }
+    }
+    return visited
+}
+
+func testPetmakerRoutesNeverGlanceWrongWay() {
+    guard let pet = liveFixtures.last(where: { $0.name.contains("petmaker") }) else { check(false, "pet 17 fixture present"); return }
+    let chord = 13...170
+    let n = pet.table.count
+    func poses(_ predicate: (Double) -> Bool) -> Set<Int> {
+        Set(pet.table.enumerated().filter { predicate(cos((Double($0.offset) + 0.5) / Double(n) * 2 * .pi - .pi)) }.map { $0.element })
+    }
+    let rightPoses = poses { $0 > 0.2 }
+    let leftPoses = poses { $0 < -0.2 }
+    let leftTail = Set(Array(chord.upperBound - 8...chord.upperBound))
+    let rightBucket = pet.table[Int(Double(n) * 0.5)]
+    let leftBucket = pet.table[0]
+    let out = trajectory(from: pet.neutral, to: rightBucket, chord: chord)
+    check(out.last == rightBucket, "neutral -> right arrives", "\(out.last ?? -1)")
+    check(out.allSatisfy { !leftPoses.contains($0) && !leftTail.contains($0) }, "neutral -> right never shows a left frame", "\(out.filter { leftPoses.contains($0) || leftTail.contains($0) })")
+    let back = trajectory(from: rightBucket, to: pet.neutral, chord: chord)
+    check(back.last == pet.neutral, "right -> neutral arrives")
+    check(back.allSatisfy { !leftPoses.contains($0) && !leftTail.contains($0) }, "right -> neutral never shows a left frame", "\(back.filter { leftPoses.contains($0) || leftTail.contains($0) })")
+    let toLeft = trajectory(from: pet.neutral, to: leftBucket, chord: chord)
+    check(toLeft.allSatisfy { !rightPoses.contains($0) }, "neutral -> left never shows a right frame", "\(toLeft.filter { rightPoses.contains($0) })")
+    let across = trajectory(from: rightBucket, to: leftBucket, chord: chord)
+    check(across.count < 120, "right -> left crosses in reasonable time", "\(across.count)")
+    let topCross = trajectory(from: pet.table[Int(Double(n) * 0.7)], to: pet.table[Int(Double(n) * 0.85)], chord: chord)
+    check(!topCross.contains(where: { $0 < chord.lowerBound || $0 > chord.upperBound }), "up-right -> up-left uses the chord, not the front tail", "\(topCross)")
+}
+
+func testSideAwareRouting() {
+    guard let pet = liveFixtures.last(where: { $0.name.contains("petmaker") }) else { check(false, "pet 17 fixture present"); return }
+    let chord = 13...170
+    let n = pet.table.count
+    let angles = GazeMap.poseAngles(table: pet.table, poseCount: pet.poseCount, loop: chord)
+    check(angles.count == pet.poseCount, "pose angle per pose")
+    check(angles[pet.neutral] == nil && angles[5] == nil, "front tail has no angle")
+    check(angles[pet.table[Int(Double(n) * 0.5)]].map { abs($0) < 0.4 } == true, "right pose reads as right", "\(String(describing: angles[pet.table[32]]))")
+    let inside = (chord.lowerBound...chord.upperBound).filter { angles[$0] == nil }
+    check(inside.isEmpty, "every loop pose gets an interpolated angle", "\(inside)")
+    func poses(_ predicate: (Double) -> Bool) -> Set<Int> {
+        Set(pet.table.enumerated().filter { predicate(cos((Double($0.offset) + 0.5) / Double(n) * 2 * .pi - .pi)) }.map { $0.element })
+    }
+    let leftPoses = poses { $0 < -0.3 }
+    let downRight = pet.table[Int(Double(n) * 0.38)]
+    let out = trajectory(from: pet.neutral, to: downRight, chord: chord, angles: angles)
+    check(out.last == downRight, "neutral -> down-right arrives")
+    check(out.allSatisfy { !leftPoses.contains($0) }, "neutral -> down-right never travels through the left side", "\(out.filter { leftPoses.contains($0) })")
+    let back = trajectory(from: downRight, to: pet.neutral, chord: chord, angles: angles)
+    check(back.last == pet.neutral, "down-right -> neutral arrives")
+    check(back.allSatisfy { !leftPoses.contains($0) }, "down-right -> neutral never travels through the left side", "\(back.filter { leftPoses.contains($0) })")
+    let upPoses = Set((chord.lowerBound...chord.upperBound).filter { angles[$0].map { sin($0) > 0.85 } == true })
+    let right = pet.table[Int(Double(n) * 0.5)]
+    let slow = trajectory(from: pet.neutral, to: right, chord: chord)
+    let quick = trajectory(from: pet.neutral, to: right, chord: chord, angles: angles)
+    let slowUp = slow.filter { upPoses.contains($0) }.count
+    let quickUp = quick.filter { upPoses.contains($0) }.count
+    check(quick.last == right, "neutral -> right arrives with angles")
+    check(quickUp * 2 <= slowUp, "neutral -> right spends at most half the frames in the up apex", "\(quickUp) vs \(slowUp)")
+    check(quick.suffix(4).allSatisfy { abs($0 - right) <= 12 }, "arrival at the side is not rushed", "\(quick.suffix(4))")
 }
 
 func testChordSnapsWhenClose() {
@@ -154,7 +225,9 @@ func testPremiumGate() {
 
 testNoChordMatchesLegacy()
 testChordCrossingSkipsFrontDetour()
-testChordFromNeutralPicksShortestRoute()
+testChordFromNeutralStaysOnTargetSide()
+testPetmakerRoutesNeverGlanceWrongWay()
+testSideAwareRouting()
 testChordSnapsWhenClose()
 testChordClampedToClipLength()
 testOffScreenCursorReturnsToNeutral()

@@ -25,6 +25,10 @@ final class PetRenderer {
         self.species = species
         map = GazeMap(species: species)
         playhead = PetPlayhead(pose: species.neutralPose)
+        if species.wrapsAround {
+            playhead.poseAngles = GazeMap.poseAngles(table: species.angleTable, poseCount: species.poseCount,
+                                                     loop: species.gazeLoop, neutral: species.neutralPose)
+        }
         layer.videoGravity = .resizeAspect
         layer.isOpaque = false
         layer.backgroundColor = NSColor.clear.cgColor
