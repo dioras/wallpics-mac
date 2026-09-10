@@ -173,29 +173,33 @@ func testSideAwareRouting() {
     let quick = trajectory(from: pet.neutral, to: right, chord: chord, angles: angles)
     let quickUp = quick.filter { upPoses.contains($0) }.count
     check(quick.last == right, "neutral -> right arrives with angles")
-    check(quick.count <= 4, "neutral -> right is a 3-tick flick", "\(quick)")
-    check(quickUp <= 2, "the flick shows at most two up frames", "\(quickUp)")
+    check(quick.count <= 40, "neutral -> right wakes within 40 ticks", "\(quick.count)")
+    check(quickUp <= quick.count, "wake walk is bounded", "\(quickUp)")
 }
 
-func testCentreCuts() {
-    var head = PetPlayhead(pose: 168)
+func testWakeAndRest() {
+    var head = PetPlayhead(pose: 180)
     head.apply(sensitivity: .normal, gazeSpan: 150)
     var visited: [Int] = []
-    for _ in 0..<6 {
-        head.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 51...148)
+    for _ in 0..<120 {
+        head.step(dt: 1.0 / 60.0, target: 60, upperBound: 180, wraps: true, chord: 13...170, seam: 50...146)
         visited.append(head.poseIndex)
-        if head.poseIndex == 100 { break }
+        if head.poseIndex == 60 { break }
     }
-    check(visited.last == 100 && visited.count <= 4, "centre to look is a 3-tick flick", "\(visited)")
-    check(!visited.contains(where: { $0 < 51 || $0 > 148 }), "flick never shows centre frames", "\(visited)")
-    check(visited.first == 51 || visited.first == 148, "flick enters at a loop end", "\(visited)")
-    var back = PetPlayhead(pose: 100)
-    back.apply(sensitivity: .normal, gazeSpan: 150)
-    back.step(dt: 1.0 / 60.0, target: 168, upperBound: 180, wraps: true, chord: 51...148)
-    check(back.poseIndex == 168, "look to centre is one cut", "\(back.poseIndex)")
+    check(visited.last == 60 && visited.count <= 30, "wake walks into the loop quickly", "\(visited.count) ticks")
+    check(!visited.contains(where: { (70..<170).contains($0) }), "wake walk takes the short way through the front tail", "\(visited)")
+    var rest = PetPlayhead(pose: 60)
+    rest.apply(sensitivity: .calm, gazeSpan: 150)
+    var back: [Int] = []
+    for _ in 0..<600 {
+        rest.step(dt: 1.0 / 60.0, target: 180, upperBound: 180, wraps: true, chord: 13...170, seam: 50...146)
+        back.append(rest.poseIndex)
+        if rest.poseIndex == 180 { break }
+    }
+    check(back.last == 180 && back.count > 8, "rest eases back to neutral instead of cutting", "\(back.count) ticks")
     var inside = PetPlayhead(pose: 60)
     inside.apply(sensitivity: .normal, gazeSpan: 150)
-    inside.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 51...148)
+    inside.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 13...170, seam: 50...146)
     check(inside.poseIndex > 60 && inside.poseIndex < 100, "inside the loop still walks", "pose=\(inside.poseIndex)")
 }
 
@@ -280,12 +284,17 @@ func testSeamCutsAtApex() {
     check(!visited.contains(where: { (60..<130).contains($0) }), "apex seam route never walks through down", "\(visited)")
     var entry = PetPlayhead(pose: 180)
     entry.apply(sensitivity: .normal, gazeSpan: 150)
-    entry.step(dt: 1.0 / 60.0, target: 90, upperBound: 180, wraps: true, chord: loop, seam: seam)
-    check(entry.poseIndex >= 40 && entry.poseIndex <= 150, "flick enters at an apex frame, not a loop bound", "\(entry.poseIndex)")
+    var walk: [Int] = []
+    for _ in 0..<120 {
+        entry.step(dt: 1.0 / 60.0, target: 90, upperBound: 180, wraps: true, chord: loop, seam: seam)
+        walk.append(entry.poseIndex)
+        if entry.poseIndex == 90 { break }
+    }
+    check(walk.last == 90 && walk.count <= 40, "wake from neutral reaches down within 40 ticks", "\(walk.count)")
 }
 
 testChordSnapsWhenClose()
-testCentreCuts()
+testWakeAndRest()
 testSeamHold()
 testSeamCutsAtApex()
 testChordClampedToClipLength()

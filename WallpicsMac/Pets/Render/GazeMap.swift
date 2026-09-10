@@ -115,8 +115,9 @@ struct PetPlayhead {
     private static let detourBoost: Double = 2
     private static let seamHoldFraction: Double = 0.05
     private static let seamHoldMax: Double = 4
-    private static let entryFlickTicks = 3
-    private var flickRemaining = 0
+    private static let wakeTicks = 14
+    private static let wakeHurry: Double = 3
+    private var hurryRemaining = 0
 
     private struct Route {
         var first: Double
@@ -144,18 +145,12 @@ struct PetPlayhead {
         let cutRange = seam ?? chord
         if wrapping, let chord, chord.lowerBound < chord.upperBound, let cutRange {
             if crossesLoopEdge(target: target, chord: chord) {
-                if chord.contains(target) {
-                    let fromLow = abs(target - cutRange.lowerBound)
-                    let fromHigh = abs(cutRange.upperBound - target)
-                    value = Double(fromLow <= fromHigh ? cutRange.lowerBound : cutRange.upperBound)
-                    flickRemaining = Self.entryFlickTicks
-                } else {
-                    value = Double(target)
-                    flickRemaining = 0
+                if chord.contains(target), hurryRemaining == 0 {
+                    hurryRemaining = Self.wakeTicks
                 }
+            } else if restsAcrossSeam(target: target, chord: cutRange) {
                 return false
             }
-            if restsAcrossSeam(target: target, chord: cutRange) { return false }
         }
         let route = plan(to: Double(target), count: count, wrapping: wrapping, chord: chord, seam: cutRange)
         let goal = route.teleportTo == nil ? value + route.first : Double(target)
@@ -163,14 +158,13 @@ struct PetPlayhead {
             value = normalized(goal, count: count, upperBound: upperBound, wraps: wraps)
             return false
         }
-        let hurry = boost(toward: target)
-        var advance = route.total * min(1, dt * responsePerSecond * hurry)
-        var limit = maxPosesPerSecond * dt * hurry
-        if flickRemaining > 0 {
-            advance = route.total / Double(flickRemaining)
-            limit = advance
-            flickRemaining -= 1
+        var hurry = boost(toward: target)
+        if hurryRemaining > 0 {
+            hurry = max(hurry, Self.wakeHurry)
+            hurryRemaining -= 1
         }
+        var advance = route.total * min(1, dt * responsePerSecond * hurry)
+        let limit = maxPosesPerSecond * dt * hurry
         if advance > limit { advance = limit }
         if route.total <= limit && route.total < 1 {
             value = goal

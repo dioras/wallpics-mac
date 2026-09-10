@@ -11,6 +11,11 @@ final class PetRenderer {
     private var playhead: PetPlayhead
     private let chord: ClosedRange<Int>?
     private static let apexSine = 0.85
+    private static let restAfter: Double = 6
+    private var heldTarget: GazeTarget?
+    private var stillFor: Double = 0
+    private var lastCursor: CGPoint?
+    private(set) var isResting = true
     private var sequence: PoseSequence?
     private var lastEnqueuedPose = -1
     private var clock = CMTime.zero
@@ -83,6 +88,9 @@ final class PetRenderer {
 
     func snapToNeutral() {
         playhead = PetPlayhead(pose: species.neutralPose)
+        heldTarget = nil
+        isResting = true
+        stillFor = Self.restAfter
         enqueue(pose: species.neutralPose)
     }
 
@@ -90,13 +98,14 @@ final class PetRenderer {
     func tick(dt: Double, cursor: CGPoint?, petRect: CGRect,
               sensitivity: PetSensitivity = .normal) -> Bool {
         guard let sequence else { return false }
-        playhead.apply(sensitivity: sensitivity, gazeSpan: species.gazeSpan)
-        let target = map.target(
+        let raw = map.target(
             cursor: cursor,
             petRect: petRect,
             faceCenter: species.faceCenter,
             deadZone: petRect.height * species.subjectHeight * sensitivity.deadZoneFraction
         )
+        let target = resolveTarget(raw: raw, cursor: cursor, dt: dt)
+        playhead.apply(sensitivity: isResting ? .calm : sensitivity, gazeSpan: species.gazeSpan)
 
         let lastPose = sequence.count - 1
         var stepTarget = min(target.pose, lastPose)
@@ -121,6 +130,23 @@ final class PetRenderer {
             enqueue(pose: pose)
         }
         return pose != stepTarget
+    }
+
+    private func resolveTarget(raw: GazeTarget, cursor: CGPoint?, dt: Double) -> GazeTarget {
+        if let cursor, let last = lastCursor, hypot(cursor.x - last.x, cursor.y - last.y) > 1 {
+            stillFor = 0
+            isResting = false
+        } else {
+            stillFor += dt
+        }
+        lastCursor = cursor
+        if stillFor >= Self.restAfter { isResting = true }
+        if isResting { return GazeTarget(pose: species.neutralPose, mirrored: false, upperHalf: true, holdsMirror: true) }
+        if raw.holdsMirror {
+            return heldTarget ?? raw
+        }
+        heldTarget = raw
+        return raw
     }
 
     private func setMirrored(_ mirrored: Bool) {

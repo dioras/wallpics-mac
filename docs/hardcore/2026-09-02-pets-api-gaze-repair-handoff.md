@@ -72,3 +72,10 @@ Plan: `docs/hardcore/2026-09-02-pets-api-gaze-repair.plan.md`.
 - Video wallpaper: `AVQueuePlayer` + `AVPlayerLooper` (gapless) replaces seek-to-zero on end (black blink every loop in Simon's recording).
 - Verification: window-only captures of the pet layer (`screencapture -l`) at ~60 ms during scripted cursor moves, 9 transitions; trajectories printed from the harness with pm-17's real table. A full-screen recording attempt was deleted immediately (captured the user's video call).
 - Harness 46 checks. Build green.
+
+## Round 10 (2026-09-10 evening) — no centre gaze while tracking (WallPets behaviour)
+- Simon: "I would rather be removing this center gaze completely". WallPets kit (`~/Desktop/wallpets-kit/gazecat/README.md`): "Follow cursor always; after 6 s of stillness ease back to the nearest neutral anchor and rest; any movement resumes tracking."
+- `PetRenderer.resolveTarget`: dead zone / off-screen → hold the last look (`heldTarget`); after `restAfter` = 6 s of cursor stillness → target = neutral at calm speed (`isResting`); any movement wakes.
+- `PetPlayhead`: loop-edge crossing is a walk again (no cut, no flick); entering the loop gets `wakeHurry` ×3 for 14 ticks; leaving to neutral walks at the caller's speed. Apex seam + small hold band unchanged.
+- `DesktopPetManager.idleGracePeriod` 1.2 → 7.5 s so the display link keeps ticking until the rest transition has run.
+- Verified with window-only captures on pm-17: wake to bottom-right, hold on face, top-left, rest after 6 s, wake to right. Harness 45 checks, build green.
