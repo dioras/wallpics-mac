@@ -58,3 +58,17 @@ Plan: `docs/hardcore/2026-09-02-pets-api-gaze-repair.plan.md`.
 - Simon on the side-aware routing build: a centre frame still flashes, and centre → bottom-right should be one motion. Cause: leaving/returning to the neutral pose walked through the front tail frames between neutral and the loop.
 - `PetPlayhead.step` now returns `Bool` (cut): a move that crosses the loop edge (neutral ↔ any look) jumps straight to the target; a chord teleport also reports a cut. `PetRenderer` uses two `AVSampleBufferDisplayLayer`s under a `PetStackLayer` container and cross-dissolves 0.16 s on a cut (`flushAndRemoveImage` on the standby layer first). Container propagates `contentsScale`, sublayers autoresize.
 - Harness: 40 checks incl. `testCentreCuts`. Build green. Live visual check of the dissolve not driven (user active on the Mac); static render checked.
+
+## Round 8 (2026-09-10) — dissolve out, entry flick in
+- Simon (video + voice): the centre transition "feels like it's reappearing, too much of a jump". Cause: cross-dissolve of two layers over transparency dips to ~75% opacity mid-fade.
+- Removed the two-layer renderer and dissolve (single `AVSampleBufferDisplayLayer` again). `PetPlayhead`: crossing into the loop jumps to the nearest loop end and sweeps to the target in 3 ticks (`entryFlickTicks`), never showing the front tail; loop → neutral is a plain cut. Seam hold band unchanged.
+- Harness 43 checks (side-aware test adapted: neutral → right is a ≤4-tick flick). Build green. Live capture not done.
+- Observed in Simon's recording: his live wallpaper goes black ~0.1–0.5 s every ~5 s (wallpaper loop restart) — separate issue, not the pet.
+
+## Round 9 (2026-09-10) — finish pass, verified capture by capture
+- Seam moved from loop bounds to the up-apex frames: `PetRenderer.apexChord` takes frames hit by table buckets with sin(angle) ≥ 0.85 (interpolated angles were wrong at the loop edges). `PetPlayhead.step` now takes `chord` (loop membership) and `seam` (cut points) separately.
+- Side penalty no longer counts frames on the head's own side when leaving it (`startSide`), so right → up-left goes up and over instead of dipping through down.
+- Seam hold band shrunk to ≤4 frames / 5% (the 12% band froze heads in transit once the seam sat at the apex).
+- Video wallpaper: `AVQueuePlayer` + `AVPlayerLooper` (gapless) replaces seek-to-zero on end (black blink every loop in Simon's recording).
+- Verification: window-only captures of the pet layer (`screencapture -l`) at ~60 ms during scripted cursor moves, 9 transitions; trajectories printed from the harness with pm-17's real table. A full-screen recording attempt was deleted immediately (captured the user's video call).
+- Harness 46 checks. Build green.

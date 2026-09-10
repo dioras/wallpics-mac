@@ -2,28 +2,15 @@ import AVFoundation
 import AppKit
 import CoreMedia
 
-final class PetStackLayer: CALayer {
-    override func layoutSublayers() {
-        super.layoutSublayers()
-        sublayers?.forEach { $0.frame = bounds }
-    }
-
-    override var contentsScale: CGFloat {
-        didSet { sublayers?.forEach { $0.contentsScale = contentsScale } }
-    }
-}
-
 @MainActor
 final class PetRenderer {
     let species: PetSpecies
-    let layer = PetStackLayer()
-
-    private let displayLayers = [AVSampleBufferDisplayLayer(), AVSampleBufferDisplayLayer()]
-    private var activeIndex = 0
-    private static let dissolveDuration: CFTimeInterval = 0.16
+    let layer = AVSampleBufferDisplayLayer()
 
     private let map: GazeMap
     private var playhead: PetPlayhead
+    private let chord: ClosedRange<Int>?
+    private static let apexSine = 0.85
     private var sequence: PoseSequence?
     private var lastEnqueuedPose = -1
     private var clock = CMTime.zero
@@ -40,28 +27,32 @@ final class PetRenderer {
         self.species = species
         map = GazeMap(species: species)
         playhead = PetPlayhead(pose: species.neutralPose)
+        var angles: [Double?] = []
         if species.wrapsAround {
-            playhead.poseAngles = GazeMap.poseAngles(table: species.angleTable, poseCount: species.poseCount,
-                                                     loop: species.gazeLoop, neutral: species.neutralPose)
+            angles = GazeMap.poseAngles(table: species.angleTable, poseCount: species.poseCount,
+                                        loop: species.gazeLoop, neutral: species.neutralPose)
+            playhead.poseAngles = angles
         }
+        chord = Self.apexChord(loop: species.gazeLoop, table: species.angleTable, poseCount: species.poseCount)
+        layer.videoGravity = .resizeAspect
         layer.isOpaque = false
         layer.backgroundColor = NSColor.clear.cgColor
-        layer.needsDisplayOnBoundsChange = false
-        for (index, display) in displayLayers.enumerated() {
-            display.videoGravity = .resizeAspect
-            display.isOpaque = false
-            display.backgroundColor = NSColor.clear.cgColor
-            display.opacity = index == activeIndex ? 1 : 0
-            display.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-            layer.addSublayer(display)
-        }
     }
-
-    private var activeLayer: AVSampleBufferDisplayLayer { displayLayers[activeIndex] }
-    private var standbyLayer: AVSampleBufferDisplayLayer { displayLayers[1 - activeIndex] }
 
     deinit {
         loadTask?.cancel()
+    }
+
+    static func apexChord(loop: ClosedRange<Int>?, table: [Int], poseCount: Int) -> ClosedRange<Int>? {
+        guard let loop, !table.isEmpty else { return loop }
+        let buckets = Double(table.count)
+        var apex: [Int] = []
+        for (bucket, pose) in table.enumerated() where loop.contains(pose) && pose < poseCount {
+            let angle = (Double(bucket) + 0.5) / buckets * 2 * .pi - .pi
+            if sin(angle) >= apexSine { apex.append(pose) }
+        }
+        guard let first = apex.min(), let last = apex.max(), first < last else { return loop }
+        return first...last
     }
 
     func load() {
@@ -119,14 +110,15 @@ final class PetRenderer {
             }
         }
 
-        let chord = species.gazeLoop.map { min($0.lowerBound, lastPose)...min($0.upperBound, lastPose) }
-        let cut = playhead.step(dt: dt, target: stepTarget, upperBound: sequence.count - 1,
-                                wraps: species.wrapsAround, chord: chord)
+        let loop = species.gazeLoop.map { min($0.lowerBound, lastPose)...min($0.upperBound, lastPose) }
+        let seam = chord.map { min($0.lowerBound, lastPose)...min($0.upperBound, lastPose) }
+        playhead.step(dt: dt, target: stepTarget, upperBound: sequence.count - 1,
+                      wraps: species.wrapsAround, chord: loop, seam: seam)
         let pose = species.wrapsAround
             ? playhead.poseIndex % sequence.count
             : min(playhead.poseIndex, lastPose)
         if pose != lastEnqueuedPose {
-            enqueue(pose: pose, dissolve: cut)
+            enqueue(pose: pose)
         }
         return pose != stepTarget
     }
@@ -140,16 +132,12 @@ final class PetRenderer {
         CATransaction.commit()
     }
 
-    private func enqueue(pose: Int, dissolve: Bool = false) {
+    private func enqueue(pose: Int) {
         guard let sequence else { return }
-        let target = dissolve && lastEnqueuedPose >= 0 ? standbyLayer : activeLayer
-        let renderer = target.sampleBufferRenderer
+        let renderer = layer.sampleBufferRenderer
         if renderer.status == .failed {
             Log.app.error("PetRenderer: \(self.species.slug, privacy: .public) renderer failed — \(renderer.error?.localizedDescription ?? "unknown", privacy: .public); flushing")
             renderer.flush()
-        }
-        if target === standbyLayer {
-            target.flushAndRemoveImage()
         }
         guard renderer.isReadyForMoreMediaData else { return }
         clock = CMTimeAdd(clock, CMTime(value: 1, timescale: 600))
@@ -157,21 +145,6 @@ final class PetRenderer {
         renderer.enqueue(buffer)
         lastEnqueuedPose = pose
         decodeCount += 1
-        if target === standbyLayer {
-            crossDissolve()
-        }
-    }
-
-    private func crossDissolve() {
-        let outgoing = activeLayer
-        let incoming = standbyLayer
-        activeIndex = 1 - activeIndex
-        CATransaction.begin()
-        CATransaction.setAnimationDuration(Self.dissolveDuration)
-        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeInEaseOut))
-        incoming.opacity = 1
-        outgoing.opacity = 0
-        CATransaction.commit()
     }
 }
 

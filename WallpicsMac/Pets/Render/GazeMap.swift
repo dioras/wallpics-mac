@@ -113,8 +113,10 @@ struct PetPlayhead {
     private static let wrongSidePenalty: Double = 3
     private static let sideThreshold: Double = 0.2
     private static let detourBoost: Double = 2
-    private static let seamHoldFraction: Double = 0.12
-    private static let seamHoldMax: Double = 14
+    private static let seamHoldFraction: Double = 0.05
+    private static let seamHoldMax: Double = 4
+    private static let entryFlickTicks = 3
+    private var flickRemaining = 0
 
     private struct Route {
         var first: Double
@@ -136,18 +138,26 @@ struct PetPlayhead {
 
     @discardableResult
     mutating func step(dt: Double, target: Int, upperBound: Int, wraps: Bool = false,
-                       chord: ClosedRange<Int>? = nil) -> Bool {
+                       chord: ClosedRange<Int>? = nil, seam: ClosedRange<Int>? = nil) -> Bool {
         let count = Double(upperBound + 1)
         let wrapping = wraps && upperBound > 0
-        if wrapping, let chord, chord.lowerBound < chord.upperBound {
+        let cutRange = seam ?? chord
+        if wrapping, let chord, chord.lowerBound < chord.upperBound, let cutRange {
             if crossesLoopEdge(target: target, chord: chord) {
-                let moved = Int(value.rounded()) != target
-                value = Double(target)
-                return moved
+                if chord.contains(target) {
+                    let fromLow = abs(target - cutRange.lowerBound)
+                    let fromHigh = abs(cutRange.upperBound - target)
+                    value = Double(fromLow <= fromHigh ? cutRange.lowerBound : cutRange.upperBound)
+                    flickRemaining = Self.entryFlickTicks
+                } else {
+                    value = Double(target)
+                    flickRemaining = 0
+                }
+                return false
             }
-            if restsAcrossSeam(target: target, chord: chord) { return false }
+            if restsAcrossSeam(target: target, chord: cutRange) { return false }
         }
-        let route = plan(to: Double(target), count: count, wrapping: wrapping, chord: chord)
+        let route = plan(to: Double(target), count: count, wrapping: wrapping, chord: chord, seam: cutRange)
         let goal = route.teleportTo == nil ? value + route.first : Double(target)
         if route.total < 0.01 {
             value = normalized(goal, count: count, upperBound: upperBound, wraps: wraps)
@@ -155,7 +165,12 @@ struct PetPlayhead {
         }
         let hurry = boost(toward: target)
         var advance = route.total * min(1, dt * responsePerSecond * hurry)
-        let limit = maxPosesPerSecond * dt * hurry
+        var limit = maxPosesPerSecond * dt * hurry
+        if flickRemaining > 0 {
+            advance = route.total / Double(flickRemaining)
+            limit = advance
+            flickRemaining -= 1
+        }
         if advance > limit { advance = limit }
         if route.total <= limit && route.total < 1 {
             value = goal
@@ -194,16 +209,19 @@ struct PetPlayhead {
         return d
     }
 
-    private func plan(to target: Double, count: Double, wrapping: Bool, chord: ClosedRange<Int>?) -> Route {
+    private func plan(to target: Double, count: Double, wrapping: Bool, chord: ClosedRange<Int>?,
+                      seam: ClosedRange<Int>? = nil) -> Route {
         let direct = delta(from: value, to: target, count: count, wrapping: wrapping)
         var best = Route(first: direct, teleportTo: nil, second: 0, total: abs(direct))
         guard wrapping, count > 1 else { return best }
         let chordAllowed: (Double, Double)? = {
             guard let chord, chord.lowerBound < chord.upperBound else { return nil }
-            let lo = Double(chord.lowerBound)
-            let hi = Double(chord.upperBound)
-            guard value >= lo, value <= hi, target >= lo, target <= hi else { return nil }
-            return (lo, hi)
+            let loopLo = Double(chord.lowerBound)
+            let loopHi = Double(chord.upperBound)
+            guard value >= loopLo, value <= loopHi, target >= loopLo, target <= loopHi else { return nil }
+            let cut = seam ?? chord
+            guard cut.lowerBound < cut.upperBound else { return nil }
+            return (Double(cut.lowerBound), Double(cut.upperBound))
         }()
         guard poseAngles.count == Int(count) else {
             guard let (lo, hi) = chordAllowed else { return best }
@@ -218,6 +236,7 @@ struct PetPlayhead {
             return best
         }
         let side = preferredSide(target: target)
+        let startSide = sideOf(pose: poseIndex)
         let forward = (target - value).truncatingRemainder(dividingBy: count) < 0
             ? (target - value).truncatingRemainder(dividingBy: count) + count
             : (target - value).truncatingRemainder(dividingBy: count)
@@ -233,9 +252,9 @@ struct PetPlayhead {
         }
         var bestCost = Double.infinity
         for route in candidates {
-            var cost = legCost(from: value, delta: route.first, count: count, side: side)
+            var cost = legCost(from: value, delta: route.first, count: count, side: side, startSide: startSide)
             if let landing = route.teleportTo {
-                cost += legCost(from: landing, delta: route.second, count: count, side: side)
+                cost += legCost(from: landing, delta: route.second, count: count, side: side, startSide: startSide)
             }
             if cost < bestCost - 0.5 || (abs(cost - bestCost) <= 0.5 && route.total < best.total) {
                 bestCost = cost
@@ -254,7 +273,13 @@ struct PetPlayhead {
         return 0
     }
 
-    private func legCost(from start: Double, delta: Double, count: Double, side: Double) -> Double {
+    private func sideOf(pose: Int) -> Double {
+        guard pose >= 0, pose < poseAngles.count, let angle = poseAngles[pose] else { return 0 }
+        let c = cos(angle)
+        return abs(c) > Self.sideThreshold ? (c > 0 ? 1 : -1) : 0
+    }
+
+    private func legCost(from start: Double, delta: Double, count: Double, side: Double, startSide: Double = 0) -> Double {
         let steps = Int(abs(delta).rounded())
         guard steps > 0 else { return 0 }
         let direction: Double = delta >= 0 ? 1 : -1
@@ -267,8 +292,12 @@ struct PetPlayhead {
             cost += 1
             let index = Int(pose.rounded())
             if side != 0, index >= 0, index < poseAngles.count, let angle = poseAngles[index] {
-                let wrong = max(0, -cos(angle) * side)
-                cost += Self.wrongSidePenalty * wrong
+                let frameSide = cos(angle)
+                let leavingOwnSide = startSide != 0 && startSide != side && frameSide * startSide > Self.sideThreshold
+                if !leavingOwnSide {
+                    let wrong = max(0, -frameSide * side)
+                    cost += Self.wrongSidePenalty * wrong
+                }
             }
         }
         return cost

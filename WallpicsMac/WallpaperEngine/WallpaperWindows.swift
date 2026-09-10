@@ -65,8 +65,8 @@ final class GIFWallpaperWindow: NSWindow, WallpaperWindowControl {
 // MARK: - Video
 
 final class VideoWallpaperWindow: NSWindow, WallpaperWindowControl {
-    private var player: AVPlayer?
-    private var loopObserver: NSObjectProtocol?
+    private var player: AVQueuePlayer?
+    private var looper: AVPlayerLooper?
 
     init(screen: NSScreen, videoURL: URL) {
         let frame = screen.frame
@@ -85,8 +85,11 @@ final class VideoWallpaperWindow: NSWindow, WallpaperWindowControl {
         layer.videoGravity = .resizeAspectFill
         layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
 
-        let player = AVPlayer(url: url)
+        let item = AVPlayerItem(url: url)
+        let player = AVQueuePlayer()
         player.isMuted = true
+        player.actionAtItemEnd = .advance
+        looper = AVPlayerLooper(player: player, templateItem: item)
         layer.player = player
         self.player = player
 
@@ -97,26 +100,16 @@ final class VideoWallpaperWindow: NSWindow, WallpaperWindowControl {
         self.contentView = container
 
         player.play()
-
-        loopObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: player.currentItem,
-            queue: .main
-        ) { [weak player] _ in
-            player?.seek(to: .zero)
-            player?.play()
-        }
     }
 
     func pause() { player?.pause() }
     func resume() { player?.play() }
 
     func stop() {
-        if let observer = loopObserver {
-            NotificationCenter.default.removeObserver(observer)
-            loopObserver = nil
-        }
+        looper?.disableLooping()
+        looper = nil
         player?.pause()
+        player?.removeAllItems()
         player = nil
     }
 }

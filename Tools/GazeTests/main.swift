@@ -170,28 +170,33 @@ func testSideAwareRouting() {
     check(back.allSatisfy { !leftPoses.contains($0) }, "down-right -> neutral never travels through the left side", "\(back.filter { leftPoses.contains($0) })")
     let upPoses = Set((chord.lowerBound...chord.upperBound).filter { angles[$0].map { sin($0) > 0.85 } == true })
     let right = pet.table[Int(Double(n) * 0.5)]
-    let slow = trajectory(from: pet.neutral, to: right, chord: chord)
     let quick = trajectory(from: pet.neutral, to: right, chord: chord, angles: angles)
-    let slowUp = slow.filter { upPoses.contains($0) }.count
     let quickUp = quick.filter { upPoses.contains($0) }.count
     check(quick.last == right, "neutral -> right arrives with angles")
-    check(quickUp * 2 <= slowUp, "neutral -> right spends at most half the frames in the up apex", "\(quickUp) vs \(slowUp)")
-    check(quick.suffix(4).allSatisfy { abs($0 - right) <= 12 }, "arrival at the side is not rushed", "\(quick.suffix(4))")
+    check(quick.count <= 4, "neutral -> right is a 3-tick flick", "\(quick)")
+    check(quickUp <= 2, "the flick shows at most two up frames", "\(quickUp)")
 }
 
 func testCentreCuts() {
     var head = PetPlayhead(pose: 168)
     head.apply(sensitivity: .normal, gazeSpan: 150)
-    let cut = head.step(dt: 1.0 / 60.0, target: 60, upperBound: 180, wraps: true, chord: 51...148)
-    check(cut && head.poseIndex == 60, "centre to look is one cut", "cut=\(cut) pose=\(head.poseIndex)")
-    let back = head.step(dt: 1.0 / 60.0, target: 168, upperBound: 180, wraps: true, chord: 51...148)
-    check(back && head.poseIndex == 168, "look to centre is one cut", "cut=\(back) pose=\(head.poseIndex)")
+    var visited: [Int] = []
+    for _ in 0..<6 {
+        head.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 51...148)
+        visited.append(head.poseIndex)
+        if head.poseIndex == 100 { break }
+    }
+    check(visited.last == 100 && visited.count <= 4, "centre to look is a 3-tick flick", "\(visited)")
+    check(!visited.contains(where: { $0 < 51 || $0 > 148 }), "flick never shows centre frames", "\(visited)")
+    check(visited.first == 51 || visited.first == 148, "flick enters at a loop end", "\(visited)")
+    var back = PetPlayhead(pose: 100)
+    back.apply(sensitivity: .normal, gazeSpan: 150)
+    back.step(dt: 1.0 / 60.0, target: 168, upperBound: 180, wraps: true, chord: 51...148)
+    check(back.poseIndex == 168, "look to centre is one cut", "\(back.poseIndex)")
     var inside = PetPlayhead(pose: 60)
     inside.apply(sensitivity: .normal, gazeSpan: 150)
-    let walked = inside.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 51...148)
-    check(!walked && inside.poseIndex > 60 && inside.poseIndex < 100, "inside the loop still walks", "pose=\(inside.poseIndex)")
-    var still = PetPlayhead(pose: 168)
-    check(!still.step(dt: 1.0 / 60.0, target: 168, upperBound: 180, wraps: true, chord: 51...148), "no cut when already there")
+    inside.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 51...148)
+    check(inside.poseIndex > 60 && inside.poseIndex < 100, "inside the loop still walks", "pose=\(inside.poseIndex)")
 }
 
 func testChordSnapsWhenClose() {
@@ -260,9 +265,29 @@ func testSeamHold() {
     check(visited.last == 80, "target well past the seam still crosses", "\(visited.last ?? -1)")
 }
 
+func testSeamCutsAtApex() {
+    let loop = 13...170
+    let seam = 40...150
+    var head = PetPlayhead(pose: 160)
+    head.apply(sensitivity: .normal, gazeSpan: 150)
+    var visited: [Int] = []
+    for _ in 0..<200 {
+        head.step(dt: 1.0 / 60.0, target: 25, upperBound: 180, wraps: true, chord: loop, seam: seam)
+        visited.append(head.poseIndex)
+        if head.poseIndex == 25 { break }
+    }
+    check(visited.last == 25, "up-left tail reaches up-right across the apex seam", "\(visited.last ?? -1)")
+    check(!visited.contains(where: { (60..<130).contains($0) }), "apex seam route never walks through down", "\(visited)")
+    var entry = PetPlayhead(pose: 180)
+    entry.apply(sensitivity: .normal, gazeSpan: 150)
+    entry.step(dt: 1.0 / 60.0, target: 90, upperBound: 180, wraps: true, chord: loop, seam: seam)
+    check(entry.poseIndex >= 40 && entry.poseIndex <= 150, "flick enters at an apex frame, not a loop bound", "\(entry.poseIndex)")
+}
+
 testChordSnapsWhenClose()
 testCentreCuts()
 testSeamHold()
+testSeamCutsAtApex()
 testChordClampedToClipLength()
 testOffScreenCursorReturnsToNeutral()
 testPremiumGate()
