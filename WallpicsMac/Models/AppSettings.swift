@@ -10,6 +10,7 @@ struct AppSettings: Codable, Equatable {
     /// Whether we've already offered (once) to add WallPics to Login Items after the user set
     /// their first wallpaper. Stays true forever so we never nag them again.
     var didAskAutostart: Bool
+    var animateLockScreen: Bool
 
     static let `default` = AppSettings(
         cacheRecentWallpapers: true,
@@ -17,20 +18,22 @@ struct AppSettings: Codable, Equatable {
         pauseOnLowPowerMode: true,
         respectSystemAppearance: true,
         languageCode: nil,
-        didAskAutostart: false
+        didAskAutostart: false,
+        animateLockScreen: true
     )
 
     enum CodingKeys: String, CodingKey {
-        case cacheRecentWallpapers, playOnBatteryPower, pauseOnLowPowerMode, respectSystemAppearance, languageCode, didAskAutostart
+        case cacheRecentWallpapers, playOnBatteryPower, pauseOnLowPowerMode, respectSystemAppearance, languageCode, didAskAutostart, animateLockScreen
     }
 
-    init(cacheRecentWallpapers: Bool, playOnBatteryPower: Bool, pauseOnLowPowerMode: Bool, respectSystemAppearance: Bool, languageCode: String?, didAskAutostart: Bool) {
+    init(cacheRecentWallpapers: Bool, playOnBatteryPower: Bool, pauseOnLowPowerMode: Bool, respectSystemAppearance: Bool, languageCode: String?, didAskAutostart: Bool, animateLockScreen: Bool = true) {
         self.cacheRecentWallpapers = cacheRecentWallpapers
         self.playOnBatteryPower = playOnBatteryPower
         self.pauseOnLowPowerMode = pauseOnLowPowerMode
         self.respectSystemAppearance = respectSystemAppearance
         self.languageCode = languageCode
         self.didAskAutostart = didAskAutostart
+        self.animateLockScreen = animateLockScreen
     }
 
     // Tolerant decode so an older settings.json (without newer keys) still loads.
@@ -42,6 +45,7 @@ struct AppSettings: Codable, Equatable {
         respectSystemAppearance = (try? c.decode(Bool.self, forKey: .respectSystemAppearance)) ?? true
         languageCode = try? c.decodeIfPresent(String.self, forKey: .languageCode)
         didAskAutostart = (try? c.decode(Bool.self, forKey: .didAskAutostart)) ?? false
+        animateLockScreen = (try? c.decode(Bool.self, forKey: .animateLockScreen)) ?? true
     }
 
     static var fileURL: URL? {

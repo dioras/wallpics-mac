@@ -97,6 +97,23 @@ struct SettingsView: View {
                     }
             }
 
+            if LockScreenService.shared.isSupported {
+                Section("Lock Screen") {
+                    Toggle("Animate live & shader wallpapers on the lock screen", isOn: $env.settings.animateLockScreen)
+                        .onChange(of: env.settings.animateLockScreen) { _, enabled in
+                            LockScreenService.shared.applyEnabledChange(enabled)
+                        }
+                    Text("WallPics renders a looping clip and installs it as the macOS lock-screen wallpaper. Choosing a static wallpaper switches this off again.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if let status = LockScreenService.shared.statusText {
+                        Text(status)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             Section("Startup") {
                 Toggle("Open WallPics at login", isOn: openAtLoginBinding)
                 Text("Keeps live & shader wallpapers running after a restart. WallPics launches in the background — close its window and it stays out of your way in the menu bar.")

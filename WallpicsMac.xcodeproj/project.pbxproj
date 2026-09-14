@@ -86,6 +86,9 @@
 		AC0000A000000000000004 /* ActiveWallpaperStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000004 /* ActiveWallpaperStore.swift */; };
 		AC0000A000000000000005 /* ShaderSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000005 /* ShaderSnapshot.swift */; };
 		AC0000A000000000000006 /* WallpaperPoster.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000006 /* WallpaperPoster.swift */; };
+		AC0000A00000000000000A /* LockScreenAerial.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A00000000000000A /* LockScreenAerial.swift */; };
+		AC0000A00000000000000B /* ShaderVideoExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A00000000000000B /* ShaderVideoExporter.swift */; };
+		AC0000A00000000000000C /* LockScreenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A00000000000000C /* LockScreenService.swift */; };
 		AC0000A000000000000007 /* WallpaperCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000007 /* WallpaperCategory.swift */; };
 		AC0000A000000000000008 /* AnimatedWebPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000008 /* AnimatedWebPView.swift */; };
 		AC0000A000000000000009 /* UploadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A000000000000009 /* UploadsView.swift */; };
@@ -207,6 +210,9 @@
 		AD0000A000000000000004 /* ActiveWallpaperStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveWallpaperStore.swift; sourceTree = "<group>"; };
 		AD0000A000000000000005 /* ShaderSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderSnapshot.swift; sourceTree = "<group>"; };
 		AD0000A000000000000006 /* WallpaperPoster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperPoster.swift; sourceTree = "<group>"; };
+		AD0000A00000000000000A /* LockScreenAerial.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenAerial.swift; sourceTree = "<group>"; };
+		AD0000A00000000000000B /* ShaderVideoExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderVideoExporter.swift; sourceTree = "<group>"; };
+		AD0000A00000000000000C /* LockScreenService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenService.swift; sourceTree = "<group>"; };
 		AD0000A000000000000007 /* WallpaperCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperCategory.swift; sourceTree = "<group>"; };
 		AD0000A000000000000008 /* AnimatedWebPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedWebPView.swift; sourceTree = "<group>"; };
 		AD0000A000000000000009 /* UploadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadsView.swift; sourceTree = "<group>"; };
@@ -440,6 +446,9 @@
 				AD0000A0000000000000001 /* ImportService.swift */,
 				AD0000A0000000000000002 /* ZipExtractor.swift */,
 				AD0000A000000000000006 /* WallpaperPoster.swift */,
+				AD0000A00000000000000A /* LockScreenAerial.swift */,
+				AD0000A00000000000000B /* ShaderVideoExporter.swift */,
+				AD0000A00000000000000C /* LockScreenService.swift */,
 				AD0000A000000000000005 /* ShaderSnapshot.swift */,
 				AD0000A000000000000004 /* ActiveWallpaperStore.swift */,
 				AD0000A000000000000003 /* LoginItemService.swift */,
@@ -778,6 +787,9 @@
 				AC0000A000000000000009 /* UploadsView.swift in Sources */,
 				AC0000A000000000000007 /* WallpaperCategory.swift in Sources */,
 				AC0000A000000000000006 /* WallpaperPoster.swift in Sources */,
+				AC0000A00000000000000A /* LockScreenAerial.swift in Sources */,
+				AC0000A00000000000000B /* ShaderVideoExporter.swift in Sources */,
+				AC0000A00000000000000C /* LockScreenService.swift in Sources */,
 				AC0000A000000000000005 /* ShaderSnapshot.swift in Sources */,
 				AC0000A000000000000004 /* ActiveWallpaperStore.swift in Sources */,
 				AC0000A000000000000003 /* LoginItemService.swift in Sources */,

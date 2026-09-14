@@ -123,11 +123,20 @@ struct FeaturedHero: View {
                         }
                         .buttonStyle(.plain)
 
-                        if let message = resultMessage {
-                            Text(message)
-                                .font(.callout.weight(.medium))
-                                .foregroundStyle(.white.opacity(0.85))
-                                .transition(.opacity)
+                        if resultMessage != nil || lockScreenMessage != nil {
+                            VStack(alignment: .leading, spacing: 3) {
+                                if let message = resultMessage {
+                                    Text(message)
+                                        .font(.callout.weight(.medium))
+                                        .foregroundStyle(.white.opacity(0.85))
+                                }
+                                if let lockScreenMessage {
+                                    Text(lockScreenMessage)
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(.white.opacity(0.7))
+                                }
+                            }
+                            .transition(.opacity)
                         } else if !store.state.isPro {
                             Button { PaywallPresenter.show() } label: {
                                 HStack(spacing: 6) {
@@ -151,6 +160,13 @@ struct FeaturedHero: View {
             }
         }
         .animation(Motion.transition, value: wallpaper?.id)
+    }
+
+    private var lockScreenMessage: String? {
+        let service = LockScreenService.shared
+        if resultMessage != nil { return service.statusText }
+        if case .failed = service.status { return service.statusText }
+        return nil
     }
 
     private func setAsWallpaper(_ wallpaper: Wallpaper) async {

@@ -46,6 +46,7 @@ final class WallpaperRenderer {
     private var activeWindows: [NSWindow] = []
     private var currentKind: Kind?
     private var currentAssetURL: URL?
+    private var currentPosterURL: URL?
     private var needsWatermark = false
     private var watermarkIcon: NSImage?
 
@@ -72,20 +73,23 @@ final class WallpaperRenderer {
         clearWindows()
         currentKind = .image
         currentAssetURL = url
+        currentPosterURL = nil
         // Static images persist in macOS on their own — drop any animated-restore record so we
         // don't re-apply an old live wallpaper over the user's new static choice next launch.
         ActiveWallpaperStore.clear()
         applyStaticAcrossScreens(url: url)
+        LockScreenService.shared.wallpaperDidBecomeStatic()
     }
 
     func startAnimated(kind: Kind, url: URL, firstFrameStaticURL: URL?, needsWatermark: Bool = false, appIcon: NSImage? = nil) {
         clearWindows()
         currentKind = kind
         currentAssetURL = url
+        currentPosterURL = firstFrameStaticURL
         self.needsWatermark = needsWatermark
         self.watermarkIcon = appIcon
 
-        if let staticURL = firstFrameStaticURL {
+        if let staticURL = firstFrameStaticURL, !LockScreenService.shared.isInstalled(assetURL: url) {
             applyStaticAcrossScreens(url: staticURL)
         }
 
@@ -102,6 +106,15 @@ final class WallpaperRenderer {
             posterPath: firstFrameStaticURL?.path,
             watermarked: needsWatermark
         ))
+        LockScreenService.shared.sync(kind: kind, assetURL: url)
+    }
+
+    func reapplyDesktopChoice() {
+        if case .image = currentKind, let url = currentAssetURL {
+            applyStaticAcrossScreens(url: url)
+        } else if let poster = currentPosterURL {
+            applyStaticAcrossScreens(url: poster)
+        }
     }
 
     /// Re-apply the last animated/shader wallpaper saved by `startAnimated`, if its files are still
@@ -142,6 +155,7 @@ final class WallpaperRenderer {
         clearWindows()
         currentKind = nil
         currentAssetURL = nil
+        currentPosterURL = nil
     }
 
     // MARK: - Pause / resume
