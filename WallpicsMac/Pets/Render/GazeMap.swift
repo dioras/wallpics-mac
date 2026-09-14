@@ -106,18 +106,22 @@ struct GazeMap {
 
 struct PetPlayhead {
     var value: Double
-    var responsePerSecond: Double = 11
-    var maxPosesPerSecond: Double = 260
+    var responsePerSecond: Double = 9
+    var maxPosesPerSecond: Double = 105
     var poseAngles: [Double?] = []
+    private(set) var speed: Double = 0
+    private(set) var isHolding = false
 
     private static let wrongSidePenalty: Double = 3
     private static let sideThreshold: Double = 0.2
-    private static let detourBoost: Double = 2
+    private static let detourBoost: Double = 0.8
     private static let seamHoldFraction: Double = 0.05
     private static let seamHoldMax: Double = 4
-    private static let wakeTicks = 14
-    private static let wakeHurry: Double = 3
+    private static let wakeTicks = 30
+    private static let wakeHurry: Double = 1.5
+    private static let accelerationTime: Double = 0.1
     private var hurryRemaining = 0
+    private var lastDirection: Double = 0
 
     private struct Route {
         var first: Double
@@ -149,13 +153,19 @@ struct PetPlayhead {
                     hurryRemaining = Self.wakeTicks
                 }
             } else if restsAcrossSeam(target: target, chord: cutRange) {
+                let lo = Double(cutRange.lowerBound), hi = Double(cutRange.upperBound)
+                value = abs(value - lo) < abs(value - hi) ? lo : hi
+                speed = 0
+                isHolding = true
                 return false
             }
         }
+        isHolding = false
         let route = plan(to: Double(target), count: count, wrapping: wrapping, chord: chord, seam: cutRange)
         let goal = route.teleportTo == nil ? value + route.first : Double(target)
         if route.total < 0.01 {
             value = normalized(goal, count: count, upperBound: upperBound, wraps: wraps)
+            speed = 0
             return false
         }
         var hurry = boost(toward: target)
@@ -163,19 +173,29 @@ struct PetPlayhead {
             hurry = max(hurry, Self.wakeHurry)
             hurryRemaining -= 1
         }
-        var advance = route.total * min(1, dt * responsePerSecond * hurry)
-        let limit = maxPosesPerSecond * dt * hurry
-        if advance > limit { advance = limit }
-        if route.total <= limit && route.total < 1 {
+        let leg = route.first != 0 ? route.first : route.second
+        let direction: Double = leg >= 0 ? 1 : -1
+        if direction != lastDirection {
+            speed = 0
+            lastDirection = direction
+        }
+        let ceiling = maxPosesPerSecond * hurry
+        let desired = min(route.total * responsePerSecond * hurry, ceiling)
+        speed = min(desired, speed + ceiling / Self.accelerationTime * dt)
+        let advance = speed * dt
+        var cut = false
+        if route.total <= ceiling * dt && route.total < 1 {
             value = goal
+            speed = 0
         } else if let landing = route.teleportTo, advance >= abs(route.first) {
             let remaining = advance - abs(route.first)
             value = landing + (route.second >= 0 ? remaining : -remaining)
+            cut = true
         } else {
-            value += route.first >= 0 ? advance : -advance
+            value += direction * advance
         }
         value = normalized(value, count: count, upperBound: upperBound, wraps: wraps)
-        return false
+        return cut
     }
 
     private func restsAcrossSeam(target: Int, chord: ClosedRange<Int>) -> Bool {

@@ -32,6 +32,14 @@ enum PetProfileDefaults {
             dislikes: "being left out of anything",
             notes: "Retired from carrying sticks, now supervises desk work full time. "
                  + "Tilts his head at every notification and expects an explanation."),
+        "natchan": PetProfile(
+            displayName: "Natchan",
+            breed: "American Shorthair",
+            gender: "♀",
+            likes: "warm laps, the space bar",
+            dislikes: "scratchy collars",
+            notes: "The original WallPets cat. Follows the cursor with her whole head and pretends she was not looking "
+                 + "the moment you look back."),
         "leopard": PetProfile(
             displayName: "Kesi",
             breed: "African Leopard",

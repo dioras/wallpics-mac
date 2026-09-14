@@ -11,7 +11,7 @@ final class PetRenderer {
     private var playhead: PetPlayhead
     private let chord: ClosedRange<Int>?
     private static let apexSine = 0.85
-    private static let restAfter: Double = 6
+    private static let restAfter: Double = 4
     private var heldTarget: GazeTarget?
     private var stillFor: Double = 0
     private var lastCursor: CGPoint?
@@ -20,6 +20,7 @@ final class PetRenderer {
     private var lastEnqueuedPose = -1
     private var clock = CMTime.zero
     private var loadTask: Task<Void, Never>?
+    private var droppedFrames = 0
 
     private(set) var isLoaded = false
     private(set) var decodeCount = 0
@@ -42,6 +43,7 @@ final class PetRenderer {
         layer.videoGravity = .resizeAspect
         layer.isOpaque = false
         layer.backgroundColor = NSColor.clear.cgColor
+        layer.actions = ["bounds": NSNull(), "position": NSNull(), "opacity": NSNull(), "hidden": NSNull()]
     }
 
     deinit {
@@ -129,11 +131,12 @@ final class PetRenderer {
         if pose != lastEnqueuedPose {
             enqueue(pose: pose)
         }
-        return pose != stepTarget
+        return pose != stepTarget && !playhead.isHolding
     }
 
     private func resolveTarget(raw: GazeTarget, cursor: CGPoint?, dt: Double) -> GazeTarget {
-        if let cursor, let last = lastCursor, hypot(cursor.x - last.x, cursor.y - last.y) > 1 {
+        let moved = cursor.map { c in lastCursor.map { hypot(c.x - $0.x, c.y - $0.y) > 1 } ?? true } ?? false
+        if moved {
             stillFor = 0
             isResting = false
         } else {
@@ -165,9 +168,18 @@ final class PetRenderer {
             Log.app.error("PetRenderer: \(self.species.slug, privacy: .public) renderer failed — \(renderer.error?.localizedDescription ?? "unknown", privacy: .public); flushing")
             renderer.flush()
         }
-        guard renderer.isReadyForMoreMediaData else { return }
+        guard renderer.isReadyForMoreMediaData else {
+            droppedFrames += 1
+            if droppedFrames % 120 == 1 {
+                Log.app.notice("PetRenderer: \(self.species.slug, privacy: .public) display layer not ready, \(self.droppedFrames) frames dropped so far")
+            }
+            return
+        }
         clock = CMTimeAdd(clock, CMTime(value: 1, timescale: 600))
-        guard let buffer = sequence.displayBuffer(at: pose, presentedAt: clock) else { return }
+        guard let buffer = sequence.displayBuffer(at: pose, presentedAt: clock) else {
+            Log.app.error("PetRenderer: \(self.species.slug, privacy: .public) could not build a display buffer for pose \(pose)")
+            return
+        }
         renderer.enqueue(buffer)
         lastEnqueuedPose = pose
         decodeCount += 1

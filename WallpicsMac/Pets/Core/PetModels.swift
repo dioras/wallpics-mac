@@ -83,17 +83,17 @@ enum PetSensitivity: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var responsePerSecond: Double {
         switch self {
-        case .calm: return 6.5
-        case .normal: return 11
-        case .alert: return 18
+        case .calm: return 5
+        case .normal: return 9
+        case .alert: return 14
         }
     }
 
     var turnsPerSecond: Double {
         switch self {
-        case .calm: return 1.1
-        case .normal: return 1.8
-        case .alert: return 3.0
+        case .calm: return 0.9
+        case .normal: return 1.5
+        case .alert: return 2.2
         }
     }
 

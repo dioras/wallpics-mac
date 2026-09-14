@@ -27,56 +27,84 @@ func makeSpecies(_ base: LiveGazeFixture, premium: Bool = false) -> PetSpecies {
                mediaURL: URL(fileURLWithPath: "/tmp/x"), posterURL: URL(fileURLWithPath: "/tmp/y"))
 }
 
-struct LegacyPlayhead {
-    var value: Double
-    var responsePerSecond: Double = 11
-    var maxPosesPerSecond: Double = 260
-    mutating func step(dt: Double, target: Int, upperBound: Int, wraps: Bool = false) {
-        let count = Double(upperBound + 1)
-        var goal = Double(target)
-        var delta = goal - value
-        if wraps, upperBound > 0, abs(delta) > count / 2 {
-            delta -= delta > 0 ? count : -count
-            goal = value + delta
+func testLinearPetsApproachWithoutOvershoot() {
+    var rng = SystemRandomNumberGenerator()
+    var overshoots = 0
+    var stalls = 0
+    for _ in 0..<500 {
+        let upper = Int.random(in: 20...240, using: &rng)
+        let start = Int.random(in: 0...upper, using: &rng)
+        let target = Int.random(in: 0...upper, using: &rng)
+        var head = PetPlayhead(pose: start)
+        head.apply(sensitivity: .normal, gazeSpan: max(upper, 1))
+        var previous = Double(start)
+        var arrived = false
+        for _ in 0..<400 {
+            head.step(dt: 1.0 / 60.0, target: target, upperBound: upper)
+            let before = previous, after = head.value
+            if (Double(target) - before) * (Double(target) - after) < 0 { overshoots += 1 }
+            previous = after
+            if head.poseIndex == target { arrived = true; break }
         }
-        if abs(delta) < 0.01 {
-            value = normalized(goal, count: count, upperBound: upperBound, wraps: wraps)
-            return
-        }
-        var advance = delta * min(1, dt * responsePerSecond)
-        let limit = maxPosesPerSecond * dt
-        if abs(advance) > limit { advance = advance > 0 ? limit : -limit }
-        if abs(delta) <= limit && abs(delta) < 1 {
-            value = goal
-        } else {
-            value += advance
-        }
-        value = normalized(value, count: count, upperBound: upperBound, wraps: wraps)
+        if !arrived { stalls += 1 }
     }
-    private func normalized(_ raw: Double, count: Double, upperBound: Int, wraps: Bool) -> Double {
-        guard wraps, count > 0 else { return min(max(raw, 0), Double(max(upperBound, 0))) }
-        return raw - floor(raw / count) * count
+    check(overshoots == 0, "linear pets never overshoot the target", "overshoots=\(overshoots)")
+    check(stalls == 0, "linear pets always arrive within 400 ticks", "stalls=\(stalls)")
+}
+
+func testAccelerationRamp() {
+    var head = PetPlayhead(pose: 0)
+    head.apply(sensitivity: .normal, gazeSpan: 150)
+    let cap = head.maxPosesPerSecond / 60.0
+    var advances: [Double] = []
+    var previous = head.value
+    for _ in 0..<12 {
+        head.step(dt: 1.0 / 60.0, target: 140, upperBound: 180)
+        advances.append(head.value - previous)
+        previous = head.value
+    }
+    check(advances[0] < 0.4 * cap, "first tick starts gently", "first=\(advances[0]) cap=\(cap)")
+    check(advances[0] < advances[1] && advances[1] < advances[2], "speed ramps up over the first ticks", "\(advances.prefix(4))")
+    check(advances.max().map { $0 <= cap + 1e-9 } == true, "speed never exceeds the cap", "\(advances.max() ?? 0) > \(cap)")
+    check(advances.last.map { abs($0 - cap) < 1e-6 } == true, "cruises at the cap once ramped", "\(advances.last ?? 0)")
+    var reverse = head
+    var moved: [Double] = []
+    previous = reverse.value
+    for _ in 0..<3 {
+        reverse.step(dt: 1.0 / 60.0, target: 5, upperBound: 180)
+        moved.append(previous - reverse.value)
+        previous = reverse.value
+    }
+    check(moved[0] < 0.4 * cap, "reversing direction restarts the ramp", "\(moved)")
+}
+
+func testSensitivityPacing() {
+    for level in PetSensitivity.allCases {
+        var head = PetPlayhead(pose: 0)
+        head.apply(sensitivity: level, gazeSpan: 150)
+        let loopsPerSecond = head.maxPosesPerSecond / 150
+        check(loopsPerSecond >= 0.8 && loopsPerSecond <= 2.4, "\(level.rawValue) sweeps between 0.8 and 2.4 loops per second", "\(loopsPerSecond)")
+        check(head.responsePerSecond >= 4 && head.responsePerSecond <= 15, "\(level.rawValue) response in WallPets range", "\(head.responsePerSecond)")
     }
 }
 
-func testNoChordMatchesLegacy() {
-    var rng = SystemRandomNumberGenerator()
-    var mismatches = 0
-    for _ in 0..<2000 {
-        let upper = Int.random(in: 1...240, using: &rng)
-        let wraps = Bool.random(using: &rng)
-        let start = Int.random(in: 0...upper, using: &rng)
-        var legacy = LegacyPlayhead(value: Double(start))
-        var modern = PetPlayhead(pose: start)
-        for _ in 0..<12 {
-            let target = Int.random(in: 0...upper, using: &rng)
-            let dt = Double.random(in: 0.004...0.07, using: &rng)
-            legacy.step(dt: dt, target: target, upperBound: upper, wraps: wraps)
-            modern.step(dt: dt, target: target, upperBound: upper, wraps: wraps)
-            if legacy.value != modern.value { mismatches += 1; break }
-        }
+func testTeleportReportsCut() {
+    var head = PetPlayhead(pose: 52)
+    head.apply(sensitivity: .alert, gazeSpan: 150)
+    var cuts = 0
+    for _ in 0..<200 {
+        if head.step(dt: 1.0 / 60.0, target: 140, upperBound: 180, wraps: true, chord: 13...170, seam: 50...146) { cuts += 1 }
+        if head.poseIndex == 140 { break }
     }
-    check(mismatches == 0, "no-chord trajectories identical to legacy", "mismatches=\(mismatches)")
+    check(cuts == 1, "crossing the apex seam reports exactly one cut", "cuts=\(cuts)")
+    var plain = PetPlayhead(pose: 60)
+    plain.apply(sensitivity: .normal, gazeSpan: 150)
+    var plainCuts = 0
+    for _ in 0..<200 {
+        if plain.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 13...170, seam: 50...146) { plainCuts += 1 }
+        if plain.poseIndex == 100 { break }
+    }
+    check(plainCuts == 0, "walking inside the loop reports no cut")
 }
 
 func testChordCrossingSkipsFrontDetour() {
@@ -177,6 +205,40 @@ func testSideAwareRouting() {
     check(quickUp <= quick.count, "wake walk is bounded", "\(quickUp)")
 }
 
+func testPetmakerV2Routing() {
+    for (pet, chord) in v2Fixtures {
+        let n = pet.table.count
+        let angles = GazeMap.poseAngles(table: pet.table, poseCount: pet.poseCount, loop: chord)
+        let inside = (chord.lowerBound...chord.upperBound).filter { angles[$0] == nil }
+        check(inside.isEmpty, "\(pet.name): every loop pose gets an angle", "\(inside)")
+        func poses(_ predicate: (Double) -> Bool) -> Set<Int> {
+            Set(angles.enumerated().compactMap { item -> Int? in
+                guard let a = item.element, predicate(cos(a)) else { return nil }
+                return item.offset
+            })
+        }
+        let rightPoses = poses { $0 > 0.3 }.subtracting([pet.neutral])
+        let leftPoses = poses { $0 < -0.3 }.subtracting([pet.neutral])
+        let right = pet.table[Int(Double(n) * 0.5)]
+        let left = pet.table[0]
+        let downRight = pet.table[Int(Double(n) * 0.38)]
+        let out = trajectory(from: pet.neutral, to: right, chord: chord, angles: angles)
+        check(out.last == right, "\(pet.name): neutral -> right arrives", "\(out.last ?? -1)")
+        check(out.allSatisfy { !leftPoses.contains($0) }, "\(pet.name): neutral -> right never shows a left frame", "\(out.filter { leftPoses.contains($0) })")
+        let back = trajectory(from: right, to: pet.neutral, chord: chord, angles: angles)
+        check(back.last == pet.neutral, "\(pet.name): right -> neutral arrives")
+        check(back.allSatisfy { !leftPoses.contains($0) }, "\(pet.name): right -> neutral never shows a left frame", "\(back.filter { leftPoses.contains($0) })")
+        let toLeft = trajectory(from: pet.neutral, to: left, chord: chord, angles: angles)
+        check(toLeft.last == left, "\(pet.name): neutral -> left arrives", "\(toLeft.last ?? -1)")
+        check(toLeft.allSatisfy { !rightPoses.contains($0) }, "\(pet.name): neutral -> left never shows a right frame", "\(toLeft.filter { rightPoses.contains($0) })")
+        let across = trajectory(from: right, to: left, chord: chord, angles: angles)
+        check(across.count < 120, "\(pet.name): right -> left crosses in reasonable time", "\(across.count)")
+        let dr = trajectory(from: pet.neutral, to: downRight, chord: chord, angles: angles)
+        check(dr.last == downRight, "\(pet.name): neutral -> down-right arrives")
+        check(dr.allSatisfy { !leftPoses.contains($0) }, "\(pet.name): neutral -> down-right never travels through the left side", "\(dr.filter { leftPoses.contains($0) })")
+    }
+}
+
 func testWakeAndRest() {
     var head = PetPlayhead(pose: 180)
     head.apply(sensitivity: .normal, gazeSpan: 150)
@@ -199,7 +261,9 @@ func testWakeAndRest() {
     check(back.last == 180 && back.count > 8, "rest eases back to neutral instead of cutting", "\(back.count) ticks")
     var inside = PetPlayhead(pose: 60)
     inside.apply(sensitivity: .normal, gazeSpan: 150)
-    inside.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 13...170, seam: 50...146)
+    for _ in 0..<4 {
+        inside.step(dt: 1.0 / 60.0, target: 100, upperBound: 180, wraps: true, chord: 13...170, seam: 50...146)
+    }
     check(inside.poseIndex > 60 && inside.poseIndex < 100, "inside the loop still walks", "pose=\(inside.poseIndex)")
 }
 
@@ -248,16 +312,24 @@ func testPremiumGate() {
     check(premium.remoteID == liveFixtures[0].id, "remoteID parses slug")
 }
 
-testNoChordMatchesLegacy()
+testLinearPetsApproachWithoutOvershoot()
+testAccelerationRamp()
+testSensitivityPacing()
+testTeleportReportsCut()
 testChordCrossingSkipsFrontDetour()
 testChordFromNeutralStaysOnTargetSide()
 testPetmakerRoutesNeverGlanceWrongWay()
 testSideAwareRouting()
+testPetmakerV2Routing()
 func testSeamHold() {
     var head = PetPlayhead(pose: 146)
     head.apply(sensitivity: .normal, gazeSpan: 150)
     let moved = head.step(dt: 1.0 / 60.0, target: 54, upperBound: 180, wraps: true, chord: 51...148)
-    check(!moved && head.poseIndex == 146, "target just across the seam holds the pose", "pose=\(head.poseIndex)")
+    check(!moved && head.poseIndex == 148, "target just across the seam parks on the seam end frame", "pose=\(head.poseIndex)")
+    var transit = PetPlayhead(pose: 144)
+    transit.apply(sensitivity: .normal, gazeSpan: 150)
+    transit.step(dt: 1.0 / 60.0, target: 53, upperBound: 180, wraps: true, chord: 51...148)
+    check(transit.poseIndex == 148 && transit.isHolding, "hold never rests on a pose before the seam end", "pose=\(transit.poseIndex)")
     var far = PetPlayhead(pose: 146)
     far.apply(sensitivity: .normal, gazeSpan: 150)
     var visited: [Int] = []

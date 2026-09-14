@@ -32,7 +32,7 @@ final class DesktopPetManager {
     @ObservationIgnored private var settledSince: CFTimeInterval = 0
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
 
-    private let idleGracePeriod: CFTimeInterval = 7.5
+    private let idleGracePeriod: CFTimeInterval = 5.5
     private static let maxSubjectScreenFraction: CGFloat = 0.8
 
     private init() {
