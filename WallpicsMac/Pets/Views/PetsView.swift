@@ -13,29 +13,39 @@ struct PetsView: View {
 
     var body: some View {
         GeometryReader { geo in
-            ScrollView {
+            if let active = model.active, geo.size.width >= Self.sideBySideMinWidth {
                 VStack(alignment: .leading, spacing: Theme.Space.l) {
                     header
-                    if let active = model.active, geo.size.width >= Self.sideBySideMinWidth {
-                        HStack(alignment: .top, spacing: Theme.Space.l) {
+                    HStack(alignment: .top, spacing: Theme.Space.l) {
+                        ScrollView(showsIndicators: false) {
                             activePetCard(active, sideBySide: true)
-                                .frame(width: Self.activeColumnWidth)
-                            VStack(alignment: .leading, spacing: Theme.Space.l) {
-                                toolbar
-                                content
-                            }
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                                .padding(.bottom, Theme.Space.xxl)
                         }
-                    } else {
+                        .frame(width: Self.activeColumnWidth)
+                        VStack(alignment: .leading, spacing: Theme.Space.l) {
+                            toolbar
+                            ScrollView {
+                                content
+                                    .padding(.bottom, Theme.Space.xxl)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                    }
+                }
+                .padding(.horizontal, Theme.Space.xl)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Theme.Space.l) {
+                        header
                         if let active = model.active {
                             activePetCard(active, sideBySide: false)
                         }
                         toolbar
                         content
                     }
+                    .padding(.horizontal, Theme.Space.xl)
+                    .padding(.bottom, Theme.Space.xxl)
                 }
-                .padding(.horizontal, Theme.Space.xl)
-                .padding(.bottom, Theme.Space.xxl)
             }
         }
         .scrollContentBackground(.hidden)

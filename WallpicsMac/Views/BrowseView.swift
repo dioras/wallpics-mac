@@ -174,7 +174,7 @@ struct BrowseView: View {
     private static let railCardWidth: CGFloat = 232
 
     private func wallpaperRail(_ items: [Wallpaper]) -> some View {
-        HWheelScroll {
+        HRail {
             HStack(spacing: Theme.Space.m) {
                 ForEach(items) { wallpaper in
                     WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
@@ -198,7 +198,7 @@ struct BrowseView: View {
                           subtitle: String(localized: "Desktop companions that watch your cursor")) {
                 env.selectedSection = .pets
             }
-            HWheelScroll {
+            HRail {
                 HStack(spacing: Theme.Space.m) {
                     ForEach(pets) { pet in
                         PetTile(pet: pet, isPlaced: PetStore.shared.isActive(pet.slug))
@@ -216,7 +216,7 @@ struct BrowseView: View {
     /// The small strip over the featured hero — this is "Most Popular" now. Tapping a card features
     /// it above. Filled with real backend-popular content that reacts to the selected category.
     private var heroCarousel: some View {
-        HWheelScroll {
+        HRail {
             HStack(spacing: Theme.Space.m) {
                 ForEach(model.popularRail) { wp in
                     let active = featuredWallpaper?.id == wp.id

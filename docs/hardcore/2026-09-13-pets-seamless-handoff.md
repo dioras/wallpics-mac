@@ -129,3 +129,17 @@ The app-side fade covers the old assets until then.
 - Alex judged the morph worse than before. Default is now `--seam cut`: no synthetic poses at all; the second up frame is a
   byte copy of the first (the two most similar real up frames), the app cuts between identical frames. `--seam dissolve` and
   `--seam morph` remain opt-in. Suite 48 OK (new SeamCutTests). 14 test animals rebuilt (v8) and installed, build green.
+
+## Round 7 (2026-09-15) — Simon's overview video (`~/Downloads/09-15 macOS Pets.MOV`, transcript `scratchpad/simon/audio.srt`)
+- Asks: (a) jump at the top on a user-uploaded dog → backend pet built with the old script, fix = Misha deploys the 09-14 zip;
+  (b) Misha's new 360 cat has a "blind spot top-left" → his table is linear (constant head speed assumed); our petmaker run
+  on his pet 41 mov (`--key alpha --poses 435`) yields measured directions (score 100, cut seam 117→311);
+  (c) Pets tab: preview must stay while the grid scrolls; (d) Browse: wheel-down got stuck on rails, wants arrow buttons;
+  (e) Live rail does not move sideways on click.
+- App: `PetsView` side-by-side layout = fixed preview column (own ScrollView) + toolbar + grid ScrollView; stacked layout
+  unchanged. `HWheelScroll` no longer hijacks vertical wheel deltas (vertical → page, horizontal → rail); new `RailScroller`
+  + `HRail` with hover-revealed chevron buttons paging 80 % of the visible width (animated); Browse wallpaper rails, pets rail
+  and the popular carousel use `HRail`; chip rows keep `HWheelScroll`. Build green.
+- Verified: screenshot of the Pets tab shows the new layout. NOT verified interactively (Alex was using the app under Xcode):
+  grid-only scrolling, arrow buttons, wheel routing. Live API now serves 24 pets; 3/40/41 have 435 poses with
+  `introStart/introEnd/transitionStart/transitionEnd`, which the app ignores (tail routing already covers them).
