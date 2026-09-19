@@ -15,45 +15,10 @@ struct PetProfile: Codable, Equatable, Sendable {
 }
 
 enum PetProfileDefaults {
-    static let table: [String: PetProfile] = [
-        "ginger": PetProfile(
-            displayName: "Biscuit",
-            breed: "European Shorthair",
-            gender: "♀",
-            likes: "sunny windowsills, warm laps",
-            dislikes: "closed doors, the vacuum",
-            notes: "Found under a parked car at six weeks old and has been unbothered ever since. "
-                 + "Watches the cursor the way other cats watch birds."),
-        "dog": PetProfile(
-            displayName: "Rusty",
-            breed: "Golden Retriever",
-            gender: "♂",
-            likes: "tennis balls, being told he is good",
-            dislikes: "being left out of anything",
-            notes: "Retired from carrying sticks, now supervises desk work full time. "
-                 + "Tilts his head at every notification and expects an explanation."),
-        "natchan": PetProfile(
-            displayName: "Natchan",
-            breed: "American Shorthair",
-            gender: "♀",
-            likes: "warm laps, the space bar",
-            dislikes: "scratchy collars",
-            notes: "The original WallPets cat. Follows the cursor with her whole head and pretends she was not looking "
-                 + "the moment you look back."),
-        "leopard": PetProfile(
-            displayName: "Kesi",
-            breed: "African Leopard",
-            gender: "♀",
-            likes: "high shelves, long silences",
-            dislikes: "small talk, sudden meetings",
-            notes: "Keeps her own hours and answers to no calendar. "
-                 + "Will hold eye contact until you finish the sentence you started.")
-    ]
-
-    static func profile(for slug: String, fallbackName: String) -> PetProfile {
-        table[slug] ?? PetProfile(displayName: fallbackName, breed: fallbackName,
-                                  gender: "—", likes: "—", dislikes: "—",
-                                  notes: "No notes yet. Add a few and they will show up here.")
+    static func placeholder(named name: String) -> PetProfile {
+        PetProfile(displayName: name, breed: name,
+                   gender: "—", likes: "—", dislikes: "—",
+                   notes: "No notes yet. Add a few and they will show up here.")
     }
 }
 
@@ -63,15 +28,24 @@ final class PetProfileStore {
     static let shared = PetProfileStore()
 
     private var profiles: [String: PetProfile]
+    private(set) var lastSaveError: String?
 
     private static var file: URL { PetPaths.root.appendingPathComponent("profiles.json") }
 
     init() {
-        if let data = try? Data(contentsOf: Self.file),
-           let decoded = try? JSONDecoder().decode([String: PetProfile].self, from: data) {
-            profiles = decoded
-        } else {
-            profiles = [:]
+        profiles = Self.loadProfiles()
+    }
+
+    private static func loadProfiles() -> [String: PetProfile] {
+        guard let data = try? Data(contentsOf: file) else { return [:] }
+        do {
+            return try JSONDecoder().decode([String: PetProfile].self, from: data)
+        } catch {
+            let backup = file.appendingPathExtension("corrupt")
+            try? FileManager.default.removeItem(at: backup)
+            try? FileManager.default.moveItem(at: file, to: backup)
+            Log.app.error("PetProfileStore: unreadable profiles moved aside — \(error.localizedDescription, privacy: .public)")
+            return [:]
         }
     }
 
@@ -81,12 +55,27 @@ final class PetProfileStore {
     }
 
     func profile(for species: PetSpecies) -> PetProfile {
-        profiles[species.slug] ?? PetProfileDefaults.profile(for: species.slug, fallbackName: species.name)
+        profiles[species.slug] ?? PetProfileDefaults.placeholder(named: species.name)
+    }
+
+    func displayName(for species: PetSpecies) -> String {
+        let chosen = profile(for: species).displayName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let untouched = PetProfileDefaults.placeholder(named: species.name).displayName
+        return chosen.isEmpty || chosen == untouched ? species.name : chosen
     }
 
     func update(_ profile: PetProfile, for species: PetSpecies) {
-        profiles[species.slug] = profile
+        if profile == PetProfileDefaults.placeholder(named: species.name) {
+            guard profiles.removeValue(forKey: species.slug) != nil else { return }
+        } else {
+            profiles[species.slug] = profile
+        }
         persist()
+    }
+
+    func clearSaveError() {
+        lastSaveError = nil
     }
 
     func reset(_ species: PetSpecies) {
@@ -97,8 +86,10 @@ final class PetProfileStore {
     private func persist() {
         do {
             try JSONEncoder().encode(profiles).write(to: Self.file, options: .atomic)
+            lastSaveError = nil
         } catch {
-            Log.app.error("PetProfileStore: save failed — \(error.localizedDescription, privacy: .public)")
+            lastSaveError = String(localized: "Could not save these details — they will be lost when WallPics quits.")
+            Log.app.error("PetProfileStore: save failed at \(Self.file.lastPathComponent, privacy: .public) — \(error.localizedDescription, privacy: .public)")
         }
     }
 }

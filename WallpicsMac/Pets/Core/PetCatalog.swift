@@ -2,125 +2,33 @@ import CoreGraphics
 import CryptoKit
 import Foundation
 import ImageIO
+import Observation
 
 enum PetCatalog {
-    private struct CatalogFile: Decodable {
-        struct Entry: Decodable {
-            let slug: String
-            let name: String
-        }
-        let pets: [Entry]
-    }
-
-    private struct PetFile: Decodable {
-        struct Point: Decodable {
-            let x: Double
-            let y: Double
-        }
-        let slug: String
-        let name: String
-        let width: Int
-        let height: Int
-        let poseCount: Int
-        let neutralPose: Int
-        let faceCenter: Point
-        let subjectHeight: Double?
-        let subjectBottom: Double?
-        let angleBuckets: Int
-        let angleTable: [Int]
-        let mirrorTable: [Bool]?
-        let pivotUp: Int?
-        let pivotDown: Int?
-        let wraps: Bool?
-        let loopStart: Int?
-        let loopEnd: Int?
-    }
-
-    static let bundled: [PetSpecies] = load()
-
     @MainActor
-    static var all: [PetSpecies] { bundled + RemotePetService.shared.pets }
+    static var all: [PetSpecies] { RemotePetService.shared.pets }
 
     @MainActor
     static func species(slug: String) -> PetSpecies? {
         all.first { $0.slug == slug }
     }
-
-    private static var root: URL? {
-        Bundle.main.resourceURL?.appendingPathComponent("Pets", isDirectory: true)
-    }
-
-    private static func bundledLoop(_ meta: PetFile) -> ClosedRange<Int>? {
-        guard meta.wraps == true, let start = meta.loopStart, let end = meta.loopEnd, start < end else { return nil }
-        let last = max(meta.poseCount - 1, 0)
-        return min(max(start, 0), last)...min(max(end, 0), last)
-    }
-
-    private static func load() -> [PetSpecies] {
-        guard let root else {
-            Log.app.error("PetCatalog: no resource root")
-            return []
-        }
-        let catalogURL = root.appendingPathComponent("catalog.json")
-        guard let data = try? Data(contentsOf: catalogURL),
-              let catalog = try? JSONDecoder().decode(CatalogFile.self, from: data) else {
-            Log.app.error("PetCatalog: cannot read \(catalogURL.path, privacy: .public)")
-            return []
-        }
-        return catalog.pets.compactMap { entry in
-            let dir = root.appendingPathComponent(entry.slug, isDirectory: true)
-            let metaURL = dir.appendingPathComponent("pet.json")
-            let mediaURL = dir.appendingPathComponent("pet.mov")
-            let posterURL = dir.appendingPathComponent("poster.png")
-            guard let metaData = try? Data(contentsOf: metaURL),
-                  let meta = try? JSONDecoder().decode(PetFile.self, from: metaData) else {
-                Log.app.error("PetCatalog: cannot read metadata for \(entry.slug, privacy: .public)")
-                return nil
-            }
-            guard FileManager.default.fileExists(atPath: mediaURL.path) else {
-                Log.app.error("PetCatalog: missing media for \(entry.slug, privacy: .public)")
-                return nil
-            }
-            let mirrorCount = meta.mirrorTable?.count ?? meta.angleBuckets
-            guard meta.angleTable.count == meta.angleBuckets,
-                  mirrorCount == meta.angleBuckets,
-                  meta.poseCount > 0 else {
-                Log.app.error("PetCatalog: malformed gaze map for \(entry.slug, privacy: .public)")
-                return nil
-            }
-            return PetSpecies(
-                slug: meta.slug,
-                name: entry.name,
-                pixelWidth: meta.width,
-                pixelHeight: meta.height,
-                poseCount: meta.poseCount,
-                neutralPose: meta.neutralPose,
-                faceCenter: CGPoint(x: meta.faceCenter.x, y: meta.faceCenter.y),
-                subjectHeight: CGFloat(min(max(meta.subjectHeight ?? 1, 0.2), 1)),
-                subjectBottom: CGFloat(min(max(meta.subjectBottom ?? 1, 0.2), 1)),
-                angleTable: meta.angleTable,
-                mirrorTable: meta.mirrorTable ?? Array(repeating: false, count: meta.angleTable.count),
-                pivotUp: meta.pivotUp ?? meta.neutralPose,
-                pivotDown: meta.pivotDown ?? meta.neutralPose,
-                wrapsAround: meta.wraps ?? false,
-                gazeLoop: bundledLoop(meta),
-                mediaURL: mediaURL,
-                posterURL: posterURL
-            )
-        }
-    }
 }
 
-
 @MainActor
+@Observable
 final class RemotePetService {
     static let shared = RemotePetService()
     static let didUpdate = Notification.Name("RemotePetServiceDidUpdate")
 
     private(set) var pets: [PetSpecies] = []
-    private var refreshTask: Task<Void, Never>?
+    private(set) var isRefreshing = false
+    private(set) var lastError: String?
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
 
     private static let listURL = URL(string: "https://backend.wallpics.app/api/pets")!
+    private static var unreachableMessage: String {
+        String(localized: "Couldn't reach WallPics. Check your connection and try again.")
+    }
     private static let pageSize = 24
     private static let maxPages = 20
 
@@ -204,6 +112,8 @@ final class RemotePetService {
     }
 
     private func performRefresh() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
         do {
             let (remotePets, pageCount) = try await fetchAllPages()
             var loaded: [PetSpecies] = []
@@ -214,10 +124,17 @@ final class RemotePetService {
                     Log.api.error("RemotePetService: pet \(pet.id) skipped — \(String(describing: error), privacy: .public)")
                 }
             }
+            guard !loaded.isEmpty else {
+                lastError = Self.unreachableMessage
+                Log.api.error("RemotePetService: refresh produced no usable pets (\(remotePets.count) listed), keeping \(self.pets.count) cached")
+                return
+            }
             pets = loaded
+            lastError = nil
             Log.api.info("RemotePetService: loaded \(loaded.count) pets from \(pageCount) page(s)")
             NotificationCenter.default.post(name: Self.didUpdate, object: nil)
         } catch {
+            lastError = Self.unreachableMessage
             Log.api.error("RemotePetService: listing failed — \(String(describing: error), privacy: .public)")
         }
     }

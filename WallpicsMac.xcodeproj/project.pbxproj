@@ -48,6 +48,7 @@
 		AC000001000000000000001 /* Wallpaper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000001000000000000001 /* Wallpaper.swift */; };
 		AC000002000000000000001 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000002000000000000001 /* AppSettings.swift */; };
 		AC000003000000000000001 /* SubscriptionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000003000000000000001 /* SubscriptionState.swift */; };
+		AC000091000000000000001 /* WallpaperAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000091000000000000001 /* WallpaperAccess.swift */; };
 		AC000004000000000000001 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000004000000000000001 /* Logger.swift */; };
 		AC000005000000000000001 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000005000000000000001 /* KeychainStore.swift */; };
 		AC000006000000000000001 /* WallpaperAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000006000000000000001 /* WallpaperAPI.swift */; };
@@ -96,7 +97,6 @@
 		B56B5E45C3CF13F1B91D4EF9 /* WallpicsPhotoWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAD64552A46CD4C3AB449DF4 /* WallpicsPhotoWidget.swift */; };
 		BEED5DBC7B8468B837C7F6F2 /* DesktopPetWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3900E5799CE0DFDB8095859 /* DesktopPetWindow.swift */; };
 		C706000A029426925A98EC2E /* WidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C5C425870D8FF97C70E085 /* WidgetModels.swift */; };
-		DB350630BC7E36FC994A939F /* Pets in Resources */ = {isa = PBXBuildFile; fileRef = ADFE8DCA3245E9E941422184 /* Pets */; };
 		DC44CFC23A302EC527823E6D /* WidgetBundleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC5E6B57B74DF56E4D4630E /* WidgetBundleStore.swift */; };
 		EB347DC536C79EEEC882C43F /* PetRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 308F4D48172C2D0468B561F9 /* PetRenderer.swift */; };
 		EC909DF5EFAEEDD79C83A861 /* SelectWidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE3CE76D02AAD667C56E43A8 /* SelectWidgetIntent.swift */; };
@@ -172,6 +172,7 @@
 		AD000001000000000000001 /* Wallpaper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wallpaper.swift; sourceTree = "<group>"; };
 		AD000002000000000000001 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		AD000003000000000000001 /* SubscriptionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionState.swift; sourceTree = "<group>"; };
+		AD000091000000000000001 /* WallpaperAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperAccess.swift; sourceTree = "<group>"; };
 		AD000004000000000000001 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		AD000005000000000000001 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		AD000006000000000000001 /* WallpaperAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperAPI.swift; sourceTree = "<group>"; };
@@ -217,7 +218,6 @@
 		AD0000A000000000000008 /* AnimatedWebPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedWebPView.swift; sourceTree = "<group>"; };
 		AD0000A000000000000009 /* UploadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadsView.swift; sourceTree = "<group>"; };
 		AD0000A000000000000099 /* HWheelScroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HWheelScroll.swift; sourceTree = "<group>"; };
-		ADFE8DCA3245E9E941422184 /* Pets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder; path = Pets; sourceTree = "<group>"; };
 		AEE5F6D360845697647D3808 /* WidgetPaths.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetPaths.swift; sourceTree = "<group>"; };
 		B1363DAAA59CFC600046B6C1 /* PetCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetCatalog.swift; sourceTree = "<group>"; };
 		B1F924FF12FB8CEECBD4EA2F /* WidgetCatalogModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetCatalogModels.swift; sourceTree = "<group>"; };
@@ -426,6 +426,7 @@
 				AD0000A000000000000007 /* WallpaperCategory.swift */,
 				AD000002000000000000001 /* AppSettings.swift */,
 				AD000003000000000000001 /* SubscriptionState.swift */,
+				AD000091000000000000001 /* WallpaperAccess.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -523,7 +524,6 @@
 				AD000061000000000000001 /* PrivacyInfo.xcprivacy */,
 				AD000062000000000000001 /* StoreKitTesting.storekit */,
 				AD000071000000000000001 /* Localizable.xcstrings */,
-				ADFE8DCA3245E9E941422184 /* Pets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -714,7 +714,6 @@
 				AC000061000000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 				AC000062000000000000001 /* StoreKitTesting.storekit in Resources */,
 				AC000071000000000000001 /* Localizable.xcstrings in Resources */,
-				DB350630BC7E36FC994A939F /* Pets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -751,6 +750,7 @@
 				AC000001000000000000001 /* Wallpaper.swift in Sources */,
 				AC000002000000000000001 /* AppSettings.swift in Sources */,
 				AC000003000000000000001 /* SubscriptionState.swift in Sources */,
+				AC000091000000000000001 /* WallpaperAccess.swift in Sources */,
 				AC000004000000000000001 /* Logger.swift in Sources */,
 				AC000005000000000000001 /* KeychainStore.swift in Sources */,
 				AC000006000000000000001 /* WallpaperAPI.swift in Sources */,
@@ -852,7 +852,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 52;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -862,7 +862,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WallpicsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1009,7 +1009,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 52;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1021,7 +1021,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers;
 				PRODUCT_NAME = WallPics;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1039,7 +1039,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 52;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y2QL97Z4A6;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1051,7 +1051,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers;
 				PRODUCT_NAME = WallPics;
@@ -1065,7 +1065,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = WallpicsWidgetExtension/WallpicsWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 52;
 				DEVELOPMENT_TEAM = Y2QL97Z4A6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1075,7 +1075,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.3;
+				MARKETING_VERSION = 1.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyragames.AestheticSadWallppapers.WallpicsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

@@ -60,7 +60,7 @@ struct FeaturedHero: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipped()
-            .task(id: wallpaper?.id) { await loadFullAsset() }
+            .task(id: heroLoadKey) { await loadFullAsset() }
 
             // Legibility scrims: dark feather at the bottom for the title block, and a faint
             // top wash so the floating nav stays readable over bright skies.
@@ -89,12 +89,13 @@ struct FeaturedHero: View {
                         .shadow(color: .black.opacity(0.4), radius: 8, y: 2)
 
                     HStack(spacing: Theme.Space.m) {
+                        let lockReason = lockReason(for: wallpaper)
                         Button(action: { Task { await setAsWallpaper(wallpaper) } }) {
                             HStack(spacing: 7) {
                                 if isSetting {
                                     ProgressView().controlSize(.small)
                                 } else {
-                                    Image(systemName: "macwindow.on.rectangle")
+                                    Image(systemName: lockReason == nil ? "macwindow.on.rectangle" : "lock.fill")
                                         .font(.system(size: 12, weight: .semibold))
                                 }
                                 Text(isSetting ? String(localized: "Setting…") : String(localized: "Set Wallpaper"))
@@ -140,9 +141,9 @@ struct FeaturedHero: View {
                         } else if !store.state.isPro {
                             Button { PaywallPresenter.show() } label: {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "seal")
+                                    Image(systemName: lockReason == nil ? "seal" : "crown.fill")
                                         .font(.system(size: 11, weight: .semibold))
-                                    Text("Remove watermark")
+                                    Text(lockHint(for: lockReason))
                                         .font(.callout.weight(.semibold))
                                 }
                                 .foregroundStyle(.white)
@@ -169,7 +170,36 @@ struct FeaturedHero: View {
         return nil
     }
 
+    private var heroLoadKey: String {
+        guard let wallpaper else { return "none" }
+        return "\(wallpaper.id)-\(lockReason(for: wallpaper) == .premiumContent)"
+    }
+
+    private func lockReason(for wallpaper: Wallpaper) -> WallpaperAccess.Reason? {
+        guard !wallpaper.isLocal else { return nil }
+        let decision = WallpaperAccess.decision(isPremium: wallpaper.isPremiumContent,
+                                                state: store.state,
+                                                setsToday: WallpaperSetQuota.shared.setsToday)
+        if case .paywall(let reason) = decision { return reason }
+        return nil
+    }
+
+    private func lockHint(for reason: WallpaperAccess.Reason?) -> String {
+        switch reason {
+        case .premiumContent: return String(localized: "Pro wallpaper")
+        case .dailyLimit: return String(localized: "Free limit reached for today")
+        case nil: return String(localized: "Remove watermark")
+        }
+    }
+
     private func setAsWallpaper(_ wallpaper: Wallpaper) async {
+        WallpaperSetQuota.shared.refresh()
+        if let reason = lockReason(for: wallpaper) {
+            resultMessage = nil
+            Log.ui.notice("Set wallpaper blocked (\(String(describing: reason), privacy: .public)), showing paywall")
+            PaywallPresenter.show()
+            return
+        }
         isSetting = true
         resultMessage = nil
         progress = 0
@@ -190,7 +220,10 @@ struct FeaturedHero: View {
             didSet = false
         }
 
-        if didSet { maybeOfferAutostart() }
+        if didSet {
+            if !wallpaper.isLocal { WallpaperSetQuota.shared.recordSet() }
+            maybeOfferAutostart()
+        }
     }
 
     // MARK: - Full-resolution preview prefetch
@@ -201,7 +234,7 @@ struct FeaturedHero: View {
         heroShaderURL = nil
         loadProgress = 0
         showFullLoader = false
-        guard let wallpaper else { return }
+        guard let wallpaper, lockReason(for: wallpaper) != .premiumContent else { return }
         switch wallpaper.mediaType {
         case .photo:  await loadFullImage(wallpaper)
         case .live:   await loadFullVideo(wallpaper)

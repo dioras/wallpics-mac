@@ -66,9 +66,13 @@ final class PetBackdropService {
     }
 
     func reapply() {
-        guard let placement = PetStore.shared.placement,
-              let species = PetCatalog.species(slug: placement.speciesSlug),
-              placement.showsProfileBackdrop else { return }
+        guard let placement = PetStore.shared.placement, placement.showsProfileBackdrop else { return }
+        guard let species = PetCatalog.species(slug: placement.speciesSlug) else {
+            if !windows.isEmpty {
+                Log.app.notice("PetBackdropService: \(placement.speciesSlug, privacy: .public) missing from catalog, keeping the current backdrop")
+            }
+            return
+        }
         apply(species: species, placement: placement)
     }
 

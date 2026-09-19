@@ -61,7 +61,8 @@ struct OnboardingFlow: View {
         do {
             // Enough to fill a scrollable 16:9 grid on the pick step (welcome uses the first 5).
             let page = try await WallpaperAPI.shared.desktopWallpapers(page: 1, perPage: 12, sortOrder: .popular)
-            samples = page.data
+            let free = page.data.filter { !$0.isPremiumContent }
+            samples = free.isEmpty ? page.data : free
         } catch {
             Log.ui.error("Onboarding samples failed: \(error.localizedDescription, privacy: .public)")
         }

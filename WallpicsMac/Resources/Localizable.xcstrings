@@ -1,468 +1,313 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Couldn't install the lock screen clip." : {
+    "" : {},
+    "%@ couldn't be read as an image." : {},
+    "%@ free, then %@. Cancel anytime." : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Clip für den Sperrbildschirm konnte nicht installiert werden."
+            "value" : "%@ gratis, danach %@. Jederzeit kündbar."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo instalar el clip de la pantalla de bloqueo."
+            "value" : "%@ gratis, luego %@. Cancela cuando quieras."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impossible d'installer le clip de l'écran verrouillé."
+            "value" : "%@ gratuit, puis %@. Annulable à tout moment."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ロック画面用のクリップをインストールできませんでした。"
+            "value" : "%@無料、その後 %@。いつでも解約可能。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Não foi possível instalar o clipe da tela de bloqueio."
+            "value" : "%@ grátis, depois %@. Cancele quando quiser."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удалось установить ролик для экрана блокировки."
+            "value" : "%@ бесплатно, затем %@. Отмена в любое время."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法安装锁定屏幕视频。"
+            "value" : "%@免费,之后 %@。可随时取消。"
           }
         }
       }
     },
-    "Couldn't restore the original lock screen wallpaper." : {
+    "%@ is larger than %lld MB." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is larger than %2$lld MB."
+          }
+        }
+      }
+    },
+    "%@ is waiting for review. It appears here once approved." : {},
+    "%@, auto-renews. Cancel anytime." : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der ursprüngliche Sperrbildschirm-Hintergrund konnte nicht wiederhergestellt werden."
+            "value" : "%@, verlängert sich automatisch. Jederzeit kündbar."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo restaurar el fondo original de la pantalla de bloqueo."
+            "value" : "%@, se renueva automáticamente. Cancela cuando quieras."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impossible de restaurer le fond d'écran verrouillé d'origine."
+            "value" : "%@, renouvellement automatique. Annulable à tout moment."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "元のロック画面の壁紙を復元できませんでした。"
+            "value" : "%@、自動更新。いつでも解約可能。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Não foi possível restaurar o papel de parede original da tela de bloqueio."
+            "value" : "%@, renovação automática. Cancele quando quiser."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удалось восстановить исходные обои экрана блокировки."
+            "value" : "%@, автопродление. Отмена в любое время."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法恢复原来的锁定屏幕壁纸。"
+            "value" : "%@,自动续订。可随时取消。"
           }
         }
       }
     },
-    "Preparing lock screen…" : {
+    "%lld days" : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sperrbildschirm wird vorbereitet…"
+            "value" : "%lld Tage"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preparando la pantalla de bloqueo…"
+            "value" : "%lld días"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Préparation de l'écran verrouillé…"
+            "value" : "%lld jours"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ロック画面を準備中…"
+            "value" : "%lld日間"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preparando a tela de bloqueio…"
+            "value" : "%lld dias"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Подготовка экрана блокировки…"
+            "value" : "%lld дн."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在准备锁定屏幕…"
+            "value" : "%lld 天"
           }
         }
       }
     },
-    "Lock screen animates too — lock your Mac to see it." : {
+    "%lld months" : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Sperrbildschirm ist jetzt auch animiert – sperre deinen Mac, um es zu sehen."
+            "value" : "%lld Monate"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La pantalla de bloqueo también se anima: bloquea tu Mac para verla."
+            "value" : "%lld meses"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L'écran verrouillé est animé lui aussi – verrouillez votre Mac pour le voir."
+            "value" : "%lld mois"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ロック画面もアニメーションします。Macをロックして確認してください。"
+            "value" : "%lldか月"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A tela de bloqueio também é animada — bloqueie seu Mac para ver."
+            "value" : "%lld meses"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Экран блокировки тоже анимирован — заблокируйте Mac, чтобы увидеть."
+            "value" : "%lld мес."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "锁定屏幕也会动起来——锁定 Mac 即可查看。"
+            "value" : "%lld 个月"
           }
         }
       }
     },
-    "Couldn't prepare the lock screen clip." : {
+    "%lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "%lld percent" : {},
+    "%lld wallpapers" : {},
+    "%lld wallpapers ready to use." : {},
+    "%lld weeks" : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Clip für den Sperrbildschirm konnte nicht erstellt werden."
+            "value" : "%lld Wochen"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se pudo preparar el clip de la pantalla de bloqueo."
+            "value" : "%lld semanas"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impossible de préparer le clip de l'écran verrouillé."
+            "value" : "%lld semaines"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ロック画面用のクリップを準備できませんでした。"
+            "value" : "%lld週間"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Não foi possível preparar o clipe da tela de bloqueio."
+            "value" : "%lld semanas"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не удалось подготовить ролик для экрана блокировки."
+            "value" : "%lld нед."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法准备锁定屏幕视频。"
+            "value" : "%lld 周"
           }
         }
       }
     },
-    "macOS wallpaper store not found — pick any Aerial wallpaper once in System Settings, then try again." : {
+    "%lld years" : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOS-Hintergrundspeicher nicht gefunden – wähle einmal einen Luftaufnahme-Hintergrund in den Systemeinstellungen und versuche es erneut."
+            "value" : "%lld Jahre"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No se encontró el almacén de fondos de macOS: elige una vez cualquier fondo Aéreo en Ajustes del Sistema y vuelve a intentarlo."
+            "value" : "%lld años"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réserve de fonds d'écran macOS introuvable – choisissez une fois un fond Aérien dans Réglages Système, puis réessayez."
+            "value" : "%lld ans"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOSの壁紙ストアが見つかりません。システム設定で空撮の壁紙を一度選んでから、もう一度お試しください。"
+            "value" : "%lld年"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Armazenamento de papéis de parede do macOS não encontrado — escolha um papel de parede Aéreo uma vez nos Ajustes do Sistema e tente novamente."
+            "value" : "%lld anos"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Хранилище обоев macOS не найдено — один раз выберите любые обои «Аэросъёмка» в Системных настройках и повторите попытку."
+            "value" : "%lld л."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未找到 macOS 壁纸存储——请先在“系统设置”中选择任意一款航拍壁纸，然后重试。"
+            "value" : "%lld 年"
           }
         }
       }
-    },
-    "The animated lock screen needs a build of WallPics that runs outside the App Sandbox." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der animierte Sperrbildschirm braucht eine WallPics-Version, die außerhalb der App-Sandbox läuft."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La pantalla de bloqueo animada necesita una versión de WallPics que se ejecute fuera del App Sandbox."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'écran verrouillé animé nécessite une version de WallPics exécutée hors du bac à sable."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アニメーションするロック画面には、App Sandboxの外で動作するWallPicsのビルドが必要です。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A tela de bloqueio animada precisa de uma versão do WallPics que rode fora do App Sandbox."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Для анимированного экрана блокировки нужна сборка WallPics, работающая вне App Sandbox."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "动态锁定屏幕需要在 App 沙盒之外运行的 WallPics 版本。"
-          }
-        }
-      }
-    },
-    "Lock Screen" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sperrbildschirm"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pantalla de bloqueo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Écran verrouillé"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ロック画面"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tela de bloqueio"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Экран блокировки"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "锁定屏幕"
-          }
-        }
-      }
-    },
-    "Animate live & shader wallpapers on the lock screen" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live- & Shader-Hintergründe auf dem Sperrbildschirm animieren"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Animar fondos live y shader en la pantalla de bloqueo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Animer les fonds live et shader sur l'écran verrouillé"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ライブ壁紙とシェーダー壁紙をロック画面でも動かす"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Animar papéis de parede live e shader na tela de bloqueio"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Анимировать живые и шейдерные обои на экране блокировки"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在锁定屏幕上播放动态与着色器壁纸"
-          }
-        }
-      }
-    },
-    "WallPics renders a looping clip and installs it as the macOS lock-screen wallpaper. Choosing a static wallpaper switches this off again." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics rendert einen Loop-Clip und richtet ihn als macOS-Sperrbildschirm ein. Ein statischer Hintergrund schaltet das wieder aus."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics genera un clip en bucle y lo instala como fondo de la pantalla de bloqueo de macOS. Elegir un fondo estático lo desactiva de nuevo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics génère un clip en boucle et l'installe comme fond de l'écran verrouillé de macOS. Choisir un fond statique le désactive."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPicsがループ動画を生成し、macOSのロック画面の壁紙として設定します。静止画の壁紙を選ぶと解除されます。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O WallPics gera um clipe em loop e o instala como papel de parede da tela de bloqueio do macOS. Escolher um papel de parede estático desativa isso de novo."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics создаёт зацикленный ролик и устанавливает его как обои экрана блокировки macOS. Выбор статичных обоев отключает это."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics 会生成循环视频并将其设为 macOS 锁定屏幕壁纸。选择静态壁纸即可关闭。"
-          }
-        }
-      }
-    },
-    "" : {
-
     },
     "/ day" : {
       "extractionState" : "manual",
@@ -648,323 +493,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "/ 年"
-          }
-        }
-      }
-    },
-    "%@ couldn't be read as an image." : {
-
-    },
-    "%@ free, then %@. Cancel anytime." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ gratis, danach %@. Jederzeit kündbar."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ gratis, luego %@. Cancela cuando quieras."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ gratuit, puis %@. Annulable à tout moment."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@無料、その後 %@。いつでも解約可能。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ grátis, depois %@. Cancele quando quiser."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ бесплатно, затем %@. Отмена в любое время."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@免费,之后 %@。可随时取消。"
-          }
-        }
-      }
-    },
-    "%@ is larger than %lld MB." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ is larger than %2$lld MB."
-          }
-        }
-      }
-    },
-    "%@ is waiting for review. It appears here once approved." : {
-
-    },
-    "%@, auto-renews. Cancel anytime." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@, verlängert sich automatisch. Jederzeit kündbar."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@, se renueva automáticamente. Cancela cuando quieras."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@, renouvellement automatique. Annulable à tout moment."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@、自動更新。いつでも解約可能。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@, renovação automática. Cancele quando quiser."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@, автопродление. Отмена в любое время."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@,自动续订。可随时取消。"
-          }
-        }
-      }
-    },
-    "%lld days" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Tage"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld días"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld jours"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld日間"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld dias"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld дн."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 天"
-          }
-        }
-      }
-    },
-    "%lld months" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Monate"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld meses"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld mois"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lldか月"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld meses"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld мес."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 个月"
-          }
-        }
-      }
-    },
-    "%lld of %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld of %2$lld"
-          }
-        }
-      }
-    },
-    "%lld percent" : {
-
-    },
-    "%lld wallpapers" : {
-
-    },
-    "%lld wallpapers ready to use." : {
-
-    },
-    "%lld weeks" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Wochen"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld semanas"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld semaines"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld週間"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld semanas"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld нед."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 周"
-          }
-        }
-      }
-    },
-    "%lld years" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Jahre"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld años"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ans"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld年"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld anos"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld л."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 年"
           }
         }
       }
@@ -1157,9 +685,7 @@
         }
       }
     },
-    "24-hour time" : {
-
-    },
+    "24-hour time" : {},
     "About" : {
       "localizations" : {
         "de" : {
@@ -1206,42 +732,19 @@
         }
       }
     },
-    "Add" : {
-
-    },
-    "Add a native WallPics widget" : {
-
-    },
-    "Add at least one photo of your pet." : {
-
-    },
-    "Add photo" : {
-
-    },
-    "Add to Login Items" : {
-
-    },
-    "Add video" : {
-
-    },
-    "Add WallPics as a real native macOS widget. Apple only allows this through the system Widget gallery — placing from a tile below is an instant app overlay instead." : {
-
-    },
-    "Add your pet" : {
-
-    },
-    "Alert" : {
-
-    },
-    "All" : {
-
-    },
-    "All %@" : {
-
-    },
-    "All Pets" : {
-
-    },
+    "Add" : {},
+    "Add WallPics as a real native macOS widget. Apple only allows this through the system Widget gallery — placing from a tile below is an instant app overlay instead." : {},
+    "Add a native WallPics widget" : {},
+    "Add at least one photo of your pet." : {},
+    "Add photo" : {},
+    "Add to Login Items" : {},
+    "Add video" : {},
+    "Add your pet" : {},
+    "Alert" : {},
+    "All" : {},
+    "All %@" : {},
+    "All Pets" : {},
+    "All Wallpapers" : {},
     "All set." : {
       "localizations" : {
         "de" : {
@@ -1288,15 +791,54 @@
         }
       }
     },
-    "All Wallpapers" : {
-
+    "Animate live & shader wallpapers on the lock screen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live- & Shader-Hintergründe auf dem Sperrbildschirm animieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animar fondos live y shader en la pantalla de bloqueo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animer les fonds live et shader sur l'écran verrouillé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブ壁紙とシェーダー壁紙をロック画面でも動かす"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animar papéis de parede live e shader na tela de bloqueio"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Анимировать живые и шейдерные обои на экране блокировки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在锁定屏幕上播放动态与着色器壁纸"
+          }
+        }
+      }
     },
-    "Animated, plays on your desktop" : {
-
-    },
-    "Anything we should know (optional)" : {
-
-    },
+    "Animated, plays on your desktop" : {},
+    "Anything we should know (optional)" : {},
     "Appearance" : {
       "localizations" : {
         "de" : {
@@ -1343,9 +885,7 @@
         }
       }
     },
-    "Apple only lets you add native widgets from the system gallery — it takes about 5 seconds:" : {
-
-    },
+    "Apple only lets you add native widgets from the system gallery — it takes about 5 seconds:" : {},
     "Apply Wallpaper" : {
       "localizations" : {
         "de" : {
@@ -1438,12 +978,8 @@
         }
       }
     },
-    "Background" : {
-
-    },
-    "Balanced tracking" : {
-
-    },
+    "Background" : {},
+    "Balanced tracking" : {},
     "Best value" : {
       "localizations" : {
         "de" : {
@@ -1490,30 +1026,14 @@
         }
       }
     },
-    "Both" : {
-
-    },
-    "Bottom Center" : {
-
-    },
-    "Bottom Left" : {
-
-    },
-    "Bottom Right" : {
-
-    },
-    "Breed" : {
-
-    },
-    "Breed:" : {
-
-    },
-    "Bring to Front" : {
-
-    },
-    "Bring your own images, videos, GIFs or shaders." : {
-
-    },
+    "Both" : {},
+    "Bottom Center" : {},
+    "Bottom Left" : {},
+    "Bottom Right" : {},
+    "Breed" : {},
+    "Breed:" : {},
+    "Bring to Front" : {},
+    "Bring your own images, videos, GIFs or shaders." : {},
     "Browse" : {
       "localizations" : {
         "de" : {
@@ -1560,9 +1080,7 @@
         }
       }
     },
-    "Browse Gallery" : {
-
-    },
+    "Browse Gallery" : {},
     "Buy %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1606,53 +1124,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "购买 %@"
-          }
-        }
-      }
-    },
-    "by %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "von %@"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "por %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "par %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 作"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "por %@"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "от %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "由 %@ 创作"
           }
         }
       }
@@ -1749,12 +1220,8 @@
         }
       }
     },
-    "Calm" : {
-
-    },
-    "Cancel" : {
-
-    },
+    "Calm" : {},
+    "Cancel" : {},
     "Changes apply right away. Restart the app for the menu bar to switch too." : {
       "localizations" : {
         "de" : {
@@ -1894,18 +1361,10 @@
         }
       }
     },
-    "Classic" : {
-
-    },
-    "Click the star on any wallpaper while browsing to save it here." : {
-
-    },
-    "Click to place on your desktop" : {
-
-    },
-    "Clock" : {
-
-    },
+    "Classic" : {},
+    "Click the star on any wallpaper while browsing to save it here." : {},
+    "Click to place on your desktop" : {},
+    "Clock" : {},
     "Close" : {
       "localizations" : {
         "de" : {
@@ -2090,9 +1549,7 @@
         }
       }
     },
-    "Could not download this widget's assets." : {
-
-    },
+    "Could not download this widget's assets." : {},
     "Could not initialize session." : {
       "localizations" : {
         "de" : {
@@ -2139,9 +1596,7 @@
         }
       }
     },
-    "Could not load widgets." : {
-
-    },
+    "Could not load widgets." : {},
     "Could not read server response." : {
       "localizations" : {
         "de" : {
@@ -2188,51 +1643,297 @@
         }
       }
     },
-    "Couldn't load the home rails." : {
-
+    "Could not save these details — they will be lost when WallPics quits." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Angaben konnten nicht gespeichert werden – sie gehen beim Beenden von WallPics verloren."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron guardar estos datos: se perderán al cerrar WallPics."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'enregistrer ces informations — elles seront perdues à la fermeture de WallPics."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この情報を保存できませんでした。WallPicsを終了すると失われます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível salvar estes dados — eles serão perdidos quando o WallPics for encerrado."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось сохранить эти данные — они пропадут при выходе из WallPics."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保存这些信息，退出 WallPics 后将会丢失。"
+          }
+        }
+      }
     },
-    "Couldn't load widgets" : {
-
+    "Couldn't install the lock screen clip." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Clip für den Sperrbildschirm konnte nicht installiert werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo instalar el clip de la pantalla de bloqueo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'installer le clip de l'écran verrouillé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック画面用のクリップをインストールできませんでした。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível instalar o clipe da tela de bloqueio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось установить ролик для экрана блокировки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法安装锁定屏幕视频。"
+          }
+        }
+      }
     },
-    "Couldn't read this shader." : {
-
+    "Couldn't load pets" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haustiere konnten nicht geladen werden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudieron cargar las mascotas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger les animaux"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットを読み込めませんでした"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível carregar os pets"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось загрузить питомцев"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载宠物"
+          }
+        }
+      }
     },
-    "Create a widget from your photos or videos" : {
-
+    "Couldn't load the home rails." : {},
+    "Couldn't load widgets" : {},
+    "Couldn't prepare the lock screen clip." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Clip für den Sperrbildschirm konnte nicht erstellt werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo preparar el clip de la pantalla de bloqueo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de préparer le clip de l'écran verrouillé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック画面用のクリップを準備できませんでした。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível preparar o clipe da tela de bloqueio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось подготовить ролик для экрана блокировки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法准备锁定屏幕视频。"
+          }
+        }
+      }
     },
-    "Customize and place live widgets on your desktop." : {
-
+    "Couldn't reach WallPics. Check your connection and try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo conectar con WallPics. Comprueba tu conexión e inténtalo de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de joindre WallPics. Vérifiez votre connexion et réessayez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPicsに接続できません。接続を確認してもう一度お試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível conectar ao WallPics. Verifique sua conexão e tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось связаться с WallPics. Проверьте подключение и попробуйте снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接 WallPics。请检查网络连接后重试。"
+          }
+        }
+      }
     },
-    "Customize…" : {
-
+    "Couldn't read this shader." : {},
+    "Couldn't restore the original lock screen wallpaper." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der ursprüngliche Sperrbildschirm-Hintergrund konnte nicht wiederhergestellt werden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo restaurar el fondo original de la pantalla de bloqueo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de restaurer le fond d'écran verrouillé d'origine."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元のロック画面の壁紙を復元できませんでした。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível restaurar o papel de parede original da tela de bloqueio."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось восстановить исходные обои экрана блокировки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法恢复原来的锁定屏幕壁纸。"
+          }
+        }
+      }
     },
-    "Date" : {
-
-    },
-    "Delete" : {
-
-    },
-    "Delete Widget" : {
-
-    },
-    "Desktop companions that watch your cursor" : {
-
-    },
-    "Dislikes" : {
-
-    },
-    "Dislikes:" : {
-
-    },
-    "Dismiss" : {
-
-    },
-    "DIY Animated" : {
-
-    },
-    "Done" : {
-
-    },
+    "Create a widget from your photos or videos" : {},
+    "Customize and place live widgets on your desktop." : {},
+    "Customize…" : {},
+    "DIY Animated" : {},
+    "Date" : {},
+    "Delete" : {},
+    "Delete Widget" : {},
+    "Desktop companions that watch your cursor" : {},
+    "Dislikes" : {},
+    "Dislikes:" : {},
+    "Dismiss" : {},
+    "Done" : {},
     "Downloads" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2280,26 +1981,58 @@
         }
       }
     },
-    "Drag a photo here" : {
-
-    },
-    "Drag a video here" : {
-
-    },
-    "Drag photos here" : {
-
-    },
-    "Drag the preview to reposition" : {
-
-    },
-    "Edit" : {
-
-    },
-    "Edit Widget" : {
-
-    },
-    "Elevator" : {
-
+    "Drag a photo here" : {},
+    "Drag a video here" : {},
+    "Drag photos here" : {},
+    "Drag the preview to reposition" : {},
+    "Edit" : {},
+    "Edit Widget" : {},
+    "Elevator" : {},
+    "Every wallpaper, every pet, no watermark — and support a small, independent team." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Hintergründe, alle Haustiere, kein Wasserzeichen – und du unterstützt ein kleines, unabhängiges Team."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los fondos, todas las mascotas, sin marca de agua, y apoyas a un pequeño equipo independiente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les fonds d'écran, tous les animaux, sans filigrane — et vous soutenez une petite équipe indépendante."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての壁紙とペットをウォーターマークなしで。小さな独立チームの応援にもなります。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos os papéis de parede, todos os pets, sem marca d'água — e você apoia uma equipe pequena e independente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все обои, все питомцы, без водяного знака — и поддержка маленькой независимой команды."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有壁纸、所有宠物、无水印，同时支持一个小型独立团队。"
+          }
+        }
+      }
     },
     "Favorites" : {
       "localizations" : {
@@ -2347,9 +2080,7 @@
         }
       }
     },
-    "Fill (crop to fit)" : {
-
-    },
+    "Fill (crop to fit)" : {},
     "Follow system appearance" : {
       "localizations" : {
         "de" : {
@@ -2396,12 +2127,8 @@
         }
       }
     },
-    "Follows slowly, ignores small moves" : {
-
-    },
-    "Font" : {
-
-    },
+    "Follows slowly, ignores small moves" : {},
+    "Font" : {},
     "Free Plan" : {
       "localizations" : {
         "de" : {
@@ -2444,6 +2171,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "免费版"
+          }
+        }
+      }
+    },
+    "Free limit reached for today" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tageslimit der Gratisversion erreicht"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Límite gratuito de hoy alcanzado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite gratuite du jour atteinte"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本日の無料回数の上限に達しました"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limite gratuito de hoje atingido"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бесплатный лимит на сегодня исчерпан"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日免费次数已用完"
           }
         }
       }
@@ -2587,18 +2360,10 @@
         }
       }
     },
-    "Gallery" : {
-
-    },
-    "Garage Door" : {
-
-    },
-    "Gender" : {
-
-    },
-    "Gender:" : {
-
-    },
+    "Gallery" : {},
+    "Garage Door" : {},
+    "Gender" : {},
+    "Gender:" : {},
     "Get Started" : {
       "localizations" : {
         "de" : {
@@ -2691,18 +2456,10 @@
         }
       }
     },
-    "Guardian" : {
-
-    },
-    "Guardian:" : {
-
-    },
-    "Home" : {
-
-    },
-    "Image" : {
-
-    },
+    "Guardian" : {},
+    "Guardian:" : {},
+    "Home" : {},
+    "Image" : {},
     "Import" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2750,9 +2507,7 @@
         }
       }
     },
-    "In review" : {
-
-    },
+    "In review" : {},
     "Invalid request URL." : {
       "localizations" : {
         "de" : {
@@ -2799,15 +2554,9 @@
         }
       }
     },
-    "It will appear in your pets once it's approved" : {
-
-    },
-    "Keep your wallpaper running?" : {
-
-    },
-    "Keeps live & shader wallpapers running after a restart. WallPics launches in the background — close its window and it stays out of your way in the menu bar." : {
-
-    },
+    "It will appear in your pets once it's approved" : {},
+    "Keep your wallpaper running?" : {},
+    "Keeps live & shader wallpapers running after a restart. WallPics launches in the background — close its window and it stays out of your way in the menu bar." : {},
     "Language" : {
       "localizations" : {
         "de" : {
@@ -2854,24 +2603,12 @@
         }
       }
     },
-    "Large" : {
-
-    },
-    "Left Edge" : {
-
-    },
-    "Likes" : {
-
-    },
-    "Likes:" : {
-
-    },
-    "Live" : {
-
-    },
-    "Live and shader wallpapers only play while WallPics is running. Add it to Login Items so it starts automatically and your wallpaper keeps going after a restart — otherwise the desktop falls back to a still image." : {
-
-    },
+    "Large" : {},
+    "Left Edge" : {},
+    "Likes" : {},
+    "Likes:" : {},
+    "Live" : {},
+    "Live and shader wallpapers only play while WallPics is running. Add it to Login Items so it starts automatically and your wallpaper keeps going after a restart — otherwise the desktop falls back to a still image." : {},
     "Load more wallpapers" : {
       "localizations" : {
         "de" : {
@@ -2918,15 +2655,147 @@
         }
       }
     },
-    "Loading full quality" : {
-
+    "Loading full quality" : {},
+    "Loading pets…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haustiere werden geladen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cargando mascotas…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement des animaux…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットを読み込み中…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carregando pets…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузка питомцев…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在加载宠物…"
+          }
+        }
+      }
     },
-    "Loading widgets…" : {
-
+    "Loading widgets…" : {},
+    "Lock Screen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sperrbildschirm"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantalla de bloqueo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran verrouillé"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック画面"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tela de bloqueio"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экран блокировки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁定屏幕"
+          }
+        }
+      }
     },
-    "Make any file your wallpaper" : {
-
+    "Lock screen animates too — lock your Mac to see it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Sperrbildschirm ist jetzt auch animiert – sperre deinen Mac, um es zu sehen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La pantalla de bloqueo también se anima: bloquea tu Mac para verla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'écran verrouillé est animé lui aussi – verrouillez votre Mac pour le voir."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック画面もアニメーションします。Macをロックして確認してください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A tela de bloqueio também é animada — bloqueie seu Mac para ver."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экран блокировки тоже анимирован — заблокируйте Mac, чтобы увидеть."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁定屏幕也会动起来——锁定 Mac 即可查看。"
+          }
+        }
+      }
     },
+    "Make any file your wallpaper" : {},
     "Make it yours" : {
       "localizations" : {
         "de" : {
@@ -3065,12 +2934,8 @@
         }
       }
     },
-    "Medium" : {
-
-    },
-    "Mono" : {
-
-    },
+    "Medium" : {},
+    "Mono" : {},
     "Most Popular" : {
       "localizations" : {
         "de" : {
@@ -3117,21 +2982,11 @@
         }
       }
     },
-    "My Widgets" : {
-
-    },
-    "Name" : {
-
-    },
-    "Name (optional)" : {
-
-    },
-    "Name card backdrop" : {
-
-    },
-    "Name:" : {
-
-    },
+    "My Widgets" : {},
+    "Name" : {},
+    "Name (optional)" : {},
+    "Name card backdrop" : {},
+    "Name:" : {},
     "Network problem. Check your connection." : {
       "localizations" : {
         "de" : {
@@ -3178,12 +3033,8 @@
         }
       }
     },
-    "New" : {
-
-    },
-    "New %@ Widget" : {
-
-    },
+    "New" : {},
+    "New %@ Widget" : {},
     "Newest First" : {
       "localizations" : {
         "de" : {
@@ -3230,12 +3081,8 @@
         }
       }
     },
-    "Next Photo" : {
-
-    },
-    "No display available for the backdrop" : {
-
-    },
+    "Next Photo" : {},
+    "No display available for the backdrop" : {},
     "No favorites yet" : {
       "localizations" : {
         "de" : {
@@ -3282,9 +3129,7 @@
         }
       }
     },
-    "No matches available" : {
-
-    },
+    "No matches available" : {},
     "No matches in the loaded wallpapers" : {
       "localizations" : {
         "de" : {
@@ -3331,9 +3176,7 @@
         }
       }
     },
-    "No pets found" : {
-
-    },
+    "No pets found" : {},
     "No purchases found to restore." : {
       "localizations" : {
         "de" : {
@@ -3426,18 +3269,10 @@
         }
       }
     },
-    "No widgets found" : {
-
-    },
-    "No widgets yet" : {
-
-    },
-    "Normal" : {
-
-    },
-    "Not Now" : {
-
-    },
+    "No widgets found" : {},
+    "No widgets yet" : {},
+    "Normal" : {},
+    "Not Now" : {},
     "Nothing here yet" : {
       "localizations" : {
         "de" : {
@@ -3576,21 +3411,11 @@
         }
       }
     },
-    "On your desktop — click to remove" : {
-
-    },
-    "On your desktop, behind your icons." : {
-
-    },
-    "One pet per photo, front view plus a couple of angles works best" : {
-
-    },
-    "Only images can be sent — anything else was skipped." : {
-
-    },
-    "Open" : {
-
-    },
+    "On your desktop — click to remove" : {},
+    "On your desktop, behind your icons." : {},
+    "One pet per photo, front view plus a couple of angles works best" : {},
+    "Only images can be sent — anything else was skipped." : {},
+    "Open" : {},
     "Open Browse" : {
       "localizations" : {
         "de" : {
@@ -3637,64 +3462,8 @@
         }
       }
     },
-    "Open WallPics at login" : {
-
-    },
-    "Opened Eyes" : {
-
-    },
-    "or click to choose from your Mac" : {
-
-    },
-    "Pause in Low Power Mode" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Im Stromsparmodus pausieren"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pausar en modo bajo consumo"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pause en mode économie d'énergie"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "低電力モードで一時停止"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pausar no Modo de Baixo Consumo"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Пауза в режиме энергосбережения"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "低电量模式下暂停"
-          }
-        }
-      }
-    },
-    "Pause pet" : {
-
-    },
+    "Open WallPics at login" : {},
+    "Opened Eyes" : {},
     "Pause Wallpaper" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3742,45 +3511,111 @@
         }
       }
     },
-    "Paused" : {
-
+    "Pause in Low Power Mode" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Stromsparmodus pausieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar en modo bajo consumo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause en mode économie d'énergie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低電力モードで一時停止"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar no Modo de Baixo Consumo"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пауза в режиме энергосбережения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低电量模式下暂停"
+          }
+        }
+      }
     },
-    "Paused by you" : {
-
+    "Pause pet" : {},
+    "Paused" : {},
+    "Paused by you" : {},
+    "Paused while the display sleeps" : {},
+    "Pet %lld" : {},
+    "Pet Notes" : {},
+    "Pets" : {},
+    "Pets are downloaded once and kept on your Mac." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haustiere werden einmal geladen und auf deinem Mac gespeichert."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las mascotas se descargan una vez y se guardan en tu Mac."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les animaux sont téléchargés une fois et conservés sur votre Mac."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットは一度ダウンロードされ、Macに保存されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Os pets são baixados uma vez e ficam guardados no seu Mac."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Питомцы скачиваются один раз и хранятся на вашем Mac."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "宠物只需下载一次，并保存在你的 Mac 上。"
+          }
+        }
+      }
     },
-    "Paused while the display sleeps" : {
-
-    },
-    "Pet %lld" : {
-
-    },
-    "Pet Notes" : {
-
-    },
-    "Pet pack unavailable" : {
-
-    },
-    "Pets" : {
-
-    },
-    "Photo" : {
-
-    },
-    "Photo Widget" : {
-
-    },
-    "Photos" : {
-
-    },
-    "Photos (carousel)" : {
-
-    },
-    "Photos are only used to build your pet" : {
-
-    },
-    "Photos, videos, GIFs, Metal shaders and Rive animations — they all work, watermark-free with Pro." : {
-
-    },
+    "Photo" : {},
+    "Photo Widget" : {},
+    "Photos" : {},
+    "Photos (carousel)" : {},
+    "Photos are only used to build your pet" : {},
+    "Photos, videos, GIFs, Metal shaders and Rive animations — they all work, watermark-free with Pro." : {},
     "Pick a wallpaper to preview it." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3828,9 +3663,7 @@
         }
       }
     },
-    "Pick one from the Gallery, customize it, then place it on your desktop." : {
-
-    },
+    "Pick one from the Gallery, customize it, then place it on your desktop." : {},
     "Pick your first wallpaper" : {
       "localizations" : {
         "de" : {
@@ -3877,9 +3710,7 @@
         }
       }
     },
-    "Place on Desktop" : {
-
-    },
+    "Place on Desktop" : {},
     "Plans couldn't load right now." : {
       "localizations" : {
         "de" : {
@@ -3926,9 +3757,7 @@
         }
       }
     },
-    "Play" : {
-
-    },
+    "Play" : {},
     "Play on battery power" : {
       "localizations" : {
         "de" : {
@@ -4021,60 +3850,52 @@
         }
       }
     },
-    "Plays muted, on loop, on your desktop" : {
-
-    },
-    "Polaroid" : {
-
-    },
-    "Polaroid Widget" : {
-
-    },
-    "Position" : {
-
-    },
-    "Priority access to new drops" : {
+    "Plays muted, on loop, on your desktop" : {},
+    "Polaroid" : {},
+    "Polaroid Widget" : {},
+    "Position" : {},
+    "Preparing lock screen…" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Vorrangiger Zugriff auf neue Releases"
+            "value" : "Sperrbildschirm wird vorbereitet…"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acceso prioritario a las novedades"
+            "value" : "Preparando la pantalla de bloqueo…"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Accès prioritaire aux nouveautés"
+            "value" : "Préparation de l'écran verrouillé…"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新作への優先アクセス"
+            "value" : "ロック画面を準備中…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Acesso prioritário às novidades"
+            "value" : "Preparando a tela de bloqueio…"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Приоритетный доступ к новинкам"
+            "value" : "Подготовка экрана блокировки…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新内容优先访问"
+            "value" : "正在准备锁定屏幕…"
           }
         }
       }
@@ -4121,6 +3942,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隐私"
+          }
+        }
+      }
+    },
+    "Pro wallpaper" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-Hintergrund"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fondo Pro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fond d'écran Pro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro壁紙"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papel de parede Pro"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-обои"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 壁纸"
+          }
+        }
+      }
+    },
+    "Pro wallpapers and unlimited pets from your photos" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-Hintergründe und unbegrenzt Haustiere aus deinen Fotos"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fondos Pro y mascotas ilimitadas a partir de tus fotos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonds d'écran Pro et animaux illimités à partir de vos photos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro壁紙と、写真から作るペットが無制限"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papéis de parede Pro e pets ilimitados a partir das suas fotos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro-обои и питомцы из ваших фото без ограничений"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 壁纸，以及用你的照片制作不限数量的宠物"
           }
         }
       }
@@ -4217,12 +4130,8 @@
         }
       }
     },
-    "Put a companion on your desktop. It watches your cursor." : {
-
-    },
-    "Put on Desktop" : {
-
-    },
+    "Put a companion on your desktop. It watches your cursor." : {},
+    "Put on Desktop" : {},
     "Quit WallPics" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4317,64 +4226,7 @@
         }
       }
     },
-    "Remove %@ from Desktop" : {
-
-    },
-    "Remove from Desktop" : {
-
-    },
-    "Remove from list" : {
-
-    },
-    "Remove photo" : {
-
-    },
-    "Remove the watermark and support a small, independent team." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entferne das Wasserzeichen und unterstütze ein kleines, unabhängiges Team."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina la marca de agua y apoya a un equipo pequeño e independiente."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimez le filigrane et soutenez une petite équipe indépendante."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ウォーターマークを削除して、小さな独立チームを応援。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remova a marca d'água e apoie uma pequena equipe independente."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Уберите водяной знак и поддержите небольшую независимую команду."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "去除水印,支持一个独立小团队。"
-          }
-        }
-      }
-    },
+    "Remove %@ from Desktop" : {},
     "Remove Upload" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4422,6 +4274,9 @@
         }
       }
     },
+    "Remove from Desktop" : {},
+    "Remove from list" : {},
+    "Remove photo" : {},
     "Remove watermark" : {
       "localizations" : {
         "de" : {
@@ -4468,18 +4323,10 @@
         }
       }
     },
-    "Rendered live on your GPU" : {
-
-    },
-    "Replaces your wallpaper with a plain card showing this pet's details." : {
-
-    },
-    "Replay Onboarding" : {
-
-    },
-    "Reset to default" : {
-
-    },
+    "Rendered live on your GPU" : {},
+    "Replaces your wallpaper with a plain card showing this pet's details." : {},
+    "Replay Onboarding" : {},
+    "Reset to default" : {},
     "Resolution" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4619,9 +4466,7 @@
         }
       }
     },
-    "Resume pet" : {
-
-    },
+    "Resume pet" : {},
     "Retry" : {
       "localizations" : {
         "de" : {
@@ -4668,18 +4513,12 @@
         }
       }
     },
-    "Right Edge" : {
-
-    },
-    "Rounded" : {
-
-    },
-    "Save Widget" : {
-
-    },
-    "Search pets" : {
-
-    },
+    "Right Edge" : {},
+    "Rounded" : {},
+    "Save Widget" : {},
+    "Scroll left" : {},
+    "Scroll right" : {},
+    "Search pets" : {},
     "Search wallpapers" : {
       "localizations" : {
         "de" : {
@@ -4726,30 +4565,14 @@
         }
       }
     },
-    "Search widgets" : {
-
-    },
-    "See all" : {
-
-    },
-    "Send 3–5 photos. We turn them into a desktop pet and add it to your list once it's approved (usually within 48 hours)." : {
-
-    },
-    "Send photos of your pet and we'll turn it into a desktop companion" : {
-
-    },
-    "Sensitivity" : {
-
-    },
-    "Sent for review" : {
-
-    },
-    "Sent for review, but the entry couldn't be saved to your list." : {
-
-    },
-    "Serif" : {
-
-    },
+    "Search widgets" : {},
+    "See all" : {},
+    "Send 3–5 photos. We turn them into a desktop pet and add it to your list once it's approved (usually within 48 hours)." : {},
+    "Send photos of your pet and we'll turn it into a desktop companion" : {},
+    "Sensitivity" : {},
+    "Sent for review" : {},
+    "Sent for review, but the entry couldn't be saved to your list." : {},
+    "Serif" : {},
     "Server returned status %lld." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4797,6 +4620,7 @@
         }
       }
     },
+    "Set Wallpaper" : {},
     "Set as Wallpaper" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4840,55 +4664,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设为壁纸"
-          }
-        }
-      }
-    },
-    "Set Wallpaper" : {
-
-    },
-    "Setting…" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wird festgelegt…"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estableciendo…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Application…"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定中…"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Definindo…"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Устанавливается…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设置中…"
           }
         }
       }
@@ -4939,15 +4714,53 @@
         }
       }
     },
-    "Shaders" : {
-
+    "Setting…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird festgelegt…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estableciendo…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Application…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定中…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Definindo…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Устанавливается…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置中…"
+          }
+        }
+      }
     },
-    "Show me how" : {
-
-    },
-    "Show on every display" : {
-
-    },
+    "Shaders" : {},
     "Show WallPics" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4995,21 +4808,13 @@
         }
       }
     },
-    "Size" : {
-
-    },
-    "Small" : {
-
-    },
-    "Snaps to the cursor straight away" : {
-
-    },
-    "Some dropped items couldn't be read and were skipped." : {
-
-    },
-    "Sort wallpapers" : {
-
-    },
+    "Show me how" : {},
+    "Show on every display" : {},
+    "Size" : {},
+    "Small" : {},
+    "Snaps to the cursor straight away" : {},
+    "Some dropped items couldn't be read and were skipped." : {},
+    "Sort wallpapers" : {},
     "Start Free Trial" : {
       "localizations" : {
         "de" : {
@@ -5056,12 +4861,8 @@
         }
       }
     },
-    "Startup" : {
-
-    },
-    "Still wallpapers, up to 4K" : {
-
-    },
+    "Startup" : {},
+    "Still wallpapers, up to 4K" : {},
     "Stunning 4K wallpapers, hand-picked and refreshed daily." : {
       "localizations" : {
         "de" : {
@@ -5108,12 +4909,8 @@
         }
       }
     },
-    "Style" : {
-
-    },
-    "Submit" : {
-
-    },
+    "Style" : {},
+    "Submit" : {},
     "Subscribe for %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5253,6 +5050,7 @@
         }
       }
     },
+    "TODAY'S MATCHES" : {},
     "Take a peek at your desktop — that's your new wallpaper." : {
       "localizations" : {
         "de" : {
@@ -5299,12 +5097,8 @@
         }
       }
     },
-    "Tap the preview to flip through photos" : {
-
-    },
-    "Tap the preview to see it open" : {
-
-    },
+    "Tap the preview to flip through photos" : {},
+    "Tap the preview to see it open" : {},
     "Tap the star on any wallpaper while browsing to save it here." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5352,9 +5146,7 @@
         }
       }
     },
-    "Template" : {
-
-    },
+    "Template" : {},
     "Terms" : {
       "localizations" : {
         "de" : {
@@ -5401,39 +5193,58 @@
         }
       }
     },
-    "Text color" : {
-
+    "Text color" : {},
+    "The animated lock screen needs a build of WallPics that runs outside the App Sandbox." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der animierte Sperrbildschirm braucht eine WallPics-Version, die außerhalb der App-Sandbox läuft."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La pantalla de bloqueo animada necesita una versión de WallPics que se ejecute fuera del App Sandbox."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'écran verrouillé animé nécessite une version de WallPics exécutée hors du bac à sable."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アニメーションするロック画面には、App Sandboxの外で動作するWallPicsのビルドが必要です。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A tela de bloqueio animada precisa de uma versão do WallPics que rode fora do App Sandbox."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для анимированного экрана блокировки нужна сборка WallPics, работающая вне App Sandbox."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动态锁定屏幕需要在 App 沙盒之外运行的 WallPics 版本。"
+          }
+        }
+      }
     },
-    "The bundled pets could not be read. Reinstalling WallPics restores them." : {
-
-    },
-    "This pet couldn't load — %@" : {
-
-    },
-    "This wallpaper isn't available right now." : {
-
-    },
-    "This widget's assets couldn't be downloaded. Check your connection and try again." : {
-
-    },
-    "This widget's image couldn't be found in the downloaded bundle." : {
-
-    },
-    "Time" : {
-
-    },
-    "TODAY'S MATCHES" : {
-
-    },
-    "Try a different category or search." : {
-
-    },
-    "Try a different name." : {
-
-    },
-    "Try again" : {
-
-    },
+    "This pet couldn't load — %@" : {},
+    "This wallpaper isn't available right now." : {},
+    "This widget's assets couldn't be downloaded. Check your connection and try again." : {},
+    "This widget's image couldn't be found in the downloaded bundle." : {},
+    "Time" : {},
     "Try Again" : {
       "localizations" : {
         "de" : {
@@ -5480,9 +5291,10 @@
         }
       }
     },
-    "Unexpected server response." : {
-
-    },
+    "Try a different category or search." : {},
+    "Try a different name." : {},
+    "Try again" : {},
+    "Unexpected server response." : {},
     "Unlock Pro to remove this watermark" : {
       "localizations" : {
         "de" : {
@@ -5668,12 +5480,8 @@
         }
       }
     },
-    "Uploading…" : {
-
-    },
-    "Uploads" : {
-
-    },
+    "Uploading…" : {},
+    "Uploads" : {},
     "Version" : {
       "localizations" : {
         "de" : {
@@ -5720,14 +5528,148 @@
         }
       }
     },
-    "Video" : {
-
+    "Video" : {},
+    "Video Widget" : {},
+    "Waiting for you to drag it out…" : {},
+    "WallPics" : {},
+    "WallPics Pro" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro"
+          }
+        }
+      }
     },
-    "Video Widget" : {
-
+    "WallPics Pro is required for this pet" : {},
+    "WallPics Pro is required to add more pets." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für weitere Haustiere ist WallPics Pro erforderlich."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita WallPics Pro para añadir más mascotas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro est requis pour ajouter d'autres animaux."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットをさらに追加するにはWallPics Proが必要です。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "É necessário o WallPics Pro para adicionar mais pets."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы добавить больше питомцев, нужен WallPics Pro."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加更多宠物需要 WallPics Pro。"
+          }
+        }
+      }
     },
-    "Waiting for you to drag it out…" : {
-
+    "WallPics renders a looping clip and installs it as the macOS lock-screen wallpaper. Choosing a static wallpaper switches this off again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics rendert einen Loop-Clip und richtet ihn als macOS-Sperrbildschirm ein. Ein statischer Hintergrund schaltet das wieder aus."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics genera un clip en bucle y lo instala como fondo de la pantalla de bloqueo de macOS. Elegir un fondo estático lo desactiva de nuevo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics génère un clip en boucle et l'installe comme fond de l'écran verrouillé de macOS. Choisir un fond statique le désactive."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPicsがループ動画を生成し、macOSのロック画面の壁紙として設定します。静止画の壁紙を選ぶと解除されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O WallPics gera um clipe em loop e o instala como papel de parede da tela de bloqueio do macOS. Escolher um papel de parede estático desativa isso de novo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics создаёт зацикленный ролик и устанавливает его как обои экрана блокировки macOS. Выбор статичных обоев отключает это."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics 会生成循环视频并将其设为 macOS 锁定屏幕壁纸。选择静态壁纸即可关闭。"
+          }
+        }
+      }
     },
     "Wallpaper set." : {
       "localizations" : {
@@ -5775,61 +5717,7 @@
         }
       }
     },
-    "WallPics" : {
-
-    },
-    "WallPics Pro" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro"
-          }
-        }
-      }
-    },
-    "WallPics Pro is required for this pet" : {
-
-    },
-    "Want it to snap with your other desktop widgets?" : {
-
-    },
+    "Want it to snap with your other desktop widgets?" : {},
     "Watermark removed. Thank you." : {
       "localizations" : {
         "de" : {
@@ -5968,24 +5856,12 @@
         }
       }
     },
-    "Widget added — you'll see it on your desktop" : {
-
-    },
-    "Widget name" : {
-
-    },
-    "Widgets" : {
-
-    },
-    "Windows XP" : {
-
-    },
-    "You can send up to %lld photos — the extras were skipped." : {
-
-    },
-    "You can send up to %lld photos." : {
-
-    },
+    "Widget added — you'll see it on your desktop" : {},
+    "Widget name" : {},
+    "Widgets" : {},
+    "Windows XP" : {},
+    "You can send up to %lld photos — the extras were skipped." : {},
+    "You can send up to %lld photos." : {},
     "You're all set." : {
       "localizations" : {
         "de" : {
@@ -6032,8 +5908,51 @@
         }
       }
     },
-    "Your pet" : {
-
+    "You've already sent one of these photos. Each pet only needs to be sent once — it appears in your list after review." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eines dieser Fotos hast du bereits gesendet. Jedes Haustier muss nur einmal gesendet werden – es erscheint nach der Prüfung in deiner Liste."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya has enviado una de estas fotos. Cada mascota solo hay que enviarla una vez: aparecerá en tu lista tras la revisión."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous avez déjà envoyé l'une de ces photos. Chaque animal n'a besoin d'être envoyé qu'une fois — il apparaîtra dans votre liste après validation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この写真はすでに送信済みです。ペットは一度送るだけで十分です。審査後にリストに表示されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Você já enviou uma dessas fotos. Cada pet só precisa ser enviado uma vez — ele aparece na sua lista após a revisão."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Одно из этих фото вы уже отправляли. Каждого питомца нужно отправить только один раз — он появится в списке после проверки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其中一张照片你已经发送过了。每只宠物只需发送一次，审核后会出现在你的列表中。"
+          }
+        }
+      }
     },
     "Your Uploads" : {
       "extractionState" : "manual",
@@ -6081,7 +6000,148 @@
           }
         }
       }
-    }
+    },
+    "Your first %lld pets are free — WallPics Pro unlocks more" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine ersten %lld Haustiere sind gratis – WallPics Pro schaltet mehr frei"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus primeras %lld mascotas son gratis; WallPics Pro desbloquea más"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos %lld premiers animaux sont gratuits — WallPics Pro en débloque davantage"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の%lld匹のペットは無料です。WallPics Proでさらに追加できます"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seus primeiros %lld pets são grátis — o WallPics Pro libera mais"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Первые %lld питомца бесплатно — WallPics Pro открывает больше"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前 %lld 只宠物免费，WallPics Pro 可解锁更多"
+          }
+        }
+      }
+    },
+    "Your pet" : {},
+    "by %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "von %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "por %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "par %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 作"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "por %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "от %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 %@ 创作"
+          }
+        }
+      }
+    },
+    "macOS wallpaper store not found — pick any Aerial wallpaper once in System Settings, then try again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS-Hintergrundspeicher nicht gefunden – wähle einmal einen Luftaufnahme-Hintergrund in den Systemeinstellungen und versuche es erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró el almacén de fondos de macOS: elige una vez cualquier fondo Aéreo en Ajustes del Sistema y vuelve a intentarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réserve de fonds d'écran macOS introuvable – choisissez une fois un fond Aérien dans Réglages Système, puis réessayez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOSの壁紙ストアが見つかりません。システム設定で空撮の壁紙を一度選んでから、もう一度お試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Armazenamento de papéis de parede do macOS não encontrado — escolha um papel de parede Aéreo uma vez nos Ajustes do Sistema e tente novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хранилище обоев macOS не найдено — один раз выберите любые обои «Аэросъёмка» в Системных настройках и повторите попытку."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到 macOS 壁纸存储——请先在“系统设置”中选择任意一款航拍壁纸，然后重试。"
+          }
+        }
+      }
+    },
+    "or click to choose from your Mac" : {}
   },
   "version" : "1.0"
 }

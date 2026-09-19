@@ -91,7 +91,7 @@ struct PaywallScreen: View {
                 .background(.white, in: Capsule())
             Text("Unlock WallPics Pro")
                 .font(.system(size: 30, weight: .bold))
-            Text("Remove the watermark and support a small, independent team.")
+            Text("Every wallpaper, every pet, no watermark — and support a small, independent team.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -106,7 +106,7 @@ struct PaywallScreen: View {
         VStack(alignment: .leading, spacing: Theme.Space.m) {
             Benefit(symbol: "drop.degreesign", text: "No watermark on any wallpaper", index: 0, appeared: appeared)
             Benefit(symbol: "rectangle.stack.fill", text: "Full 4K library, no daily limits", index: 1, appeared: appeared)
-            Benefit(symbol: "bolt.fill", text: "Priority access to new drops", index: 2, appeared: appeared)
+            Benefit(symbol: "pawprint.fill", text: "Pro wallpapers and unlimited pets from your photos", index: 2, appeared: appeared)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

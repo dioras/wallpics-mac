@@ -8,6 +8,7 @@ final class PetsViewModel {
 
     private(set) var species: [PetSpecies] = PetCatalog.all
     @ObservationIgnored private var remoteObserver: NSObjectProtocol?
+    @ObservationIgnored private var backdropRedraw: Task<Void, Never>?
 
     init() {
         remoteObserver = NotificationCenter.default.addObserver(
@@ -95,10 +96,19 @@ final class PetsViewModel {
 
     func profile(for species: PetSpecies) -> PetProfile { profiles.profile(for: species) }
 
+    func displayName(for species: PetSpecies) -> String { profiles.displayName(for: species) }
+
     func updateProfile(_ profile: PetProfile, for species: PetSpecies) {
         profiles.update(profile, for: species)
-        if store.placement?.showsProfileBackdrop == true, let placement = store.placement {
-            backdrop.apply(species: species, placement: placement)
+        guard store.placement?.showsProfileBackdrop == true else { return }
+        backdropRedraw?.cancel()
+        backdropRedraw = Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled,
+                  let placement = PetStore.shared.placement,
+                  placement.showsProfileBackdrop,
+                  placement.speciesSlug == species.slug else { return }
+            PetBackdropService.shared.apply(species: species, placement: placement)
         }
     }
 

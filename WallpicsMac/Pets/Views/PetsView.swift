@@ -106,7 +106,7 @@ struct PetsView: View {
 
             VStack(alignment: .leading, spacing: Theme.Space.m) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(pet.name)
+                    Text(model.displayName(for: pet))
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
                     if let paused = model.desktop.pauseSummary {
@@ -237,7 +237,7 @@ struct PetsView: View {
                             .overlay(Capsule().strokeBorder(.red.opacity(0.55), lineWidth: 1))
                     }
                     .buttonStyle(.plain)
-                    .help(String(localized: "Remove \(pet.name) from Desktop"))
+                    .help(String(localized: "Remove \(model.displayName(for: pet)) from Desktop"))
                 }
             }
             .frame(maxWidth: sideBySide ? .infinity : 640, alignment: .leading)
@@ -270,12 +270,21 @@ struct PetsView: View {
         }
     }
 
+    private var submissionsLocked: Bool {
+        PetAccess.requiresPaywall(forSubmissionCount: PetSubmissionStore.shared.submissionCount,
+                                  state: store.state)
+    }
+
     private var addPetButton: some View {
         Button {
-            showsSubmitSheet = true
+            if submissionsLocked {
+                PaywallPresenter.show()
+            } else {
+                showsSubmitSheet = true
+            }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "plus")
+                Image(systemName: submissionsLocked ? "lock.fill" : "plus")
                     .font(.system(size: 11, weight: .bold))
                 Text("Add your pet")
                     .font(.callout.weight(.semibold))
@@ -286,7 +295,9 @@ struct PetsView: View {
             .background(Theme.accent.gradient, in: Capsule())
         }
         .buttonStyle(.plain)
-        .help(String(localized: "Send photos of your pet and we'll turn it into a desktop companion"))
+        .help(submissionsLocked
+              ? String(localized: "Your first \(PetAccess.freeSubmissions) pets are free — WallPics Pro unlocks more")
+              : String(localized: "Send photos of your pet and we'll turn it into a desktop companion"))
     }
 
     private var searchField: some View {
@@ -377,18 +388,37 @@ struct PetsView: View {
     }
 
     private var missingCatalogState: some View {
-        VStack(spacing: Theme.Space.m) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 40, weight: .light))
-                .foregroundStyle(.white.opacity(0.5))
-            Text("Pet pack unavailable")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-            Text("The bundled pets could not be read. Reinstalling WallPics restores them.")
-                .font(.callout)
-                .foregroundStyle(.white.opacity(0.55))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 380)
+        let remote = RemotePetService.shared
+        return VStack(spacing: Theme.Space.m) {
+            if remote.isRefreshing || remote.lastError == nil {
+                ProgressView()
+                    .controlSize(.large)
+                Text("Loading pets…")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                Text("Pets are downloaded once and kept on your Mac.")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 380)
+            } else {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundStyle(.white.opacity(0.5))
+                Text("Couldn't load pets")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                Text(remote.lastError ?? "")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 380)
+                Button("Try again") {
+                    Task { await RemotePetService.shared.refresh() }
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .frame(width: 140)
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 260)
     }
@@ -434,7 +464,7 @@ struct PetTile: View {
             isHovering = inside
             if inside { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() }
         }
-        .help(pet.name)
+        .help(PetProfileStore.shared.displayName(for: pet))
     }
 
     private var restingScrim: some View {
@@ -442,7 +472,7 @@ struct PetTile: View {
     }
 
     private var caption: some View {
-        Text(pet.name)
+        Text(PetProfileStore.shared.displayName(for: pet))
             .font(.callout.weight(.semibold))
             .foregroundStyle(.white)
             .lineLimit(1)
@@ -579,6 +609,12 @@ struct PetProfileEditor: View {
                 .padding(6)
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
+            if let failure = model.profiles.lastSaveError {
+                Text(failure)
+                    .font(.caption)
+                    .foregroundStyle(.yellow.opacity(0.9))
+            }
+
             HStack {
                 Spacer()
                 Button("Reset to default") {
@@ -602,6 +638,7 @@ struct PetProfileEditor: View {
     }
 
     private func load() {
+        model.profiles.clearSaveError()
         draft = model.profile(for: species)
         loadedSlug = species.slug
     }

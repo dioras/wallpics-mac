@@ -312,6 +312,39 @@ func testPremiumGate() {
     check(premium.remoteID == liveFixtures[0].id, "remoteID parses slug")
 }
 
+func testSubmissionGate() {
+    #if DEBUG
+    check(!PetAccess.requiresPaywall(forSubmissionCount: 5, state: .free), "debug builds never gate submissions")
+    #else
+    check(PetAccess.requiresPaywall(forSubmissionCount: PetAccess.freeSubmissions, state: .free), "free + limit reached -> paywall")
+    check(PetAccess.requiresPaywall(forSubmissionCount: PetAccess.freeSubmissions + 3, state: .free), "free + over limit -> paywall")
+    #endif
+    check(PetAccess.freeSubmissions == 2, "two free submissions")
+    check(!PetAccess.requiresPaywall(forSubmissionCount: PetAccess.freeSubmissions - 1, state: .free), "free + one left -> allowed")
+    check(!PetAccess.requiresPaywall(forSubmissionCount: 9, state: .unknown), "unknown -> allowed until resolved")
+    check(!PetAccess.requiresPaywall(forSubmissionCount: 9, state: .trial(expiresAt: .distantFuture)), "trial -> allowed")
+    check(!PetAccess.requiresPaywall(forSubmissionCount: 9, state: .pro(expiresAt: nil)), "pro -> allowed")
+}
+
+func testWallpaperGate() {
+    let limit = WallpaperAccess.freeSetsPerDay
+    check(limit == 3, "three free sets per day")
+    #if DEBUG
+    check(WallpaperAccess.decision(isPremium: true, state: .free, setsToday: 99) == .allowed, "debug builds never gate wallpapers")
+    #else
+    check(WallpaperAccess.decision(isPremium: true, state: .free, setsToday: 0) == .paywall(.premiumContent), "free + premium -> paywall")
+    check(WallpaperAccess.decision(isPremium: false, state: .free, setsToday: limit) == .paywall(.dailyLimit), "free + quota used -> paywall")
+    check(WallpaperAccess.decision(isPremium: true, state: .free, setsToday: limit) == .paywall(.premiumContent), "premium wins over quota reason")
+    #endif
+    check(WallpaperAccess.decision(isPremium: false, state: .free, setsToday: limit - 1) == .allowed, "free + one set left -> allowed")
+    check(WallpaperAccess.decision(isPremium: true, state: .unknown, setsToday: limit) == .allowed, "unknown -> allowed until resolved")
+    check(WallpaperAccess.decision(isPremium: true, state: .trial(expiresAt: .distantFuture), setsToday: limit) == .allowed, "trial -> allowed")
+    check(WallpaperAccess.decision(isPremium: true, state: .pro(expiresAt: nil), setsToday: limit) == .allowed, "pro -> allowed")
+    check(WallpaperSetQuota.count(storedDay: "2026-09-18", storedCount: 3, today: "2026-09-19") == 0, "quota resets on a new day")
+    check(WallpaperSetQuota.count(storedDay: "2026-09-19", storedCount: 2, today: "2026-09-19") == 2, "quota carries within the day")
+    check(WallpaperSetQuota.count(storedDay: nil, storedCount: 7, today: "2026-09-19") == 0, "no stored day -> zero")
+}
+
 testLinearPetsApproachWithoutOvershoot()
 testAccelerationRamp()
 testSensitivityPacing()
@@ -372,5 +405,7 @@ testSeamCutsAtApex()
 testChordClampedToClipLength()
 testOffScreenCursorReturnsToNeutral()
 testPremiumGate()
+testSubmissionGate()
+testWallpaperGate()
 print("\n\(passes) passed, \(failures) failed")
 exit(failures == 0 ? 0 : 1)

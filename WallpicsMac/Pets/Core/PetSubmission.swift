@@ -4,10 +4,15 @@ import ImageIO
 import CoreGraphics
 import UniformTypeIdentifiers
 import AppKit
+import CryptoKit
 
 struct PetSubmissionPhoto: Sendable {
     let fileName: String
     let data: Data
+
+    var digest: String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
 }
 
 enum PetSubmissionRules {
@@ -23,6 +28,7 @@ enum PetSubmissionRules {
 enum PetSubmissionError: LocalizedError, Equatable, Sendable {
     case noPhotos
     case tooManyPhotos(max: Int)
+    case alreadySent
     case unreadable(String)
     case tooLarge(String, maxMB: Int)
     case server(String)
@@ -34,6 +40,8 @@ enum PetSubmissionError: LocalizedError, Equatable, Sendable {
             return String(localized: "Add at least one photo of your pet.")
         case .tooManyPhotos(let max):
             return String(localized: "You can send up to \(max) photos.")
+        case .alreadySent:
+            return String(localized: "You've already sent one of these photos. Each pet only needs to be sent once — it appears in your list after review.")
         case .unreadable(let file):
             return String(localized: "\(file) couldn't be read as an image.")
         case .tooLarge(let file, let maxMB):
@@ -109,8 +117,23 @@ struct PetSubmissionRecord: Codable, Identifiable, Equatable, Sendable {
 }
 
 private struct PetSubmissionsFile: Codable {
-    var version: Int = 1
+    static let currentVersion = 2
+    static let maxRememberedDigests = 200
+
+    var version: Int = currentVersion
     var records: [PetSubmissionRecord] = []
+    var submissionCount: Int = 0
+    var sentPhotoDigests: [String] = []
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        records = try c.decodeIfPresent([PetSubmissionRecord].self, forKey: .records) ?? []
+        submissionCount = try c.decodeIfPresent(Int.self, forKey: .submissionCount) ?? records.count
+        sentPhotoDigests = try c.decodeIfPresent([String].self, forKey: .sentPhotoDigests) ?? []
+    }
 }
 
 @MainActor
@@ -119,17 +142,31 @@ final class PetSubmissionStore {
     static let shared = PetSubmissionStore()
 
     private(set) var records: [PetSubmissionRecord] = []
+    private(set) var submissionCount = 0
+    private var sentPhotoDigests: [String] = []
 
     static var fileURL: URL { PetPaths.root.appendingPathComponent("submissions.json") }
 
     init() {
-        records = Self.load().records
+        let file = Self.load()
+        records = file.records
+        submissionCount = file.submissionCount
+        sentPhotoDigests = file.sentPhotoDigests
+    }
+
+    func hasSent(digest: String) -> Bool {
+        sentPhotoDigests.contains(digest)
     }
 
     @discardableResult
-    func add(_ record: PetSubmissionRecord) -> Bool {
+    func add(_ record: PetSubmissionRecord, photoDigests: [String]) -> Bool {
         records.removeAll { $0.id == record.id }
         records.insert(record, at: 0)
+        submissionCount += 1
+        sentPhotoDigests.append(contentsOf: photoDigests.filter { !sentPhotoDigests.contains($0) })
+        if sentPhotoDigests.count > PetSubmissionsFile.maxRememberedDigests {
+            sentPhotoDigests.removeFirst(sentPhotoDigests.count - PetSubmissionsFile.maxRememberedDigests)
+        }
         return persist()
     }
 
@@ -151,7 +188,10 @@ final class PetSubmissionStore {
 
     @discardableResult
     private func persist() -> Bool {
-        let file = PetSubmissionsFile(version: 1, records: records)
+        var file = PetSubmissionsFile()
+        file.records = records
+        file.submissionCount = submissionCount
+        file.sentPhotoDigests = sentPhotoDigests
         do {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
@@ -264,6 +304,11 @@ final class PetSubmissionModel {
 
     func submit() async {
         guard canSubmit else { return }
+        guard !PetAccess.requiresPaywall(forSubmissionCount: PetSubmissionStore.shared.submissionCount,
+                                         state: StoreKitService.shared.state) else {
+            notice = String(localized: "WallPics Pro is required to add more pets.")
+            return
+        }
 
         let urls = photoURLs
         let trimmedName = String(name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -278,6 +323,14 @@ final class PetSubmissionModel {
                 try urls.map { try PetSubmissionPhotoPrep.prepare(url: $0) }
             }.value
 
+            let digests = prepared.map(\.digest)
+            if digests.contains(where: PetSubmissionStore.shared.hasSent) {
+                Log.app.notice("Pet submission refused: a photo was already sent")
+                notice = PetSubmissionError.alreadySent.errorDescription
+                phase = .editing
+                return
+            }
+
             let serverID = try await WallpaperAPI.shared.submitPet(
                 name: trimmedName.isEmpty ? nil : trimmedName,
                 description: trimmedNotes.isEmpty ? nil : trimmedNotes,
@@ -291,7 +344,7 @@ final class PetSubmissionModel {
                 photoCount: prepared.count,
                 serverPetID: serverID
             )
-            if !PetSubmissionStore.shared.add(record) {
+            if !PetSubmissionStore.shared.add(record, photoDigests: digests) {
                 notice = String(localized: "Sent for review, but the entry couldn't be saved to your list.")
             }
             phase = .done(record)

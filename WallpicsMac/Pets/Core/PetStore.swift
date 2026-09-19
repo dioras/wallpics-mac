@@ -24,7 +24,13 @@ final class PetStore {
     private(set) var placement: PetPlacement?
 
     init() {
-        placement = Self.loadState().placement
+        let stored = Self.loadState().placement
+        if let stored, PetSpecies.remoteID(fromSlug: stored.speciesSlug) == nil {
+            Log.app.notice("PetStore: dropping placement of retired bundled pet \(stored.speciesSlug, privacy: .public)")
+            persist()
+        } else {
+            placement = stored
+        }
     }
 
     var activeSpecies: PetSpecies? {

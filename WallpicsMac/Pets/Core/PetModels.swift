@@ -24,7 +24,9 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
 
     var id: String { slug }
 
-    var remoteID: Int? {
+    var remoteID: Int? { Self.remoteID(fromSlug: slug) }
+
+    static func remoteID(fromSlug slug: String) -> Int? {
         guard slug.hasPrefix("remote-") else { return nil }
         return Int(slug.dropFirst("remote-".count))
     }
@@ -189,10 +191,17 @@ struct PetPlacement: Codable, Equatable, Sendable {
 }
 
 enum PetAccess {
+    static let freeSubmissions = 2
+
     static func requiresPaywall(pet: PetSpecies, state: SubscriptionState) -> Bool {
         guard pet.isPremium, !state.isPro else { return false }
         if case .free = state { return true }
         return false
+    }
+
+    static func requiresPaywall(forSubmissionCount count: Int, state: SubscriptionState) -> Bool {
+        guard !state.isPro, case .free = state else { return false }
+        return count >= freeSubmissions
     }
 }
 
