@@ -3,8 +3,7 @@ import SwiftUI
 struct PetsView: View {
     @Bindable var model: PetsViewModel
     @Environment(StoreKitService.self) private var store
-    @State private var submission = PetSubmissionModel()
-    @State private var showsSubmitSheet = false
+    @Environment(AppEnvironment.self) private var env
 
     private let columns = [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: Theme.Space.l)]
     private static let previewMaxHeight: CGFloat = 400
@@ -13,12 +12,12 @@ struct PetsView: View {
 
     var body: some View {
         GeometryReader { geo in
-            if let active = model.active, geo.size.width >= Self.sideBySideMinWidth {
+            if let focused = model.focused, geo.size.width >= Self.sideBySideMinWidth {
                 VStack(alignment: .leading, spacing: Theme.Space.l) {
                     header
                     HStack(alignment: .top, spacing: Theme.Space.l) {
                         ScrollView(showsIndicators: false) {
-                            activePetCard(active, sideBySide: true)
+                            focusCard(focused, sideBySide: true)
                                 .padding(.bottom, Theme.Space.xxl)
                         }
                         .frame(width: Self.activeColumnWidth)
@@ -37,8 +36,8 @@ struct PetsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Space.l) {
                         header
-                        if let active = model.active {
-                            activePetCard(active, sideBySide: false)
+                        if let focused = model.focused {
+                            focusCard(focused, sideBySide: false)
                         }
                         toolbar
                         content
@@ -51,15 +50,6 @@ struct PetsView: View {
         .scrollContentBackground(.hidden)
         .background(.black)
         .environment(\.colorScheme, .dark)
-        .sheet(isPresented: $showsSubmitSheet, onDismiss: resetSubmissionIfFinished) {
-            PetSubmitSheet(model: submission) { showsSubmitSheet = false }
-        }
-    }
-
-    private func resetSubmissionIfFinished() {
-        if case .done = submission.phase {
-            submission = PetSubmissionModel()
-        }
     }
 
     private var header: some View {
@@ -92,6 +82,104 @@ struct PetsView: View {
             }
         }
         .padding(.top, Theme.Space.xl)
+    }
+
+    @ViewBuilder
+    private func focusCard(_ pet: PetSpecies, sideBySide: Bool) -> some View {
+        Group {
+            if model.store.isActive(pet.slug) {
+                activePetCard(pet, sideBySide: sideBySide)
+            } else {
+                previewCard(pet, sideBySide: sideBySide)
+            }
+        }
+        .id(pet.slug)
+        .transition(.opacity)
+    }
+
+    private func previewCard(_ pet: PetSpecies, sideBySide: Bool) -> some View {
+        let locked = PetAccess.requiresPaywall(pet: pet, state: store.state)
+        return VStack(alignment: .leading, spacing: Theme.Space.l) {
+            PetPlacementPreview(
+                species: pet,
+                size: model.store.placement?.size ?? .medium,
+                anchor: model.store.placement?.anchor ?? .bottomCenter
+            )
+            .frame(maxWidth: .infinity, maxHeight: sideBySide ? nil : Self.previewMaxHeight, alignment: .topLeading)
+            .allowsHitTesting(false)
+
+            HStack(alignment: .top, spacing: Theme.Space.m) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: Theme.Space.s) {
+                        Text(model.displayName(for: pet))
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(.white)
+                        if locked {
+                            HStack(spacing: 4) {
+                                Image(systemName: "lock.fill")
+                                Text(verbatim: "PRO")
+                            }
+                            .font(.system(size: 9, weight: .heavy))
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(.white, in: Capsule(style: .continuous))
+                        }
+                    }
+                    Text(pet.summary ?? String(localized: "Preview. It follows your cursor right on your desktop."))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.55))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: Theme.Space.s)
+                Button {
+                    model.clearSelection()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.7))
+                        .frame(width: 26, height: 26)
+                        .background(.white.opacity(0.08), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .help(String(localized: "Close preview"))
+            }
+
+            if locked {
+                VStack(alignment: .leading, spacing: Theme.Space.s) {
+                    Button {
+                        PaywallPresenter.show()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "crown.fill")
+                            Text("Unlock with Pro")
+                        }
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    Text("Every pet, and your own DIY pets, come with WallPics Pro.")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.5))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+            } else {
+                Button {
+                    model.place(pet)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "pawprint.fill")
+                        Text("Put on Desktop")
+                    }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+            }
+        }
+        .frame(maxWidth: sideBySide ? .infinity : 640, alignment: .leading)
+        .padding(Theme.Space.l)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private func activePetCard(_ pet: PetSpecies, sideBySide: Bool) -> some View {
@@ -261,32 +349,27 @@ struct PetsView: View {
 
     private var toolbar: some View {
         HStack(spacing: Theme.Space.m) {
-            Text("All Pets")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
+            if model.hasDIYPets || model.scope == .diy {
+                scopePicker
+            } else {
+                Text("All Pets")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
             Spacer()
             searchField.frame(maxWidth: 260)
             addPetButton
         }
     }
 
-    private var submissionsLocked: Bool {
-        PetAccess.requiresPaywall(forSubmissionCount: PetSubmissionStore.shared.submissionCount,
-                                  state: store.state)
-    }
-
     private var addPetButton: some View {
         Button {
-            if submissionsLocked {
-                PaywallPresenter.show()
-            } else {
-                showsSubmitSheet = true
-            }
+            env.selectedSection = .diy
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: submissionsLocked ? "lock.fill" : "plus")
+                Image(systemName: "wand.and.stars")
                     .font(.system(size: 11, weight: .bold))
-                Text("Add your pet")
+                Text("Make your own")
                     .font(.callout.weight(.semibold))
             }
             .foregroundStyle(.white)
@@ -295,9 +378,7 @@ struct PetsView: View {
             .background(Theme.accent.gradient, in: Capsule())
         }
         .buttonStyle(.plain)
-        .help(submissionsLocked
-              ? String(localized: "Your first \(PetAccess.freeSubmissions) pets are free — WallPics Pro unlocks more")
-              : String(localized: "Send photos of your pet and we'll turn it into a desktop companion"))
+        .help(String(localized: "Send photos of your pet and we'll turn it into a desktop companion"))
     }
 
     private var searchField: some View {
@@ -327,22 +408,15 @@ struct PetsView: View {
         } else if model.filtered.isEmpty {
             emptySearchState
         } else {
+            let diyIDs = model.diyIDs
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
-                if model.query.isEmpty {
-                    ForEach(model.submissions.records) { record in
-                        PendingPetTile(record: record)
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    model.submissions.remove(id: record.id)
-                                } label: {
-                                    Label("Remove from list", systemImage: "trash")
-                                }
-                            }
-                    }
-                }
                 ForEach(model.filtered) { pet in
-                    PetTile(pet: pet, isPlaced: model.store.isActive(pet.slug))
-                        .onTapGesture { place(pet) }
+                    PetTile(pet: pet,
+                            isPlaced: model.store.isActive(pet.slug),
+                            isLocked: PetAccess.requiresPaywall(pet: pet, state: store.state),
+                            isDIY: diyIDs.contains(pet.remoteID ?? -1),
+                            isSelected: model.focused?.slug == pet.slug)
+                        .onTapGesture { withAnimation(Motion.transition) { model.select(pet) } }
                         .contextMenu {
                             Button {
                                 place(pet)
@@ -364,27 +438,74 @@ struct PetsView: View {
     }
 
     private func place(_ pet: PetSpecies) {
-        if PetAccess.requiresPaywall(pet: pet, state: store.state) {
-            PaywallPresenter.show()
-        } else {
-            model.place(pet)
-        }
+        model.place(pet)
     }
 
-    private var emptySearchState: some View {
-        VStack(spacing: Theme.Space.m) {
-            Image(systemName: "pawprint")
-                .font(.system(size: 40, weight: .light))
-                .foregroundStyle(.white.opacity(0.45))
-                .modifier(BreatheEffect())
-            Text("No pets found")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
-            Text("Try a different name.")
-                .font(.callout)
-                .foregroundStyle(.white.opacity(0.55))
+    private var scopePicker: some View {
+        HStack(spacing: 2) {
+            ForEach(PetScope.allCases) { scope in
+                let active = model.scope == scope
+                Button {
+                    model.scope = scope
+                } label: {
+                    HStack(spacing: 5) {
+                        if scope == .diy {
+                            Image(systemName: "wand.and.stars")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        Text(scope.label)
+                            .font(.callout.weight(.semibold))
+                    }
+                    .foregroundStyle(active ? AnyShapeStyle(.white) : AnyShapeStyle(.white.opacity(0.6)))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background {
+                        if active { Capsule().fill(Theme.accent) }
+                    }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .frame(maxWidth: .infinity, minHeight: 260)
+        .padding(3)
+        .liquidGlass(in: Capsule())
+        .animation(Motion.hover, value: model.scope)
+    }
+
+    @ViewBuilder
+    private var emptySearchState: some View {
+        if model.scope == .diy && model.query.isEmpty {
+            VStack(spacing: Theme.Space.m) {
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundStyle(.white.opacity(0.45))
+                    .modifier(BreatheEffect())
+                Text("No DIY pets yet")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                Text("Pets made from people's photos show up here.")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.55))
+                Button("Make your own") { env.selectedSection = .diy }
+                    .buttonStyle(PrimaryButtonStyle(fullWidth: false))
+                    .padding(.top, Theme.Space.s)
+            }
+            .frame(maxWidth: .infinity, minHeight: 260)
+        } else {
+            VStack(spacing: Theme.Space.m) {
+                Image(systemName: "pawprint")
+                    .font(.system(size: 40, weight: .light))
+                    .foregroundStyle(.white.opacity(0.45))
+                    .modifier(BreatheEffect())
+                Text("No pets found")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                Text("Try a different name.")
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+            .frame(maxWidth: .infinity, minHeight: 260)
+        }
     }
 
     private var missingCatalogState: some View {
@@ -427,6 +548,9 @@ struct PetsView: View {
 struct PetTile: View {
     let pet: PetSpecies
     let isPlaced: Bool
+    var isLocked: Bool = false
+    var isDIY: Bool = false
+    var isSelected: Bool = false
     @State private var isHovering = false
 
     var body: some View {
@@ -448,12 +572,19 @@ struct PetTile: View {
         .overlay { restingScrim }
         .overlay(alignment: .bottomLeading) { caption }
         .overlay(alignment: .topLeading) { placedBadge }
+        .overlay(alignment: .topTrailing) {
+            if isDIY {
+                BadgePill(role: .type) { Text(verbatim: "DIY") }
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
                 .strokeBorder(
-                    isPlaced ? Theme.accent.opacity(0.9) : .white.opacity(isHovering ? 0.16 : 0.06),
-                    lineWidth: isPlaced ? 2 : 1
+                    isPlaced ? Theme.accent.opacity(0.9)
+                        : isSelected ? .white.opacity(0.75)
+                        : .white.opacity(isHovering ? 0.16 : 0.06),
+                    lineWidth: isPlaced || isSelected ? 2 : 1
                 )
         }
         .scaleEffect(isHovering ? 1.025 : 1)
@@ -488,53 +619,15 @@ struct PetTile: View {
                     Text(verbatim: "ON DESKTOP")
                 }
             }
-            if pet.isPremium {
+            if isLocked {
                 BadgePill(role: .status) {
+                    Image(systemName: "lock.fill")
                     Text(verbatim: "PRO")
                 }
             }
         }
     }
 }
-
-struct PendingPetTile: View {
-    let record: PetSubmissionRecord
-
-    var body: some View {
-        ZStack {
-            Color.white.opacity(0.04)
-            VStack(spacing: Theme.Space.s) {
-                Image(systemName: "hourglass")
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(.white.opacity(0.5))
-                    .modifier(BreatheEffect())
-                Text("In review")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.7))
-                Text(record.submittedAt, style: .date)
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.4))
-            }
-        }
-        .aspectRatio(1, contentMode: .fill)
-        .clipped()
-        .overlay(alignment: .bottomLeading) {
-            Text(record.name)
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .padding(10)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
-                .foregroundStyle(.white.opacity(0.18))
-        }
-        .help(String(localized: "\(record.name) is waiting for review. It appears here once approved."))
-    }
-}
-
 
 struct PetChip: View {
     let title: String

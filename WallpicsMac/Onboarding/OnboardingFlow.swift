@@ -4,7 +4,13 @@ struct OnboardingFlow: View {
     var onDone: () -> Void
     @State private var step: Step = .welcome
     @State private var pickedWallpaper: Wallpaper?
-    @State private var samples: [Wallpaper] = []
+    @State private var showcase: [Wallpaper] = []
+    @State private var freePicks: [Wallpaper] = []
+
+    private static let showcaseCount = 5
+    private static let pickCount = 12
+    private static let pageSize = 60
+    private static let maxPages = 3
 
     enum Step: Int, CaseIterable { case welcome, pick, set, paywall }
 
@@ -40,9 +46,9 @@ struct OnboardingFlow: View {
     private var content: some View {
         switch step {
         case .welcome:
-            WelcomeStep(samples: samples) { advance(to: .pick) }
+            WelcomeStep(samples: showcase) { advance(to: .pick) }
         case .pick:
-            PickStep(samples: samples, picked: $pickedWallpaper) {
+            PickStep(samples: freePicks, picked: $pickedWallpaper) {
                 if pickedWallpaper != nil { advance(to: .set) }
             }
         case .set:
@@ -58,13 +64,22 @@ struct OnboardingFlow: View {
     }
 
     private func loadSamples() async {
-        do {
-            // Enough to fill a scrollable 16:9 grid on the pick step (welcome uses the first 5).
-            let page = try await WallpaperAPI.shared.desktopWallpapers(page: 1, perPage: 12, sortOrder: .popular)
-            let free = page.data.filter { !$0.isPremiumContent }
-            samples = free.isEmpty ? page.data : free
-        } catch {
-            Log.ui.error("Onboarding samples failed: \(error.localizedDescription, privacy: .public)")
+        let timestamp = Int(Date().timeIntervalSince1970)
+        var popular: [Wallpaper] = []
+        var free: [Wallpaper] = []
+        for page in 1...Self.maxPages {
+            do {
+                let result = try await WallpaperAPI.shared.desktopWallpapers(page: page, perPage: Self.pageSize,
+                                                                             sortOrder: .popular, timestamp: timestamp)
+                popular.append(contentsOf: result.data)
+                free.append(contentsOf: result.data.filter { !$0.isPremiumContent })
+                showcase = Array(popular.prefix(Self.showcaseCount))
+                freePicks = Array((free.isEmpty ? popular : free).prefix(Self.pickCount))
+                if free.count >= Self.pickCount || result.data.count < Self.pageSize { break }
+            } catch {
+                Log.ui.error("Onboarding samples page \(page) failed: \(error.localizedDescription, privacy: .public)")
+                break
+            }
         }
     }
 }

@@ -3,14 +3,17 @@ import AppKit
 import ImageIO
 import UniformTypeIdentifiers
 
-struct PetSubmitSheet: View {
+struct PetSubmissionForm: View {
     @Bindable var model: PetSubmissionModel
-    let onClose: () -> Void
+    let locked: Bool
+    let onLockedSubmit: () -> Void
+    let onReset: () -> Void
 
     @State private var dropTargeted = false
 
     private static let tips: [String] = [
         String(localized: "One pet per photo, front view plus a couple of angles works best"),
+        String(localized: "Sharp, well-lit, the whole body in frame"),
         String(localized: "Photos are only used to build your pet")
     ]
 
@@ -22,24 +25,11 @@ struct PetSubmitSheet: View {
                 editingState
             }
         }
-        .frame(width: 560)
-        .background(.black)
-        .environment(\.colorScheme, .dark)
-        .interactiveDismissDisabled(model.isUploading)
+        .animation(Motion.transition, value: model.phase)
     }
 
     private var editingState: some View {
         VStack(alignment: .leading, spacing: Theme.Space.l) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Add your pet")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(.white)
-                Text("Send 3–5 photos. We turn them into a desktop pet and add it to your list once it's approved (usually within 48 hours).")
-                    .font(.callout)
-                    .foregroundStyle(.white.opacity(0.55))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
             dropZone
 
             if !model.photoURLs.isEmpty {
@@ -50,6 +40,7 @@ struct PetSubmitSheet: View {
                 Text(notice)
                     .font(.caption)
                     .foregroundStyle(.yellow.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if case .failed(let message) = model.phase {
@@ -90,7 +81,6 @@ struct PetSubmitSheet: View {
 
             footer
         }
-        .padding(Theme.Space.xl)
     }
 
     private var dropZone: some View {
@@ -102,9 +92,9 @@ struct PetSubmitSheet: View {
                               style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
             VStack(spacing: 6) {
                 Image(systemName: "photo.badge.plus")
-                    .font(.system(size: 24))
+                    .font(.system(size: 26))
                     .foregroundStyle(Theme.accent)
-                Text("Drag photos here")
+                Text("Drag 1–5 photos here")
                     .font(.callout.weight(.medium))
                     .foregroundStyle(.white)
                 Text("or click to choose from your Mac")
@@ -112,7 +102,7 @@ struct PetSubmitSheet: View {
                     .foregroundStyle(.white.opacity(0.45))
             }
         }
-        .frame(height: 108)
+        .frame(height: 124)
         .contentShape(Rectangle())
         .onTapGesture {
             guard !model.isUploading else { return }
@@ -124,6 +114,7 @@ struct PetSubmitSheet: View {
             return true
         }
         .opacity(model.isUploading ? 0.5 : 1)
+        .accessibilityLabel(String(localized: "Add photos of your pet"))
     }
 
     private var thumbnailRow: some View {
@@ -226,19 +217,32 @@ struct PetSubmitSheet: View {
                 Text("Uploading…")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.6))
+            } else if locked {
+                Text("Making your own pet is part of WallPics Pro.")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.55))
             }
             Spacer()
-            Button("Cancel", action: onClose)
-                .buttonStyle(SecondaryButtonStyle())
-                .frame(width: 120)
-                .keyboardShortcut(.cancelAction)
-                .disabled(model.isUploading)
-            Button("Submit") {
-                Task { await model.submit() }
+            Button {
+                if locked {
+                    onLockedSubmit()
+                } else {
+                    Task { await model.submit() }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    if locked {
+                        Image(systemName: "lock.fill").font(.system(size: 11, weight: .bold))
+                    }
+                    Text(locked ? "Unlock and send" : "Send for review")
+                }
             }
             .buttonStyle(PrimaryButtonStyle(fullWidth: false))
-            .frame(width: 140)
-            .disabled(!model.canSubmit)
+            .frame(minWidth: 160)
+            .disabled(locked ? model.isUploading : !model.canSubmit)
+            .help(locked
+                  ? String(localized: "WallPics Pro unlocks custom pets")
+                  : String(localized: "Send photos of your pet and we'll turn it into a desktop companion"))
         }
     }
 
@@ -247,31 +251,32 @@ struct PetSubmitSheet: View {
             Image(systemName: "checkmark.seal.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(Theme.accent)
+                .symbolEffect(.bounce, value: record.id)
             Text("Sent for review")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.white)
             Text(record.name)
                 .font(.callout.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.75))
-            Text("It will appear in your pets once it's approved")
+            Text("We'll let you know when it's ready — usually within 48 hours. You can keep using WallPics in the meantime.")
                 .font(.callout)
                 .foregroundStyle(.white.opacity(0.55))
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 380)
             if let notice = model.notice {
                 Text(notice)
                     .font(.caption)
                     .foregroundStyle(.yellow.opacity(0.9))
                     .multilineTextAlignment(.center)
             }
-            Button("Done", action: onClose)
-                .buttonStyle(PrimaryButtonStyle(fullWidth: false))
-                .frame(width: 140)
-                .keyboardShortcut(.cancelAction)
+            Button("Send another pet", action: onReset)
+                .buttonStyle(SecondaryButtonStyle())
+                .frame(width: 180)
                 .padding(.top, Theme.Space.s)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, Theme.Space.xxxl)
-        .padding(.horizontal, Theme.Space.xl)
+        .padding(.vertical, Theme.Space.xxl)
     }
 
     private func loadDropped(_ providers: [NSItemProvider]) {
@@ -292,7 +297,7 @@ struct PetSubmitSheet: View {
                     }
                 } catch {
                     failures += 1
-                    Log.ui.error("PetSubmitSheet: dropped item could not be read — \(error.localizedDescription, privacy: .public)")
+                    Log.ui.error("PetSubmissionForm: dropped item could not be read — \(error.localizedDescription, privacy: .public)")
                 }
             }
             model.addPhotos(resolved)
@@ -325,6 +330,14 @@ enum PetSubmissionThumbnails {
     }
 }
 
-#Preview {
-    PetSubmitSheet(model: PetSubmissionModel(), onClose: {})
+#Preview("Unlocked") {
+    PetSubmissionForm(model: PetSubmissionModel(), locked: false, onLockedSubmit: {}, onReset: {})
+        .padding()
+        .background(.black)
+}
+
+#Preview("Locked") {
+    PetSubmissionForm(model: PetSubmissionModel(), locked: true, onLockedSubmit: {}, onReset: {})
+        .padding()
+        .background(.black)
 }

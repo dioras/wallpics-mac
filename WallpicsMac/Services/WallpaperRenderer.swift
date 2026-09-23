@@ -89,8 +89,10 @@ final class WallpaperRenderer {
         self.needsWatermark = needsWatermark
         self.watermarkIcon = appIcon
 
-        if let staticURL = firstFrameStaticURL, !LockScreenService.shared.isInstalled(assetURL: url) {
+        let lockScreen = LockScreenService.shared
+        if let staticURL = firstFrameStaticURL, !lockScreen.willInstallImmediately(kind: kind, assetURL: url) {
             applyStaticAcrossScreens(url: staticURL)
+            lockScreen.noteDesktopPictureApplied()
         }
 
         for screen in NSScreen.screens {
@@ -114,6 +116,7 @@ final class WallpaperRenderer {
             applyStaticAcrossScreens(url: url)
         } else if let poster = currentPosterURL {
             applyStaticAcrossScreens(url: poster)
+            LockScreenService.shared.noteDesktopPictureApplied()
         }
     }
 
@@ -186,6 +189,7 @@ final class WallpaperRenderer {
             return
         }
         reconcileAnimatedWindows(kind: kind, url: url)
+        LockScreenService.shared.reassert()
     }
 
     /// Make sure the live wallpaper still covers every screen and sits at desktop level. Safe to
@@ -212,6 +216,7 @@ final class WallpaperRenderer {
     private func reassertCurrentWallpaper() {
         guard let kind = currentKind, kind != .image, let url = currentAssetURL else { return }
         reconcileAnimatedWindows(kind: kind, url: url)
+        LockScreenService.shared.reassert()
     }
 
     @objc private func systemWillSleep() {

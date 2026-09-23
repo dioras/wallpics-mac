@@ -2,7 +2,7 @@ import Cocoa
 import SwiftUI
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private(set) var settings = AppSettings.load()
     private var mainWindowController: MainWindowController?
     private var statusItem: NSStatusItem?
@@ -79,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindowController?.showWindow(nil)
 
         installStatusItem()
+        startPetMonitoring()
 
         // Bring back the last live/shader wallpaper after a relaunch (e.g. login/restart), so it
         // keeps running instead of leaving the low-res still on the desktop. Paired with the
@@ -195,14 +196,125 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image?.accessibilityDescription = "WallPics"
         }
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Show WallPics", action: #selector(showMainWindow), keyEquivalent: "o"))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Pause Wallpaper", action: #selector(togglePause), keyEquivalent: "p"))
-        menu.addItem(NSMenuItem(title: "Pause Pets", action: #selector(togglePetPause), keyEquivalent: ""))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit WallPics", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.delegate = self
         item.menu = menu
         statusItem = item
+        rebuildStatusMenu(menu)
+        updateStatusBadge()
+    }
+
+    nonisolated func menuNeedsUpdate(_ menu: NSMenu) {
+        MainActor.assumeIsolated { rebuildStatusMenu(menu) }
+    }
+
+    private func rebuildStatusMenu(_ menu: NSMenu) {
+        menu.removeAllItems()
+        menu.addItem(NSMenuItem(title: String(localized: "Show WallPics"), action: #selector(showMainWindow), keyEquivalent: "o"))
+        menu.addItem(NSMenuItem.separator())
+        let diyItems = diyMenuItems()
+        if !diyItems.isEmpty {
+            diyItems.forEach(menu.addItem)
+            menu.addItem(NSMenuItem.separator())
+        }
+        menu.addItem(NSMenuItem(title: String(localized: "Pause Wallpaper"), action: #selector(togglePause), keyEquivalent: "p"))
+        menu.addItem(NSMenuItem(title: String(localized: "Pause Pets"), action: #selector(togglePetPause), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: String(localized: "Quit WallPics"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    private func diyMenuItems() -> [NSMenuItem] {
+        let store = PetSubmissionStore.shared
+        let pending = store.inReview
+        let ready = Array(store.ready.prefix(Self.maxReadyMenuItems))
+        guard !pending.isEmpty || !ready.isEmpty else { return [] }
+
+        var items: [NSMenuItem] = [NSMenuItem.sectionHeader(title: String(localized: "DIY Pets"))]
+        for record in ready {
+            let item = NSMenuItem(title: String(localized: "Put \(record.name) on Desktop"),
+                                  action: #selector(placeReadyPet(_:)), keyEquivalent: "")
+            item.representedObject = record.id
+            item.image = NSImage(systemSymbolName: record.readySeen ? "pawprint.fill" : "sparkles",
+                                 accessibilityDescription: nil)
+            items.append(item)
+        }
+        for record in pending {
+            let item = NSMenuItem(title: String(localized: "\(record.name) — in review"), action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            item.image = NSImage(systemSymbolName: "hourglass", accessibilityDescription: nil)
+            items.append(item)
+        }
+        if !pending.isEmpty {
+            let sync = PetSubmissionSync.shared
+            let check = NSMenuItem(title: sync.isChecking ? String(localized: "Checking…") : String(localized: "Check Status Now"),
+                                   action: sync.isChecking ? nil : #selector(checkDIYStatus), keyEquivalent: "")
+            check.isEnabled = !sync.isChecking
+            items.append(check)
+            if let error = sync.lastError {
+                let failed = NSMenuItem(title: error, action: nil, keyEquivalent: "")
+                failed.isEnabled = false
+                failed.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
+                items.append(failed)
+            }
+        }
+        return items
+    }
+
+    private static let maxReadyMenuItems = 5
+
+    private func startPetMonitoring() {
+        PetSubmissionSync.shared.start()
+        NotificationCenter.default.addObserver(
+            forName: PetSubmissionStore.didChange, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateStatusBadge() }
+        }
+        NotificationCenter.default.addObserver(
+            forName: PetReadyCenter.openDIYRequest, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.showMainWindow()
+                AppEnvironment.shared.selectedSection = .diy
+            }
+        }
+        updateStatusBadge()
+    }
+
+    private func updateStatusBadge() {
+        guard let button = statusItem?.button else { return }
+        switch PetSubmissionStore.shared.menuState {
+        case .ready(let count):
+            button.imagePosition = .imageLeading
+            button.attributedTitle = NSAttributedString(string: " ●", attributes: [
+                .foregroundColor: NSColor.controlAccentColor,
+                .font: NSFont.systemFont(ofSize: 9, weight: .bold),
+                .baselineOffset: 1
+            ])
+            button.toolTip = String(localized: "\(count) DIY pet(s) ready")
+        case .waiting(let count):
+            button.attributedTitle = NSAttributedString(string: "")
+            button.toolTip = String(localized: "\(count) DIY pet(s) in review")
+        case .idle:
+            button.attributedTitle = NSAttributedString(string: "")
+            button.toolTip = "WallPics"
+        }
+    }
+
+    @objc private func placeReadyPet(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID,
+              let record = PetSubmissionStore.shared.ready.first(where: { $0.id == id }) else { return }
+        PetSubmissionStore.shared.markReadySeen(ids: [id])
+        guard let species = record.catalogSlug.flatMap(PetCatalog.species(slug:)) else {
+            showMainWindow()
+            AppEnvironment.shared.selectedSection = .diy
+            return
+        }
+        if !PetDesktopActions.place(species) {
+            showMainWindow()
+        }
+    }
+
+    @objc private func checkDIYStatus() {
+        PetSubmissionSync.shared.refreshNow(force: true)
     }
 
     @objc private func showMainWindow() {

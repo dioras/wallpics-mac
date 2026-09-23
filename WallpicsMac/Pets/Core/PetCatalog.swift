@@ -21,6 +21,14 @@ final class RemotePetService {
     static let didUpdate = Notification.Name("RemotePetServiceDidUpdate")
 
     private(set) var pets: [PetSpecies] = []
+    private(set) var communityIDs: Set<Int> = RemotePetService.cachedCommunityIDs() {
+        didSet { UserDefaults.standard.set(communityIDs.sorted(), forKey: Self.communityKey) }
+    }
+    private static let communityKey = "diyCommunityPetIDs"
+
+    private static func cachedCommunityIDs() -> Set<Int> {
+        Set((UserDefaults.standard.array(forKey: communityKey) as? [Int]) ?? [])
+    }
     private(set) var isRefreshing = false
     private(set) var lastError: String?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
@@ -131,11 +139,46 @@ final class RemotePetService {
             }
             pets = loaded
             lastError = nil
+            await refreshCommunity()
             Log.api.info("RemotePetService: loaded \(loaded.count) pets from \(pageCount) page(s)")
             NotificationCenter.default.post(name: Self.didUpdate, object: nil)
         } catch {
             lastError = Self.unreachableMessage
             Log.api.error("RemotePetService: listing failed — \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    private struct IDListing: Decodable {
+        struct Entry: Decodable { let id: Int }
+        struct PageInfo: Decodable {
+            let currentPage: Int
+            let lastPage: Int
+
+            enum CodingKeys: String, CodingKey {
+                case currentPage = "current_page"
+                case lastPage = "last_page"
+            }
+        }
+        let data: [Entry]
+        let info: PageInfo?
+    }
+
+    private func refreshCommunity() async {
+        let timestamp = Int(Date().timeIntervalSince1970)
+        var ids: Set<Int> = []
+        var page = 1
+        do {
+            while page <= Self.maxPages {
+                let data = try await fetchPage(page: page, timestamp: timestamp,
+                                               categoryID: PetDIY.communityCategoryID)
+                let listing = try JSONDecoder().decode(IDListing.self, from: data)
+                ids.formUnion(listing.data.map(\.id))
+                guard let info = listing.info, info.currentPage < info.lastPage else { break }
+                page += 1
+            }
+            communityIDs = ids
+        } catch {
+            Log.api.error("RemotePetService: DIY list failed, keeping \(self.communityIDs.count) cached — \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -165,13 +208,22 @@ final class RemotePetService {
     }
 
     private func fetchListing(page: Int, timestamp: Int) async throws -> Listing {
+        let data = try await fetchPage(page: page, timestamp: timestamp, categoryID: nil)
+        return try JSONDecoder().decode(Listing.self, from: data)
+    }
+
+    private func fetchPage(page: Int, timestamp: Int, categoryID: Int?) async throws -> Data {
         var components = URLComponents(url: Self.listURL, resolvingAgainstBaseURL: false)
-        components?.queryItems = [
+        var items = [
             URLQueryItem(name: "paginated", value: "1"),
             URLQueryItem(name: "page", value: String(page)),
             URLQueryItem(name: "per_page", value: String(Self.pageSize)),
             URLQueryItem(name: "timestamp", value: String(timestamp))
         ]
+        if let categoryID {
+            items.append(URLQueryItem(name: "categoryId", value: String(categoryID)))
+        }
+        components?.queryItems = items
         guard let url = components?.url else { throw URLError(.badURL) }
         var request = URLRequest(url: url)
         let time = String(Int(Date().timeIntervalSince1970))
@@ -185,7 +237,7 @@ final class RemotePetService {
         guard (response as? HTTPURLResponse)?.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
-        return try JSONDecoder().decode(Listing.self, from: data)
+        return data
     }
 
     private func materialize(_ pet: RemotePet) async throws -> PetSpecies {
@@ -268,7 +320,7 @@ final class RemotePetService {
         let summary = pet.description?.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedName = pet.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return PetSpecies(
-            slug: "remote-\(pet.id)",
+            slug: PetSpecies.remoteSlug(id: pet.id),
             name: trimmedName.isEmpty ? String(localized: "Pet \(pet.id)") : trimmedName,
             pixelWidth: width,
             pixelHeight: height,

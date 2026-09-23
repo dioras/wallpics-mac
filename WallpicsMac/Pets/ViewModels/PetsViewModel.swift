@@ -15,10 +15,7 @@ final class PetsViewModel {
             forName: RemotePetService.didUpdate, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard let self else { return }
-                self.species = PetCatalog.all
-                let remoteIDs = Set(RemotePetService.shared.pets.compactMap { $0.remoteID })
-                self.submissions.reconcile(approvedServerIDs: remoteIDs)
+                self?.species = PetCatalog.all
             }
         }
         Task { await RemotePetService.shared.refresh() }
@@ -35,22 +32,59 @@ final class PetsViewModel {
     let profiles = PetProfileStore.shared
     let backdrop = PetBackdropService.shared
     let submissions = PetSubmissionStore.shared
+    let submissionSync = PetSubmissionSync.shared
+    let submission = PetSubmissionModel()
+
+    var scope: PetScope = .all
+
+    var diyIDs: Set<Int> {
+        RemotePetService.shared.communityIDs.union(submissions.readyServerIDs)
+    }
+
+    var hasDIYPets: Bool {
+        species.contains { PetDIY.isDIY(remoteID: $0.remoteID, community: RemotePetService.shared.communityIDs,
+                                         own: submissions.readyServerIDs) }
+    }
+
+    var ownReadySpecies: [PetSpecies] {
+        submissions.ready.compactMap { $0.catalogSlug.flatMap(PetCatalog.species(slug:)) }
+    }
 
     var filtered: [PetSpecies] {
+        let community = RemotePetService.shared.communityIDs
+        let own = submissions.readyServerIDs
+        let scoped = scope == .all
+            ? species
+            : species.filter { PetDIY.isDIY(remoteID: $0.remoteID, community: community, own: own) }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return species }
-        return species.filter { $0.name.localizedCaseInsensitiveContains(trimmed) }
+        guard !trimmed.isEmpty else { return scoped }
+        return scoped.filter { $0.name.localizedCaseInsensitiveContains(trimmed) }
     }
 
     var active: PetSpecies? { store.activeSpecies }
 
+    var selectedSlug: String?
+
+    var focused: PetSpecies? {
+        if let slug = selectedSlug, !store.isActive(slug), let pet = species.first(where: { $0.slug == slug }) {
+            return pet
+        }
+        return active
+    }
+
+    func select(_ pet: PetSpecies) {
+        selectedSlug = store.isActive(pet.slug) ? nil : pet.slug
+    }
+
+    func clearSelection() {
+        selectedSlug = nil
+    }
+
     var isCatalogMissing: Bool { species.isEmpty }
 
     func place(_ pet: PetSpecies) {
-        store.activate(pet)
-        desktop.start()
-        if let placement = store.placement, placement.showsProfileBackdrop {
-            backdrop.apply(species: pet, placement: placement)
+        if PetDesktopActions.place(pet) {
+            selectedSlug = nil
         }
     }
 
@@ -113,4 +147,34 @@ final class PetsViewModel {
     }
 
     var guardianName: String { profiles.guardianName }
+}
+
+enum PetScope: String, CaseIterable, Identifiable {
+    case all, diy
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .all: return String(localized: "All pets")
+        case .diy: return String(localized: "DIY")
+        }
+    }
+}
+
+@MainActor
+enum PetDesktopActions {
+    @discardableResult
+    static func place(_ pet: PetSpecies) -> Bool {
+        guard !PetAccess.requiresPaywall(pet: pet, state: StoreKitService.shared.state) else {
+            PaywallPresenter.show()
+            return false
+        }
+        PetStore.shared.activate(pet)
+        DesktopPetManager.shared.start()
+        if let placement = PetStore.shared.placement, placement.showsProfileBackdrop {
+            PetBackdropService.shared.apply(species: pet, placement: placement)
+        }
+        return true
+    }
 }

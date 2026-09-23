@@ -1,4 +1,5 @@
 import AVFoundation
+import CryptoKit
 import Foundation
 import Security
 
@@ -9,6 +10,7 @@ enum LockScreenAerial {
         case transcodeFailed(String?)
         case installFailed(String)
         case retireFailed(String)
+        case lost
 
         var errorDescription: String? {
             switch self {
@@ -20,6 +22,8 @@ enum LockScreenAerial {
                 return String(localized: "Couldn't prepare the lock screen clip.")
             case .installFailed:
                 return String(localized: "Couldn't install the lock screen clip.")
+            case .lost:
+                return String(localized: "macOS replaced the lock screen clip — set the wallpaper again.")
             case .retireFailed:
                 return String(localized: "Couldn't restore the original lock screen wallpaper.")
             }
@@ -31,14 +35,16 @@ enum LockScreenAerial {
             case .installFailed(let d), .retireFailed(let d): return d
             case .unsupported: return "sandboxed"
             case .notConfigured: return "wallpaper store missing"
+            case .lost: return "aerial replaced after install"
             }
         }
     }
 
-    struct State: Codable {
+    struct State: Codable, Equatable {
         var slot: String
         var backup: String?
         var assetPath: String
+        var clipSize: Int?
     }
 
     private static var home: URL { FileManager.default.homeDirectoryForCurrentUser }
@@ -51,19 +57,25 @@ enum LockScreenAerial {
     private static var indexPlist: URL { wallpaperRoot.appendingPathComponent("Store/Index.plist") }
     private static var indexV2Plist: URL { wallpaperRoot.appendingPathComponent("Store/Index_v2.plist") }
     private static var manifestFile: URL { wallpaperRoot.appendingPathComponent("aerials/manifest/entries.json") }
-    private static var stateFile: URL? {
+    private static var supportFolder: URL? {
         guard let support = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask).first
         else { return nil }
         let folder = support.appendingPathComponent("WallpicsMac", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        return folder.appendingPathComponent("lockscreen.json")
+        return folder
+    }
+    private static var stateFile: URL? { supportFolder?.appendingPathComponent("lockscreen.json") }
+    private static var clipCacheDir: URL? {
+        guard let folder = supportFolder?.appendingPathComponent("LockScreenClips", isDirectory: true) else { return nil }
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return folder
     }
 
     private static let backupTag = "wallpicsbak"
     private static let tempPrefix = ".wpls-"
-    private static let aerialProvider = "com.apple.wallpaper.choice.aerials"
     static let minimumClipSeconds: Double = 60
+    static let clipCacheLimit = 3
 
     static var isSandboxed: Bool {
         if let task = SecTaskCreateFromSelf(nil),
@@ -93,11 +105,71 @@ enum LockScreenAerial {
 
     static func isInstalled(assetPath: String) -> Bool {
         guard isSupported, let state = currentState(), state.assetPath == assetPath,
-              FileManager.default.fileExists(atPath: state.slot)
+              let slotSize = fileSize(atPath: state.slot)
         else { return false }
+        if let expected = state.clipSize, expected != slotSize { return false }
         let slotID = URL(fileURLWithPath: state.slot).deletingPathExtension().lastPathComponent
         guard let root = try? loadIndex() else { return false }
-        return collectAerialIDs(in: root, section: "Desktop").contains(slotID)
+        return LockScreenIndex.desktopPoints(to: slotID, in: root)
+    }
+
+    private static func fileSize(atPath path: String) -> Int? {
+        (try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int
+    }
+
+    static func cachedClip(for assetPath: String, variant: String = "") -> URL? {
+        guard let dir = clipCacheDir, let key = clipCacheKey(for: assetPath, variant: variant) else { return nil }
+        let url = dir.appendingPathComponent(key + ".mov")
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: url.path)
+        return url
+    }
+
+    static func storeClip(_ clip: URL, for assetPath: String, variant: String = "") -> URL {
+        guard let dir = clipCacheDir, let key = clipCacheKey(for: assetPath, variant: variant) else { return clip }
+        let url = dir.appendingPathComponent(key + ".mov")
+        do {
+            try? FileManager.default.removeItem(at: url)
+            try FileManager.default.moveItem(at: clip, to: url)
+        } catch {
+            Log.engine.error("Lock screen clip cache write failed: \(error.localizedDescription, privacy: .public)")
+            return clip
+        }
+        pruneClipCache(keeping: url)
+        return url
+    }
+
+    private static func clipCacheKey(for assetPath: String, variant: String) -> String? {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: assetPath),
+              let size = attrs[.size] as? Int,
+              let modified = attrs[.modificationDate] as? Date
+        else { return nil }
+        let seed = "\(assetPath)|\(size)|\(Int(modified.timeIntervalSince1970))|\(variant)"
+        return SHA256.hash(data: Data(seed.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func isCacheEntry(_ url: URL) -> Bool {
+        let name = url.deletingPathExtension().lastPathComponent
+        return url.pathExtension == "mov" && name.count == 64 && name.allSatisfy { $0.isHexDigit }
+    }
+
+    static func isCachedClip(_ url: URL) -> Bool {
+        guard let dir = clipCacheDir else { return false }
+        return url.deletingLastPathComponent().standardizedFileURL == dir.standardizedFileURL && isCacheEntry(url)
+    }
+
+    private static func pruneClipCache(keeping newest: URL) {
+        guard let dir = clipCacheDir,
+              let files = try? FileManager.default.contentsOfDirectory(
+                at: dir, includingPropertiesForKeys: [.contentModificationDateKey])
+        else { return }
+        let dated = files
+            .filter { isCacheEntry($0) && $0 != newest }
+            .map { ($0, (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast) }
+            .sorted { $0.1 > $1.1 }
+        for (url, _) in dated.dropFirst(clipCacheLimit - 1) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     static func install(clip: URL, assetPath: String) async throws {
@@ -118,13 +190,13 @@ enum LockScreenAerial {
             backup = b
         }
         try Task.checkCancellation()
-        let state = State(slot: slot.path, backup: backup?.path, assetPath: assetPath)
+        let state = State(slot: slot.path, backup: backup?.path, assetPath: assetPath, clipSize: fileSize(atPath: clip.path))
         try writeState(state)
         do {
             try atomicReplace(slot, with: clip)
             try Task.checkCancellation()
             try selectAerialAsDesktop(id)
-            guard let root = try? loadIndex(), collectAerialIDs(in: root, section: "Desktop").contains(id) else {
+            guard let root = try? loadIndex(), LockScreenIndex.desktopPoints(to: id, in: root) else {
                 throw Failure.installFailed("Index.plist does not point at \(id) after write")
             }
         } catch {
@@ -159,6 +231,10 @@ enum LockScreenAerial {
     }
 
     private static func rollBack(_ state: State) {
+        guard currentState() == state else {
+            Log.engine.notice("Lock screen rollback skipped: a newer install owns the slot")
+            return
+        }
         let slot = URL(fileURLWithPath: state.slot)
         if let backupPath = state.backup, FileManager.default.fileExists(atPath: backupPath) {
             if (try? atomicReplace(slot, with: URL(fileURLWithPath: backupPath))) != nil {
@@ -221,7 +297,7 @@ enum LockScreenAerial {
             if FileManager.default.fileExists(atPath: state.slot) { return id }
         }
         if let root = try? loadIndex() {
-            for id in collectAerialIDs(in: root, section: "Desktop") {
+            for id in LockScreenIndex.collectAerialIDs(in: root, section: "Desktop") {
                 let mov = aerialsDir.appendingPathComponent(id + ".mov")
                 if FileManager.default.fileExists(atPath: mov.path) { return id }
             }
@@ -245,13 +321,13 @@ enum LockScreenAerial {
 
     private static func selectAerialAsDesktop(_ id: String) throws {
         guard isConfigured else { throw Failure.notConfigured }
-        let choice = try aerialChoice(id)
+        let choice = try LockScreenIndex.aerialChoice(id)
         for plist in [indexPlist, indexV2Plist] where FileManager.default.fileExists(atPath: plist.path) {
             let data = try Data(contentsOf: plist)
             guard let root = try PropertyListSerialization.propertyList(
                 from: data, options: [.mutableContainersAndLeaves], format: nil) as? NSMutableDictionary
             else { throw Failure.installFailed("\(plist.lastPathComponent) root is not a dictionary") }
-            guard applyAerialChoice(in: root, choice: choice) > 0 else {
+            guard LockScreenIndex.applyAerialChoice(in: root, choice: choice) > 0 else {
                 throw Failure.installFailed("no Desktop/Idle choices found in \(plist.lastPathComponent)")
             }
             let out = try PropertyListSerialization.data(fromPropertyList: root, format: .binary, options: 0)
@@ -259,57 +335,10 @@ enum LockScreenAerial {
         }
     }
 
-    private static func aerialChoice(_ id: String) throws -> [String: Any] {
-        let blob = try PropertyListSerialization.data(fromPropertyList: ["assetID": id], format: .binary, options: 0)
-        return ["Provider": aerialProvider, "Configuration": blob, "Files": [String]()]
-    }
-
-    @discardableResult
-    private static func applyAerialChoice(in node: Any, choice: [String: Any]) -> Int {
-        var matched = 0
-        if let dict = node as? NSMutableDictionary {
-            for key in ["Desktop", "Idle"] {
-                if let container = dict[key] as? NSMutableDictionary,
-                   let content = container["Content"] as? NSMutableDictionary,
-                   content["Choices"] != nil {
-                    content["Choices"] = [choice]
-                    content.removeObject(forKey: "EncodedOptionValues")
-                    matched += 1
-                }
-            }
-            for value in dict.allValues { matched += applyAerialChoice(in: value, choice: choice) }
-        } else if let array = node as? NSArray {
-            for value in array { matched += applyAerialChoice(in: value, choice: choice) }
-        }
-        return matched
-    }
-
     private static func loadIndex() throws -> Any {
         let file = FileManager.default.fileExists(atPath: indexPlist.path) ? indexPlist : indexV2Plist
         let data = try Data(contentsOf: file)
         return try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
-    }
-
-    private static func collectAerialIDs(in node: Any, section: String) -> [String] {
-        var out: [String] = []
-        if let dict = node as? [String: Any] {
-            if let sec = dict[section] as? [String: Any],
-               let content = sec["Content"] as? [String: Any],
-               let choices = content["Choices"] as? [[String: Any]] {
-                for choice in choices where (choice["Provider"] as? String) == aerialProvider {
-                    if let blob = choice["Configuration"] as? Data,
-                       let obj = try? PropertyListSerialization.propertyList(from: blob, options: [], format: nil),
-                       let cfg = obj as? [String: Any],
-                       let id = cfg["assetID"] as? String, !id.isEmpty {
-                        out.append(id)
-                    }
-                }
-            }
-            for value in dict.values { out += collectAerialIDs(in: value, section: section) }
-        } else if let array = node as? [Any] {
-            for item in array { out += collectAerialIDs(in: item, section: section) }
-        }
-        return out
     }
 
     private static func atomicReplace(_ dst: URL, with src: URL) throws {

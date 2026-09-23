@@ -4,16 +4,7 @@ import ImageIO
 import CoreGraphics
 import UniformTypeIdentifiers
 import AppKit
-import CryptoKit
-
-struct PetSubmissionPhoto: Sendable {
-    let fileName: String
-    let data: Data
-
-    var digest: String {
-        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-    }
-}
+import UserNotifications
 
 enum PetSubmissionRules {
     static let maxPhotos = 5
@@ -108,16 +99,8 @@ enum PetSubmissionPhotoPrep {
     }
 }
 
-struct PetSubmissionRecord: Codable, Identifiable, Equatable, Sendable {
-    let id: UUID
-    let name: String
-    let submittedAt: Date
-    let photoCount: Int
-    let serverPetID: Int?
-}
-
 private struct PetSubmissionsFile: Codable {
-    static let currentVersion = 2
+    static let currentVersion = 3
     static let maxRememberedDigests = 200
 
     var version: Int = currentVersion
@@ -140,6 +123,7 @@ private struct PetSubmissionsFile: Codable {
 @Observable
 final class PetSubmissionStore {
     static let shared = PetSubmissionStore()
+    static let didChange = Notification.Name("PetSubmissionStoreDidChange")
 
     private(set) var records: [PetSubmissionRecord] = []
     private(set) var submissionCount = 0
@@ -176,18 +160,56 @@ final class PetSubmissionStore {
         persist()
     }
 
-    func reconcile(approvedServerIDs: Set<Int>) {
-        let resolved = records.filter { record in
-            record.serverPetID.map(approvedServerIDs.contains) ?? false
+    var inReview: [PetSubmissionRecord] { records.filter { $0.status == .inReview } }
+
+    var ready: [PetSubmissionRecord] { records.filter { $0.status == .ready } }
+
+    var unseenReady: [PetSubmissionRecord] { records.filter(\.isUnseenReady) }
+
+    var readyServerIDs: Set<Int> { Set(ready.compactMap(\.serverPetID)) }
+
+    var menuState: PetDIY.MenuState {
+        PetDIY.menuState(inReview: inReview.count, unseenReady: unseenReady.count)
+    }
+
+    @discardableResult
+    func reconcile(approvedServerIDs: Set<Int>) -> [PetSubmissionRecord] {
+        var newlyReady: [PetSubmissionRecord] = []
+        for index in records.indices where records[index].status == .inReview {
+            guard let serverID = records[index].serverPetID, approvedServerIDs.contains(serverID) else { continue }
+            records[index].status = .ready
+            records[index].rejectionReason = nil
+            records[index].readySeen = false
+            newlyReady.append(records[index])
         }
-        guard !resolved.isEmpty else { return }
-        records.removeAll { record in resolved.contains(record) }
-        Log.app.info("PetSubmissionStore: \(resolved.count) submission(s) now live in the catalog")
+        guard !newlyReady.isEmpty else { return [] }
+        Log.app.info("PetSubmissionStore: \(newlyReady.count) submission(s) now live in the catalog")
+        persist()
+        return newlyReady
+    }
+
+    func markReadySeen(ids: Set<UUID>? = nil) {
+        var changed = false
+        for index in records.indices where records[index].isUnseenReady {
+            guard ids?.contains(records[index].id) ?? true else { continue }
+            records[index].readySeen = true
+            changed = true
+        }
+        guard changed else { return }
+        persist()
+    }
+
+    func markRejected(serverID: Int, reason: String?) {
+        guard let index = records.firstIndex(where: { $0.serverPetID == serverID && $0.status == .inReview }) else { return }
+        records[index].status = .rejected
+        records[index].rejectionReason = reason
+        Log.app.notice("PetSubmissionStore: pet \(serverID) was rejected")
         persist()
     }
 
     @discardableResult
     private func persist() -> Bool {
+        defer { NotificationCenter.default.post(name: Self.didChange, object: nil) }
         var file = PetSubmissionsFile()
         file.records = records
         file.submissionCount = submissionCount
@@ -241,6 +263,16 @@ final class PetSubmissionModel {
 
     var canSubmit: Bool {
         (1...PetSubmissionRules.maxPhotos).contains(photoURLs.count) && phase == .editing
+    }
+
+    func reset() {
+        guard !isUploading else { return }
+        photoURLs = []
+        thumbnails = [:]
+        name = ""
+        notes = ""
+        notice = nil
+        phase = .editing
     }
 
     var isUploading: Bool { phase == .uploading }
@@ -304,9 +336,8 @@ final class PetSubmissionModel {
 
     func submit() async {
         guard canSubmit else { return }
-        guard !PetAccess.requiresPaywall(forSubmissionCount: PetSubmissionStore.shared.submissionCount,
-                                         state: StoreKitService.shared.state) else {
-            notice = String(localized: "WallPics Pro is required to add more pets.")
+        guard !PetAccess.submissionsRequirePro(state: StoreKitService.shared.state) else {
+            notice = String(localized: "WallPics Pro is required to make your own pet.")
             return
         }
 
@@ -348,6 +379,7 @@ final class PetSubmissionModel {
                 notice = String(localized: "Sent for review, but the entry couldn't be saved to your list.")
             }
             phase = .done(record)
+            PetReadyNotifier.requestAuthorizationIfNeeded()
         } catch {
             let reason = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             Log.api.error("Pet submission failed — \(reason, privacy: .private)")
@@ -363,5 +395,209 @@ final class PetSubmissionModel {
             return type.conforms(to: .image)
         }
         return false
+    }
+}
+
+@MainActor
+@Observable
+final class PetSubmissionSync {
+    static let shared = PetSubmissionSync()
+
+    private(set) var isChecking = false
+    private(set) var lastCheckedAt: Date?
+    private(set) var lastError: String?
+
+    private static let interval: TimeInterval = 10 * 60
+    private static let minimumGap: TimeInterval = 60
+    @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var inFlight: Task<Void, Never>?
+    @ObservationIgnored private var observers: [NSObjectProtocol] = []
+
+    private init() {}
+
+    func start() {
+        guard timer == nil else { return }
+        PetReadyNotifier.install()
+        let timer = Timer(timeInterval: Self.interval, repeats: true) { _ in
+            MainActor.assumeIsolated { PetSubmissionSync.shared.refreshNow() }
+        }
+        timer.tolerance = 60
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+        observers.append(NotificationCenter.default.addObserver(
+            forName: RemotePetService.didUpdate, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { PetSubmissionSync.shared.reconcileWithCatalog() }
+        })
+        observers.append(NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { PetSubmissionSync.shared.refreshNow() }
+        })
+        reconcileWithCatalog()
+        if !PetSubmissionStore.shared.inReview.isEmpty {
+            PetReadyNotifier.requestAuthorizationIfNeeded()
+        }
+        refreshNow()
+    }
+
+    func refreshNow(force: Bool = false) {
+        guard inFlight == nil else { return }
+        if !force, let last = lastCheckedAt, Date().timeIntervalSince(last) < Self.minimumGap { return }
+        let pending = PetSubmissionStore.shared.inReview.compactMap(\.serverPetID)
+        guard !pending.isEmpty else {
+            lastError = nil
+            return
+        }
+        inFlight = Task { [weak self] in
+            await self?.check(pending)
+            self?.inFlight = nil
+        }
+    }
+
+    private func reconcileWithCatalog() {
+        let live = Set(RemotePetService.shared.pets.compactMap(\.remoteID))
+        PetReadyCenter.shared.announce(PetSubmissionStore.shared.reconcile(approvedServerIDs: live))
+    }
+
+    private func check(_ ids: [Int]) async {
+        isChecking = true
+        defer { isChecking = false }
+        var approved: [Int] = []
+        var failures = 0
+        for id in ids {
+            do {
+                let body = try await WallpaperAPI.shared.petStatus(id: id)
+                switch PetSubmissionOutcome.parse(body) {
+                case .approved:
+                    approved.append(id)
+                case .rejected(let reason):
+                    PetSubmissionStore.shared.markRejected(serverID: id, reason: reason)
+                case .stillPending:
+                    continue
+                case .unrecognized(let detail):
+                    failures += 1
+                    Log.api.error("PetSubmissionSync: unexpected answer for pet \(id) — \(detail, privacy: .public)")
+                }
+            } catch {
+                failures += 1
+                Log.api.error("PetSubmissionSync: status check for pet \(id) failed — \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        lastCheckedAt = Date()
+        var refreshError: String?
+        if !approved.isEmpty {
+            await RemotePetService.shared.refresh()
+            refreshError = RemotePetService.shared.lastError
+            reconcileWithCatalog()
+            let live = Set(RemotePetService.shared.pets.compactMap(\.remoteID))
+            let missing = approved.filter { !live.contains($0) }
+            if !missing.isEmpty {
+                Log.api.notice("PetSubmissionSync: \(missing.count) approved pet(s) not in the catalog yet, will retry")
+            }
+        }
+        if failures > 0 {
+            lastError = String(localized: "Couldn't check with WallPics right now. We'll try again in a few minutes.")
+        } else {
+            lastError = refreshError
+        }
+    }
+}
+
+@MainActor
+@Observable
+final class PetReadyCenter {
+    static let shared = PetReadyCenter()
+    static let openDIYRequest = Notification.Name("PetReadyCenterOpenDIY")
+
+    private(set) var announcement: PetSubmissionRecord?
+    @ObservationIgnored private var queue: [PetSubmissionRecord] = []
+
+    private init() {}
+
+    func announce(_ records: [PetSubmissionRecord]) {
+        guard !records.isEmpty else { return }
+        let known = Set(queue.map(\.id) + [announcement?.id].compactMap { $0 })
+        let fresh = records.filter { !known.contains($0.id) }
+        queue.append(contentsOf: fresh)
+        if !Self.isAppInFront {
+            fresh.forEach(PetReadyNotifier.notify(record:))
+        }
+        showNextIfIdle()
+    }
+
+    static var isAppInFront: Bool {
+        NSApp.isActive && NSApp.windows.contains { $0.isVisible && $0.isKeyWindow && !($0 is NSPanel) }
+    }
+
+    func dismiss() {
+        if let current = announcement {
+            PetSubmissionStore.shared.markReadySeen(ids: [current.id])
+        }
+        announcement = nil
+        DispatchQueue.main.async { [weak self] in self?.showNextIfIdle() }
+    }
+
+    private func showNextIfIdle() {
+        guard announcement == nil, !queue.isEmpty else { return }
+        announcement = queue.removeFirst()
+    }
+}
+
+enum PetReadyNotifier {
+    private static let categoryID = "app.wallpics.mac.petReady"
+    private static let presenter = Presenter()
+
+    static func install() {
+        let center = UNUserNotificationCenter.current()
+        if center.delegate == nil { center.delegate = presenter }
+    }
+
+    private final class Presenter: NSObject, UNUserNotificationCenterDelegate {
+        func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                    willPresent notification: UNNotification,
+                                    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+            completionHandler([.banner, .sound])
+        }
+
+        func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                    didReceive response: UNNotificationResponse,
+                                    withCompletionHandler completionHandler: @escaping () -> Void) {
+            let isPetReady = response.notification.request.content.categoryIdentifier == PetReadyNotifier.categoryID
+            DispatchQueue.main.async {
+                if isPetReady {
+                    NotificationCenter.default.post(name: PetReadyCenter.openDIYRequest, object: nil)
+                }
+                completionHandler()
+            }
+        }
+    }
+
+    static func requestAuthorizationIfNeeded() {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .notDetermined else { return }
+            center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+                if let error {
+                    Log.app.error("PetReadyNotifier: authorization failed — \(error.localizedDescription, privacy: .public)")
+                } else {
+                    Log.app.info("PetReadyNotifier: notifications \(granted ? "allowed" : "declined", privacy: .public)")
+                }
+            }
+        }
+    }
+
+    static func notify(record: PetSubmissionRecord) {
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "\(record.name) is ready")
+        content.body = String(localized: "Your pet is built. Open WallPics to put it on your desktop.")
+        content.sound = .default
+        content.categoryIdentifier = categoryID
+        let request = UNNotificationRequest(identifier: "petReady-\(record.id.uuidString)", content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error {
+                Log.app.error("PetReadyNotifier: could not post notification — \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 }

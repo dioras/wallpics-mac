@@ -201,7 +201,9 @@ struct BrowseView: View {
             HRail {
                 HStack(spacing: Theme.Space.m) {
                     ForEach(pets) { pet in
-                        PetTile(pet: pet, isPlaced: PetStore.shared.isActive(pet.slug))
+                        PetTile(pet: pet,
+                                isPlaced: PetStore.shared.isActive(pet.slug),
+                                isLocked: PetAccess.requiresPaywall(pet: pet, state: StoreKitService.shared.state))
                             .frame(width: 150, height: 150)
                             .onTapGesture { env.selectedSection = .pets }
                     }

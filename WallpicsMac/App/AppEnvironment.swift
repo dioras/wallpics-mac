@@ -26,7 +26,7 @@ final class AppEnvironment {
     var showAutostartPrompt = false
 
     enum Section: String, CaseIterable, Identifiable {
-        case favorites, browse, uploads, widgets, pets, settings
+        case favorites, browse, uploads, widgets, pets, diy, settings
         var id: String { rawValue }
         var label: String {
             switch self {
@@ -35,6 +35,7 @@ final class AppEnvironment {
             case .uploads: return String(localized: "Uploads")
             case .widgets: return String(localized: "Widgets")
             case .pets: return String(localized: "Pets")
+            case .diy: return String(localized: "DIY Pet")
             case .settings: return String(localized: "Settings")
             }
         }
@@ -45,6 +46,7 @@ final class AppEnvironment {
             case .uploads: return "arrow.up.square.fill"
             case .widgets: return "square.grid.3x3.fill.square"
             case .pets: return "pawprint.fill"
+            case .diy: return "wand.and.stars"
             case .settings: return "gearshape"
             }
         }

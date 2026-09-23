@@ -301,29 +301,114 @@ func testOffScreenCursorReturnsToNeutral() {
 
 func testPremiumGate() {
     let premium = makeSpecies(liveFixtures[0], premium: true)
+    let plain = makeSpecies(liveFixtures[0])
     #if DEBUG
     check(!PetAccess.requiresPaywall(pet: premium, state: .free), "debug builds stay unrestricted")
     #else
     check(PetAccess.requiresPaywall(pet: premium, state: .free), "premium + free -> paywall")
+    check(PetAccess.requiresPaywall(pet: plain, state: .free), "every pet is Pro-only: plain + free -> paywall")
     #endif
     check(!PetAccess.requiresPaywall(pet: premium, state: .unknown), "premium + unknown -> allowed until resolved")
+    check(!PetAccess.requiresPaywall(pet: plain, state: .unknown), "plain + unknown -> allowed until resolved")
     check(!PetAccess.requiresPaywall(pet: premium, state: .pro(expiresAt: nil)), "premium + pro -> allowed")
-    check(!PetAccess.requiresPaywall(pet: makeSpecies(liveFixtures[0]), state: .free), "free pet + free -> allowed")
+    check(!PetAccess.requiresPaywall(pet: plain, state: .trial(expiresAt: .distantFuture)), "plain + trial -> allowed")
     check(premium.remoteID == liveFixtures[0].id, "remoteID parses slug")
+}
+
+func indexFixture(desktops: [[String: Any]], idle: [String: Any]? = nil) -> [String: Any] {
+    func section(_ choices: [[String: Any]]) -> [String: Any] {
+        ["Content": ["Choices": choices, "Shuffle": false] as [String: Any]]
+    }
+    var spaces: [String: Any] = [:]
+    for (i, choice) in desktops.enumerated() {
+        var entry: [String: Any] = ["Desktop": section([choice])]
+        if let idle { entry["Idle"] = section([idle]) }
+        spaces["space-\(i)"] = ["Default": entry]
+    }
+    return ["Spaces": spaces, "SystemDefault": ["Desktop": section([desktops[0]])]]
+}
+
+func imageChoice(_ path: String) -> [String: Any] {
+    ["Provider": "com.apple.wallpaper.choice.image", "Files": [path], "Configuration": Data()]
+}
+
+func testLockScreenIndexStrict() {
+    let slot = "840FE8E4-D952-4680-B1A7-AC5BACA2C1F8"
+    let aerial = try! LockScreenIndex.aerialChoice(slot)
+    let other = try! LockScreenIndex.aerialChoice("4207734D-74FE-4F92-B5E1-6EC8DEE24A15")
+    let poster = imageChoice("/tmp/poster.png")
+
+    let allAerial = indexFixture(desktops: [aerial, aerial, aerial], idle: aerial)
+    check(LockScreenIndex.desktopPoints(to: slot, in: allAerial), "every Desktop section on the slot -> installed")
+
+    let stale = indexFixture(desktops: [poster, aerial, aerial], idle: aerial)
+    check(LockScreenIndex.collectAerialIDs(in: stale, section: "Desktop").contains(slot), "old contains-check is fooled by stale sections")
+    check(!LockScreenIndex.desktopPoints(to: slot, in: stale), "one Desktop section on the poster -> NOT installed")
+
+    let wrongAerial = indexFixture(desktops: [aerial, other], idle: aerial)
+    check(!LockScreenIndex.desktopPoints(to: slot, in: wrongAerial), "another aerial in one section -> NOT installed")
+
+    check(!LockScreenIndex.desktopPoints(to: slot, in: ["Spaces": [:] as [String: Any]]), "no Desktop sections -> NOT installed")
+
+    let empty = indexFixture(desktops: [poster, poster])
+    let mutable = try! PropertyListSerialization.propertyList(
+        from: try! PropertyListSerialization.data(fromPropertyList: empty, format: .binary, options: 0),
+        options: [.mutableContainersAndLeaves], format: nil)
+    let written = LockScreenIndex.applyAerialChoice(in: mutable, choice: aerial)
+    check(written == 3, "apply writes every Desktop section", "\(written)")
+    check(LockScreenIndex.desktopPoints(to: slot, in: mutable), "after apply the strict check passes")
 }
 
 func testSubmissionGate() {
     #if DEBUG
-    check(!PetAccess.requiresPaywall(forSubmissionCount: 5, state: .free), "debug builds never gate submissions")
+    check(!PetAccess.submissionsRequirePro(state: .free), "debug builds never gate submissions")
     #else
-    check(PetAccess.requiresPaywall(forSubmissionCount: PetAccess.freeSubmissions, state: .free), "free + limit reached -> paywall")
-    check(PetAccess.requiresPaywall(forSubmissionCount: PetAccess.freeSubmissions + 3, state: .free), "free + over limit -> paywall")
+    check(PetAccess.submissionsRequirePro(state: .free), "free -> every submission goes to the paywall")
     #endif
-    check(PetAccess.freeSubmissions == 2, "two free submissions")
-    check(!PetAccess.requiresPaywall(forSubmissionCount: PetAccess.freeSubmissions - 1, state: .free), "free + one left -> allowed")
-    check(!PetAccess.requiresPaywall(forSubmissionCount: 9, state: .unknown), "unknown -> allowed until resolved")
-    check(!PetAccess.requiresPaywall(forSubmissionCount: 9, state: .trial(expiresAt: .distantFuture)), "trial -> allowed")
-    check(!PetAccess.requiresPaywall(forSubmissionCount: 9, state: .pro(expiresAt: nil)), "pro -> allowed")
+    check(!PetAccess.submissionsRequirePro(state: .unknown), "unknown -> allowed until resolved")
+    check(!PetAccess.submissionsRequirePro(state: .trial(expiresAt: .distantFuture)), "trial -> allowed")
+    check(!PetAccess.submissionsRequirePro(state: .pro(expiresAt: nil)), "pro -> allowed")
+}
+
+func testSubmissionOutcome() {
+    func outcome(_ json: String) -> PetSubmissionOutcome {
+        PetSubmissionOutcome.parse(Data(json.utf8))
+    }
+    check(outcome(#"{"status":"success","data":{"id":48,"name":"nola","video":"x"}}"#) == .approved,
+          "success envelope -> approved")
+    check(outcome(#"{"status":"error","data":{"message":"Pet ID not found."}}"#) == .stillPending,
+          "not found -> still pending (backend hides unapproved pets)")
+    check(outcome(#"{"status":"success","data":{"id":48,"status":"pending"}}"#) == .stillPending,
+          "explicit pending -> still pending")
+    check(outcome(#"{"status":"success","data":{"id":48,"status":"processing"}}"#) == .stillPending,
+          "processing -> still pending")
+    check(outcome(#"{"status":"success","data":{"id":48,"status":"approved"}}"#) == .approved,
+          "explicit approved -> approved")
+    check(outcome(#"{"status":"success","data":{"id":48,"status":"rejected","rejection_reason":"Blurry photos"}}"#)
+          == .rejected(reason: "Blurry photos"), "rejected + reason -> rejected(reason)")
+    check(outcome(#"{"status":"error","data":{"status":"rejected"}}"#) == .rejected(reason: nil),
+          "rejected without reason -> rejected(nil)")
+    let long = String(repeating: "x", count: 900)
+    if case .rejected(let reason) = outcome(#"{"status":"success","data":{"status":"rejected","rejection_reason":"\#(long)"}}"#) {
+        check(reason?.count == PetSubmissionOutcome.maxReasonLength, "rejection reason is clamped", "\(reason?.count ?? -1)")
+    } else {
+        check(false, "long rejection reason still parses as rejected")
+    }
+    check(outcome("not json") == .unrecognized("not json"), "garbage -> unrecognized, never pending")
+    check(outcome("{}") == .unrecognized("{}"), "empty object -> unrecognized")
+    check(outcome(#"{"status":"error","data":{"message":"Unauthorized"}}"#) == .unrecognized("Unauthorized"),
+          "other error message -> unrecognized")
+    check(outcome(#"{"status":"success","data":{"id":48,"status":"weird"}}"#) == .unrecognized("weird"),
+          "unknown explicit status -> unrecognized")
+    let week: TimeInterval = 7 * 24 * 3600
+    let sent = Date(timeIntervalSince1970: 1_000_000)
+    check(!PetSubmissionAge.isStale(submittedAt: sent, now: sent.addingTimeInterval(week - 1)), "6d23h -> not stale")
+    check(PetSubmissionAge.isStale(submittedAt: sent, now: sent.addingTimeInterval(week + 1)), "7d+ -> stale")
+    let decoder = JSONDecoder()
+    let legacy = try! decoder.decode(PetSubmissionStatus.self, from: Data(#""ready""#.utf8))
+    check(legacy == .ready, "status decodes from raw string")
+    check((try? decoder.decode(PetSubmissionStatus.self, from: Data(#""weird""#.utf8))) == nil,
+          "unknown status fails to decode (caller defaults to inReview)")
 }
 
 func testWallpaperGate() {
@@ -404,8 +489,53 @@ testSeamHold()
 testSeamCutsAtApex()
 testChordClampedToClipLength()
 testOffScreenCursorReturnsToNeutral()
+
+func testDIYCatalog() {
+    let community: Set<Int> = [65, 69]
+    let own: Set<Int> = [70]
+    check(PetDIY.isDIY(remoteID: 65, community: community, own: own), "community pet -> DIY")
+    check(PetDIY.isDIY(remoteID: 70, community: community, own: own), "own ready pet -> DIY")
+    check(!PetDIY.isDIY(remoteID: 3, community: community, own: own), "catalog pet -> not DIY")
+    check(!PetDIY.isDIY(remoteID: nil, community: community, own: own), "no remote id -> not DIY")
+    check(PetDIY.communityCategoryID == 3832, "community category is Uploaded by users")
+
+    check(PetDIY.shouldRetryWithoutCategory(statusCode: 422, message: "The selected category_ids.0 is invalid."),
+          "422 about category -> retry without it")
+    check(!PetDIY.shouldRetryWithoutCategory(statusCode: 422, message: "The photos field is required."),
+          "422 about photos -> no retry")
+    check(!PetDIY.shouldRetryWithoutCategory(statusCode: 500, message: "category"), "500 -> no retry")
+    check(!PetDIY.shouldRetryWithoutCategory(statusCode: 422, message: nil), "422 without message -> no retry")
+
+    check(PetDIY.menuState(inReview: 0, unseenReady: 0) == .idle, "nothing pending -> idle")
+    check(PetDIY.menuState(inReview: 2, unseenReady: 0) == .waiting(2), "in review -> waiting")
+    check(PetDIY.menuState(inReview: 2, unseenReady: 1) == .ready(1), "unseen ready wins over waiting")
+
+    let photo = PetSubmissionPhoto(fileName: "rex.jpg", data: Data([0xFF, 0xD8, 0xFF]))
+    let body = String(decoding: PetDIY.multipart(boundary: "B", name: "Rex", description: nil,
+                                                 categoryIDs: [3832], photos: [photo]), as: UTF8.self)
+    check(body.contains("name=\"category_ids[]\"\r\n\r\n3832\r\n"), "body carries category_ids[]")
+    check(body.contains("name=\"name\"\r\n\r\nRex\r\n"), "body carries name")
+    check(!body.contains("name=\"description\""), "empty description is omitted")
+    check(body.contains("filename=\"rex.jpg\""), "body carries photo")
+    check(body.hasSuffix("--B--\r\n"), "body is closed")
+    let bare = String(decoding: PetDIY.multipart(boundary: "B", name: nil, description: nil,
+                                                 categoryIDs: [], photos: [photo]), as: UTF8.self)
+    check(!bare.contains("category_ids"), "retry body has no category")
+
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    let v3 = #"{"id":"6F9619FF-8B86-D011-B42D-00CF4FC964FF","name":"Rex","submittedAt":"2026-09-20T10:00:00Z","photoCount":3,"serverPetID":70,"status":"ready"}"#
+    let legacy = try? decoder.decode(PetSubmissionRecord.self, from: Data(v3.utf8))
+    check(legacy?.status == .ready && legacy?.readySeen == true, "old ready record counts as seen")
+    let fresh = PetSubmissionRecord(id: UUID(), name: "Rex", submittedAt: Date(), photoCount: 1, serverPetID: 70)
+    check(fresh.status == .inReview && fresh.readySeen == false, "new record starts in review and unseen")
+}
+
 testPremiumGate()
 testSubmissionGate()
+testSubmissionOutcome()
+testDIYCatalog()
 testWallpaperGate()
+testLockScreenIndexStrict()
 print("\n\(passes) passed, \(failures) failed")
 exit(failures == 0 ? 0 : 1)

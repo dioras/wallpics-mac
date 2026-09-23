@@ -26,9 +26,13 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
 
     var remoteID: Int? { Self.remoteID(fromSlug: slug) }
 
+    private static let remotePrefix = "remote-"
+
+    static func remoteSlug(id: Int) -> String { remotePrefix + String(id) }
+
     static func remoteID(fromSlug slug: String) -> Int? {
-        guard slug.hasPrefix("remote-") else { return nil }
-        return Int(slug.dropFirst("remote-".count))
+        guard slug.hasPrefix(remotePrefix) else { return nil }
+        return Int(slug.dropFirst(remotePrefix.count))
     }
 
     var gazeSpan: Int {
@@ -191,17 +195,80 @@ struct PetPlacement: Codable, Equatable, Sendable {
 }
 
 enum PetAccess {
-    static let freeSubmissions = 2
-
     static func requiresPaywall(pet: PetSpecies, state: SubscriptionState) -> Bool {
-        guard pet.isPremium, !state.isPro else { return false }
-        if case .free = state { return true }
-        return false
+        requiresPro(state)
     }
 
-    static func requiresPaywall(forSubmissionCount count: Int, state: SubscriptionState) -> Bool {
+    static func submissionsRequirePro(state: SubscriptionState) -> Bool {
+        requiresPro(state)
+    }
+
+    private static func requiresPro(_ state: SubscriptionState) -> Bool {
         guard !state.isPro, case .free = state else { return false }
-        return count >= freeSubmissions
+        return true
+    }
+}
+
+enum PetSubmissionStatus: String, Codable, Sendable {
+    case inReview
+    case ready
+    case rejected
+}
+
+enum PetSubmissionAge {
+    static let staleAfter: TimeInterval = 7 * 24 * 60 * 60
+
+    static func isStale(submittedAt: Date, now: Date = Date()) -> Bool {
+        now.timeIntervalSince(submittedAt) > staleAfter
+    }
+}
+
+enum PetSubmissionOutcome: Equatable, Sendable {
+    case stillPending
+    case approved
+    case rejected(reason: String?)
+    case unrecognized(String)
+
+    static let maxReasonLength = 500
+
+    static func parse(_ data: Data) -> PetSubmissionOutcome {
+        struct Envelope: Decodable {
+            struct Payload: Decodable {
+                let id: Int?
+                let status: String?
+                let message: String?
+                let rejectionReason: String?
+
+                enum CodingKeys: String, CodingKey {
+                    case id, status, message
+                    case rejectionReason = "rejection_reason"
+                }
+            }
+            let status: String?
+            let data: Payload?
+        }
+        guard let envelope = try? JSONDecoder().decode(Envelope.self, from: data) else {
+            return .unrecognized(snippet(data))
+        }
+        if let explicit = envelope.data?.status?.lowercased() {
+            switch explicit {
+            case "approved", "published", "live": return .approved
+            case "rejected", "declined":
+                return .rejected(reason: envelope.data?.rejectionReason.map { String($0.prefix(maxReasonLength)) })
+            case "pending", "processing", "review", "in_review", "queued": return .stillPending
+            default: return .unrecognized(explicit)
+            }
+        }
+        if envelope.status == "success", envelope.data?.id != nil { return .approved }
+        if envelope.status == "error", let message = envelope.data?.message,
+           message.localizedCaseInsensitiveContains("not found") {
+            return .stillPending
+        }
+        return .unrecognized(envelope.data?.message ?? snippet(data))
+    }
+
+    private static func snippet(_ data: Data) -> String {
+        String(decoding: data.prefix(200), as: UTF8.self)
     }
 }
 

@@ -61,13 +61,13 @@ struct ContentView: View {
             .environment(StoreKitService.shared)
             .environment(env)
         }
-        .sheet(isPresented: $env.showPaywall) {
-            PaywallScreen(
-                onDone: { env.showPaywall = false },
-                onSkip: { env.showPaywall = false }
-            )
-            .frame(minWidth: 560, minHeight: 680)
-            .environment(StoreKitService.shared)
+        .overlay { PaywallModal(isPresented: $env.showPaywall) }
+        .alert(readyTitle, isPresented: readyAlertShown, presenting: PetReadyCenter.shared.announcement) { record in
+            Button("Put on Desktop") { putReadyPetOnDesktop(record) }
+            Button("Open DIY Pet") { env.selectedSection = .diy }
+            Button("Later", role: .cancel) { }
+        } message: { _ in
+            Text("Your pet is built. It's in Pets and in your DIY tab.")
         }
         .alert("Keep your wallpaper running?", isPresented: $env.showAutostartPrompt) {
             Button("Add to Login Items") { LoginItemService.enable() }
@@ -75,6 +75,28 @@ struct ContentView: View {
         } message: {
             Text("Live and shader wallpapers only play while WallPics is running. Add it to Login Items so it starts automatically and your wallpaper keeps going after a restart — otherwise the desktop falls back to a still image.")
         }
+    }
+
+    private var readyTitle: Text {
+        Text(PetReadyCenter.shared.announcement.map { String(localized: "\($0.name) is ready") } ?? "")
+    }
+
+    private var readyAlertShown: Binding<Bool> {
+        Binding(
+            get: { PetReadyCenter.shared.announcement != nil },
+            set: { shown in
+                if !shown { PetReadyCenter.shared.dismiss() }
+            }
+        )
+    }
+
+    private func putReadyPetOnDesktop(_ record: PetSubmissionRecord) {
+        guard let species = record.catalogSlug.flatMap(PetCatalog.species(slug:)) else {
+            env.selectedSection = .diy
+            return
+        }
+        env.selectedSection = .pets
+        DispatchQueue.main.async { PetDesktopActions.place(species) }
     }
 
     @ViewBuilder
@@ -93,6 +115,9 @@ struct ContentView: View {
                 .padding(.top, 54)
         case .pets:
             PetsView(model: petsModel)
+                .padding(.top, 54)
+        case .diy:
+            DIYPetView(model: petsModel)
                 .padding(.top, 54)
         case .settings:
             SettingsView()
@@ -128,6 +153,7 @@ private struct TopNavBar: View {
                     navPill(.uploads)
                     navPill(.widgets)
                     navPill(.pets)
+                    navPill(.diy)
                     navPill(.favorites)
                 }
                 .padding(3)
@@ -232,5 +258,51 @@ private struct TopNavBar: View {
         }
         .buttonStyle(.plain)
         .help(section.label)
+    }
+}
+
+private struct PaywallModal: View {
+    @Binding var isPresented: Bool
+
+    private static let cardWidth: CGFloat = 560
+    private static let margin: CGFloat = 32
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                if isPresented {
+                    Color.black.opacity(0.55)
+                        .ignoresSafeArea()
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: close)
+                        .transition(.opacity)
+
+                    PaywallScreen(onDone: close, onSkip: close, animatesIn: false, compact: true)
+                        .environment(StoreKitService.shared)
+                        .frame(width: min(Self.cardWidth, geo.size.width - Self.margin * 2))
+                        .frame(maxHeight: geo.size.height - Self.margin * 2)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.hero, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.Radius.hero, style: .continuous)
+                                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.5), radius: 40, y: 18)
+                        .transition(.scale(scale: 0.94).combined(with: .opacity))
+                        .background {
+                            Button("", action: close)
+                                .keyboardShortcut(.cancelAction)
+                                .opacity(0)
+                                .allowsHitTesting(false)
+                        }
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+        .allowsHitTesting(isPresented)
+        .animation(.smooth(duration: 0.28), value: isPresented)
+    }
+
+    private func close() {
+        isPresented = false
     }
 }

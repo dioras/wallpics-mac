@@ -8,7 +8,11 @@ enum SubscriptionState: Equatable {
 
     var isPro: Bool {
         #if DEBUG
-        return true
+        guard UserDefaults.standard.bool(forKey: "debugFreeTier") else { return true }
+        switch self {
+        case .pro, .trial: return true
+        case .free, .unknown: return false
+        }
         #else
         switch self {
         case .pro, .trial: return true

@@ -60,7 +60,98 @@
         }
       }
     },
-    "%@ is waiting for review. It appears here once approved." : {},
+    "%@ is ready" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist fertig"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está lista"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est prêt"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ が完成しました"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ está pronto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ готов"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 已完成"
+          }
+        }
+      }
+    },
+    "%@ — in review" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – in Prüfung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@: en revisión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — en cours"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 審査中"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — em análise"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — на проверке"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 审核中"
+          }
+        }
+      }
+    },
     "%@, auto-renews. Cancel anytime." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -104,6 +195,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@,自动续订。可随时取消。"
+          }
+        }
+      }
+    },
+    "%lld DIY pet(s) in review" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld DIY-Haustier(e) in Prüfung"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld mascota(s) DIY en revisión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld animal(aux) DIY en cours"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIYペット %lld 件審査中"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pet(s) DIY em análise"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На проверке DIY-питомцев: %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个 DIY 宠物审核中"
+          }
+        }
+      }
+    },
+    "%lld DIY pet(s) ready" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld DIY-Haustier(e) fertig"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld mascota(s) DIY lista(s)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld animal(aux) DIY prêt(s)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIYペット %lld 件完成"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pet(s) DIY pronto(s)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово DIY-питомцев: %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个 DIY 宠物已完成"
           }
         }
       }
@@ -686,6 +869,52 @@
       }
     },
     "24-hour time" : {},
+    "A person checks the photos, then our pipeline animates your pet so it can look around. Usually within 48 hours." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Mensch prüft die Fotos, dann animiert unsere Pipeline dein Haustier, damit es sich umsehen kann. Meist innerhalb von 48 Stunden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una persona revisa las fotos y luego nuestro sistema anima a tu mascota para que pueda mirar alrededor. Normalmente en 48 horas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une personne vérifie les photos, puis notre pipeline anime votre animal pour qu'il regarde autour de lui. Généralement sous 48 heures."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "担当者が写真を確認し、パイプラインがペットをアニメーション化して周りを見回せるようにします。通常48時間以内。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uma pessoa confere as fotos e depois nosso sistema anima seu pet para que ele olhe ao redor. Normalmente em até 48 horas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Человек проверяет фото, затем наш конвейер оживляет питомца, чтобы он мог оглядываться. Обычно в течение 48 часов."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由人工检查照片，然后我们的流程为宠物制作动画，让它能环顾四周。通常在 48 小时内完成。"
+          }
+        }
+      }
+    },
     "About" : {
       "localizations" : {
         "de" : {
@@ -737,14 +966,105 @@
     "Add a native WallPics widget" : {},
     "Add at least one photo of your pet." : {},
     "Add photo" : {},
+    "Add photos of your pet" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos deines Haustiers hinzufügen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade fotos de tu mascota"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez des photos de votre animal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットの写真を追加"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicione fotos do seu pet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавьте фото питомца"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加宠物照片"
+          }
+        }
+      }
+    },
     "Add to Login Items" : {},
     "Add video" : {},
-    "Add your pet" : {},
     "Alert" : {},
     "All" : {},
     "All %@" : {},
     "All Pets" : {},
     "All Wallpapers" : {},
+    "All pets" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Haustiere"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les animaux"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのペット"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos os pets"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все питомцы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部宠物"
+          }
+        }
+      }
+    },
     "All set." : {
       "localizations" : {
         "de" : {
@@ -787,6 +1107,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "完成!"
+          }
+        }
+      }
+    },
+    "Also in Pets → DIY" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auch unter Haustiere → DIY"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "También en Mascotas → DIY"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aussi dans Animaux → DIY"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「ペット」→ DIY にもあります"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Também em Pets → DIY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Также в «Питомцы» → DIY"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "也在 宠物 → DIY 中"
           }
         }
       }
@@ -1268,6 +1634,98 @@
         }
       }
     },
+    "Check Status Now" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status jetzt prüfen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobar estado ahora"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier l'état"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今すぐ状態を確認"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar status agora"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить статус"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即检查状态"
+          }
+        }
+      }
+    },
+    "Check now" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt prüfen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobar ahora"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier maintenant"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今すぐ確認"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificar agora"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверить сейчас"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即检查"
+          }
+        }
+      }
+    },
     "Check your connection and try again — you can keep using the free version in the meantime." : {
       "localizations" : {
         "de" : {
@@ -1310,6 +1768,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请检查网络连接后重试——在此期间你仍可使用免费版。"
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird geprüft…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérification…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認中…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificando…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверяем…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查中…"
           }
         }
       }
@@ -1362,6 +1866,52 @@
       }
     },
     "Classic" : {},
+    "Clear, well-lit shots of one pet — a front view plus a couple of angles." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klare, gut beleuchtete Aufnahmen eines Haustiers – von vorn plus ein paar Winkel."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos nítidas y bien iluminadas de una sola mascota: de frente y un par de ángulos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Des photos nettes et bien éclairées d'un seul animal : de face, plus quelques angles."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1匹のペットの鮮明で明るい写真。正面といくつかの角度から。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos nítidas e bem iluminadas de um único pet: de frente e mais alguns ângulos."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чёткие, хорошо освещённые снимки одного питомца: анфас и пара ракурсов."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一只宠物的清晰、光线充足的照片：正面加几个角度。"
+          }
+        }
+      }
+    },
     "Click the star on any wallpaper while browsing to save it here." : {},
     "Click to place on your desktop" : {},
     "Clock" : {},
@@ -1407,6 +1957,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭"
+          }
+        }
+      }
+    },
+    "Close preview" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorschau schließen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar vista previa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fermer l'aperçu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビューを閉じる"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fechar prévia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закрыть превью"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭预览"
           }
         }
       }
@@ -1689,6 +2285,52 @@
         }
       }
     },
+    "Couldn't check with WallPics right now. We'll try again in a few minutes." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics ist gerade nicht erreichbar. Wir versuchen es in ein paar Minuten erneut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pudimos consultar con WallPics ahora mismo. Lo intentaremos de nuevo en unos minutos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de contacter WallPics pour le moment. Nouvelle tentative dans quelques minutes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在 WallPics に確認できません。数分後にもう一度試します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível verificar com o WallPics agora. Tentaremos de novo em alguns minutos."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось связаться с WallPics. Попробуем снова через несколько минут."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前无法连接 WallPics。几分钟后将重试。"
+          }
+        }
+      }
+    },
     "Couldn't install the lock screen clip." : {
       "localizations" : {
         "de" : {
@@ -1925,7 +2567,145 @@
     "Create a widget from your photos or videos" : {},
     "Customize and place live widgets on your desktop." : {},
     "Customize…" : {},
+    "DIY" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY"
+          }
+        }
+      }
+    },
     "DIY Animated" : {},
+    "DIY Pet" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY-Haustier"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mascota DIY"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animal DIY"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIYペット"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pet DIY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Свой питомец"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY 宠物"
+          }
+        }
+      }
+    },
+    "DIY Pets" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY-Haustiere"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mascotas DIY"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animaux DIY"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIYペット"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pets DIY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY-питомцы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY 宠物"
+          }
+        }
+      }
+    },
     "Date" : {},
     "Delete" : {},
     "Delete Widget" : {},
@@ -1933,7 +2713,6 @@
     "Dislikes" : {},
     "Dislikes:" : {},
     "Dismiss" : {},
-    "Done" : {},
     "Downloads" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1981,13 +2760,151 @@
         }
       }
     },
+    "Drag 1–5 photos here" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–5 Fotos hierher ziehen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastra 1–5 fotos aquí"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glissez 1 à 5 photos ici"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を1〜5枚ここにドラッグ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arraste de 1 a 5 fotos aqui"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетащите сюда 1–5 фото"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 1–5 张照片拖到这里"
+          }
+        }
+      }
+    },
+    "Drag 3–5 photos here" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3–5 Fotos hierher ziehen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrastra 3–5 fotos aquí"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glissez 3 à 5 photos ici"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を3〜5枚ここにドラッグ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arraste de 3 a 5 fotos aqui"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перетащите сюда 3–5 фото"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将 3–5 张照片拖到这里"
+          }
+        }
+      }
+    },
     "Drag a photo here" : {},
     "Drag a video here" : {},
-    "Drag photos here" : {},
     "Drag the preview to reposition" : {},
     "Edit" : {},
     "Edit Widget" : {},
     "Elevator" : {},
+    "Every pet, and your own DIY pets, come with WallPics Pro." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Haustiere und deine eigenen DIY-Haustiere gibt es mit WallPics Pro."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las mascotas, y las tuyas DIY, vienen con WallPics Pro."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les animaux, et vos animaux DIY, sont inclus dans WallPics Pro."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのペットとあなたのDIYペットは WallPics Pro で使えます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos os pets, e os seus pets DIY, vêm com o WallPics Pro."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все питомцы и ваши DIY-питомцы доступны в WallPics Pro."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有宠物以及你的 DIY 宠物都包含在 WallPics Pro 中。"
+          }
+        }
+      }
+    },
     "Every wallpaper, every pet, no watermark — and support a small, independent team." : {
       "localizations" : {
         "de" : {
@@ -2459,6 +3376,98 @@
     "Guardian" : {},
     "Guardian:" : {},
     "Home" : {},
+    "How it works" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So funktioniert's"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómo funciona"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comment ça marche"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仕組み"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como funciona"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как это работает"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如何运作"
+          }
+        }
+      }
+    },
+    "IN REVIEW" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IN PRÜFUNG"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EN REVISIÓN"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EN COURS"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "審査中"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EM ANÁLISE"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "НА ПРОВЕРКЕ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "审核中"
+          }
+        }
+      }
+    },
     "Image" : {},
     "Import" : {
       "extractionState" : "manual",
@@ -2507,7 +3516,6 @@
         }
       }
     },
-    "In review" : {},
     "Invalid request URL." : {
       "localizations" : {
         "de" : {
@@ -2554,7 +3562,98 @@
         }
       }
     },
-    "It will appear in your pets once it's approved" : {},
+    "It appears in the Pets tab and we notify you. Put it on your desktop like any other pet." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es erscheint im Tab „Haustiere“ und wir benachrichtigen dich. Setze es wie jedes andere Haustier auf deinen Schreibtisch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aparece en la pestaña Mascotas y te avisamos. Ponlo en tu escritorio como cualquier otra mascota."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il apparaît dans l'onglet Animaux et nous vous prévenons. Placez-le sur votre bureau comme n'importe quel autre animal."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「ペット」タブに表示され、通知が届きます。ほかのペットと同じようにデスクトップに置けます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ele aparece na aba Pets e avisamos você. Coloque-o na sua mesa como qualquer outro pet."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Он появится во вкладке «Питомцы», и мы вас уведомим. Поставьте его на рабочий стол, как любого другого питомца."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它会出现在“宠物”标签页中，我们会通知你。像其他宠物一样把它放到桌面上。"
+          }
+        }
+      }
+    },
+    "It joins your Pets" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es erscheint bei deinen Haustieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se une a tus mascotas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il rejoint vos animaux"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペット一覧に追加"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ele entra nos seus pets"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Появится в разделе «Питомцы»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入你的宠物列表"
+          }
+        }
+      }
+    },
     "Keep your wallpaper running?" : {},
     "Keeps live & shader wallpapers running after a restart. WallPics launches in the background — close its window and it stays out of your way in the menu bar." : {},
     "Language" : {
@@ -2604,6 +3703,98 @@
       }
     },
     "Large" : {},
+    "Last checked %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt geprüft %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Última comprobación: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernière vérification : %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終確認 %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Última verificação: %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Последняя проверка: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次检查：%@"
+          }
+        }
+      }
+    },
+    "Later" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Später"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más tarde"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus tard"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後で"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Depois"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Позже"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稍后"
+          }
+        }
+      }
+    },
     "Left Edge" : {},
     "Likes" : {},
     "Likes:" : {},
@@ -2842,6 +4033,98 @@
         }
       }
     },
+    "Make your own" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigenes erstellen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea el tuyo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer le vôtre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分で作る"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crie o seu"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создать своего"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "制作自己的"
+          }
+        }
+      }
+    },
+    "Making your own pet is part of WallPics Pro." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein eigenes Haustier zu erstellen ist Teil von WallPics Pro."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear tu propia mascota está incluido en WallPics Pro."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer votre propre animal fait partie de WallPics Pro."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オリジナルのペット作成は WallPics Pro の機能です。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Criar seu próprio pet faz parte do WallPics Pro."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создание своего питомца входит в WallPics Pro."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "制作自己的宠物是 WallPics Pro 的功能。"
+          }
+        }
+      }
+    },
     "Manage" : {
       "localizations" : {
         "de" : {
@@ -2983,6 +4266,52 @@
       }
     },
     "My Widgets" : {},
+    "NOT BUILT" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NICHT ERSTELLT"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NO CREADO"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NON CRÉÉ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未作成"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NÃO CRIADO"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "НЕ СОЗДАН"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未制作"
+          }
+        }
+      }
+    },
     "Name" : {},
     "Name (optional)" : {},
     "Name card backdrop" : {},
@@ -3082,6 +4411,52 @@
       }
     },
     "Next Photo" : {},
+    "No DIY pets yet" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine DIY-Haustiere"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no hay mascotas DIY"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas encore d'animaux DIY"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIYペットはまだありません"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ainda não há pets DIY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока нет DIY-питомцев"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有 DIY 宠物"
+          }
+        }
+      }
+    },
     "No display available for the backdrop" : {},
     "No favorites yet" : {
       "localizations" : {
@@ -3319,6 +4694,52 @@
         }
       }
     },
+    "Nothing sent yet. Your pets show up here while we build them." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nichts gesendet. Hier siehst du deine Haustiere, während wir sie bauen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aún no has enviado nada. Tus mascotas aparecerán aquí mientras las creamos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien d'envoyé pour l'instant. Vos animaux apparaîtront ici pendant leur fabrication."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ送信していません。作成中のペットはここに表示されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nada enviado ainda. Seus pets aparecem aqui enquanto os criamos."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока ничего не отправлено. Здесь будут ваши питомцы, пока мы их создаём."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有提交。制作期间你的宠物会显示在这里。"
+          }
+        }
+      }
+    },
     "Oldest First" : {
       "localizations" : {
         "de" : {
@@ -3462,10 +4883,102 @@
         }
       }
     },
+    "Open DIY Pet" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIY-Haustier öffnen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Mascota DIY"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Animal DIY"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DIYペットを開く"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Pet DIY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть «Свой питомец»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 DIY 宠物"
+          }
+        }
+      }
+    },
     "Open WallPics at login" : {},
     "Opened Eyes" : {},
+    "Part of WallPics Pro" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teil von WallPics Pro"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incluido en WallPics Pro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inclus dans WallPics Pro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro の機能"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parte do WallPics Pro"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Входит в WallPics Pro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro 功能"
+          }
+        }
+      }
+    },
+    "Pause Pets" : {},
     "Pause Wallpaper" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3606,6 +5119,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "宠物只需下载一次，并保存在你的 Mac 上。"
+          }
+        }
+      }
+    },
+    "Pets made from people's photos show up here." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus Fotos erstellte Haustiere erscheinen hier."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aquí aparecen las mascotas creadas con fotos de la gente."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les animaux créés à partir de photos apparaissent ici."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真から作られたペットがここに表示されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pets criados a partir de fotos aparecem aqui."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Здесь появятся питомцы, созданные по фото."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用照片制作的宠物会显示在这里。"
           }
         }
       }
@@ -3900,6 +5459,52 @@
         }
       }
     },
+    "Preview. It follows your cursor right on your desktop." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorschau. Es folgt deinem Cursor direkt auf dem Schreibtisch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista previa. Sigue tu cursor en tu escritorio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aperçu. Il suit votre curseur sur votre bureau."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビュー。デスクトップ上でカーソルを追いかけます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prévia. Ele segue seu cursor na sua mesa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Превью. Питомец следит за курсором прямо на рабочем столе."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览。它会在桌面上跟随你的光标。"
+          }
+        }
+      }
+    },
     "Privacy" : {
       "localizations" : {
         "de" : {
@@ -4130,10 +5735,100 @@
         }
       }
     },
+    "Put %@ on Desktop" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ auf den Schreibtisch setzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poner a %@ en el escritorio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placer %@ sur le bureau"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ をデスクトップに置く"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colocar %@ na mesa"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поставить %@ на рабочий стол"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把 %@ 放到桌面"
+          }
+        }
+      }
+    },
     "Put a companion on your desktop. It watches your cursor." : {},
-    "Put on Desktop" : {},
+    "Put on Desktop" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf den Schreibtisch"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poner en el escritorio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placer sur le bureau"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デスクトップに置く"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colocar na mesa"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На рабочий стол"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放到桌面"
+          }
+        }
+      }
+    },
     "Quit WallPics" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4175,6 +5870,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出 WallPics"
+          }
+        }
+      }
+    },
+    "READY" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FERTIG"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LISTO"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRÊT"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRONTO"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ГОТОВО"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成"
+          }
+        }
+      }
+    },
+    "Ready — find it in the Pets tab" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fertig – im Tab „Haustiere“"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo: búscalo en la pestaña Mascotas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prêt : retrouvez-le dans l'onglet Animaux"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成 — 「ペット」タブで確認"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronto: veja na aba Pets"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово — смотрите во вкладке «Питомцы»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成 — 在“宠物”标签页中查看"
           }
         }
       }
@@ -4567,9 +6354,377 @@
     },
     "Search widgets" : {},
     "See all" : {},
-    "Send 3–5 photos. We turn them into a desktop pet and add it to your list once it's approved (usually within 48 hours)." : {},
+    "Send 1–5 photos" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1–5 Fotos senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía 1–5 fotos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyez 1 à 5 photos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を1〜5枚送る"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envie de 1 a 5 fotos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправьте 1–5 фото"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送 1–5 张照片"
+          }
+        }
+      }
+    },
+    "Send 3–5 photos" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3–5 Fotos senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía 3–5 fotos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyez 3 à 5 photos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を3〜5枚送る"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envie de 3 a 5 fotos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправьте 3–5 фото"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送 3–5 张照片"
+          }
+        }
+      }
+    },
+    "Send a few photos of your pet. We turn them into a desktop companion that follows your cursor — just like the ones in Pets." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sende ein paar Fotos deines Haustiers. Wir machen daraus einen Schreibtisch-Begleiter, der deinem Cursor folgt – genau wie die bei „Haustiere“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía unas fotos de tu mascota. Las convertimos en un compañero de escritorio que sigue tu cursor, igual que los de Mascotas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyez quelques photos de votre animal. Nous en faisons un compagnon de bureau qui suit votre curseur, comme ceux de l'onglet Animaux."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットの写真を数枚送ってください。カーソルを追いかけるデスクトップの相棒に仕上げます。「ペット」のものと同じです。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envie algumas fotos do seu pet. Nós as transformamos em um companheiro de mesa que segue seu cursor, igual aos da aba Pets."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправьте несколько фото питомца. Мы превратим их в компаньона на рабочем столе, который следит за курсором — как питомцы из вкладки «Питомцы»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送几张宠物照片。我们会把它做成跟随光标的桌面伙伴，就像“宠物”里的那些一样。"
+          }
+        }
+      }
+    },
+    "Send another pet" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiteres Haustier senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar otra mascota"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer un autre animal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のペットを送る"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar outro pet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправить ещё одного"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再发送一只宠物"
+          }
+        }
+      }
+    },
+    "Send for review" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zur Prüfung senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar a revisión"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer pour vérification"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "審査に送る"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar para análise"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправить на проверку"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提交审核"
+          }
+        }
+      }
+    },
     "Send photos of your pet and we'll turn it into a desktop companion" : {},
+    "Send your photos" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía tus fotos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyez vos photos"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を送る"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envie suas fotos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправьте фото"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送你的照片"
+          }
+        }
+      }
+    },
     "Sensitivity" : {},
+    "Sent %@ · %lld photos · usually ready within 48 hours" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesendet %@ · %lld Fotos · meist innerhalb von 48 Stunden fertig"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado %@ · %lld fotos · normalmente listo en 48 horas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyé %@ · %lld photos · généralement prêt sous 48 heures"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 送信 · 写真%lld枚 · 通常48時間以内に完成"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado %@ · %lld fotos · normalmente pronto em até 48 horas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправлено %@ · фото: %lld · обычно готово в течение 48 часов"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送 %@ · %lld 张照片 · 通常 48 小时内完成"
+          }
+        }
+      }
+    },
+    "Sent %@ · taking longer than usual. Still waiting to hear back — you can remove it or send the photos again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesendet %@ · dauert länger als üblich. Wir warten noch auf Antwort – du kannst es entfernen oder die Fotos erneut senden."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado %@ · está tardando más de lo habitual. Seguimos esperando respuesta: puedes eliminarlo o volver a enviar las fotos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyé %@ · plus long que d'habitude. Toujours en attente de réponse : vous pouvez le retirer ou renvoyer les photos."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 送信 · 通常より時間がかかっています。まだ返答待ちです。削除するか、写真をもう一度送ることもできます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviado %@ · demorando mais que o normal. Ainda aguardando resposta: você pode remover ou enviar as fotos de novo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отправлено %@ · дольше обычного. Ответа пока нет — можно удалить или отправить фото ещё раз."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送 %@ · 比平时更久。仍在等待回复，你可以移除或重新发送照片。"
+          }
+        }
+      }
+    },
     "Sent for review" : {},
     "Sent for review, but the entry couldn't be saved to your list." : {},
     "Serif" : {},
@@ -4761,8 +6916,53 @@
       }
     },
     "Shaders" : {},
+    "Sharp, well-lit, the whole body in frame" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scharf, gut beleuchtet, der ganze Körper im Bild"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nítidas, bien iluminadas y con el cuerpo entero"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nettes, bien éclairées, le corps entier dans le cadre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鮮明で明るく、全身がフレームに収まっている"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nítidas, bem iluminadas e com o corpo inteiro"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чёткие, хорошо освещённые, всё тело в кадре"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清晰、光线充足、全身入镜"
+          }
+        }
+      }
+    },
     "Show WallPics" : {
-      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4804,6 +7004,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "显示 WallPics"
+          }
+        }
+      }
+    },
+    "Show in Pets" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei Haustieren zeigen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver en Mascotas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voir dans Animaux"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットで表示"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ver em Pets"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показать в «Питомцах»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在宠物中查看"
           }
         }
       }
@@ -4910,7 +7156,6 @@
       }
     },
     "Style" : {},
-    "Submit" : {},
     "Subscribe for %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5387,6 +7632,98 @@
         }
       }
     },
+    "Unlock and send" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freischalten und senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloquear y enviar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Débloquer et envoyer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロック解除して送信"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloquear e enviar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть и отправить"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解锁并发送"
+          }
+        }
+      }
+    },
+    "Unlock with Pro" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Pro freischalten"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloquear con Pro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Débloquer avec Pro"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proでロック解除"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desbloquear com Pro"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть с Pro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 Pro 解锁"
+          }
+        }
+      }
+    },
     "Upgrade" : {
       "localizations" : {
         "de" : {
@@ -5580,6 +7917,7 @@
     },
     "WallPics Pro is required for this pet" : {},
     "WallPics Pro is required to add more pets." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5621,6 +7959,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加更多宠物需要 WallPics Pro。"
+          }
+        }
+      }
+    },
+    "WallPics Pro is required to make your own pet." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für ein eigenes Haustier ist WallPics Pro erforderlich."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita WallPics Pro para crear tu propia mascota."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro est nécessaire pour créer votre propre animal."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オリジナルのペットを作るには WallPics Pro が必要です。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O WallPics Pro é necessário para criar seu próprio pet."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтобы создать своего питомца, нужен WallPics Pro."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "制作自己的宠物需要 WallPics Pro。"
+          }
+        }
+      }
+    },
+    "WallPics Pro unlocks custom pets" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro schaltet eigene Haustiere frei"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro desbloquea mascotas personalizadas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro débloque les animaux personnalisés"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro でオリジナルのペットが作れます"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O WallPics Pro libera pets personalizados"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro открывает своих питомцев"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics Pro 解锁自定义宠物"
           }
         }
       }
@@ -5764,6 +8194,144 @@
         }
       }
     },
+    "We build it" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir bauen es"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo creamos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On le fabrique"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "私たちが作ります"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nós criamos"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мы создаём питомца"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我们来制作"
+          }
+        }
+      }
+    },
+    "We check every 10 minutes while WallPics is open" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir prüfen alle 10 Minuten, solange WallPics geöffnet ist"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobamos cada 10 minutos mientras WallPics está abierto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nous vérifions toutes les 10 minutes tant que WallPics est ouvert"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics を開いている間、10分ごとに確認します"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verificamos a cada 10 minutos enquanto o WallPics está aberto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проверяем каждые 10 минут, пока WallPics открыт"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WallPics 打开时每 10 分钟检查一次"
+          }
+        }
+      }
+    },
+    "We couldn't build a pet from these photos. Try clearer shots of one pet." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus diesen Fotos konnten wir kein Haustier bauen. Versuche klarere Aufnahmen eines Haustiers."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pudimos crear una mascota con estas fotos. Prueba con fotos más claras de una sola mascota."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de créer un animal à partir de ces photos. Essayez des photos plus nettes d'un seul animal."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この写真からペットを作成できませんでした。1匹のペットのより鮮明な写真をお試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não conseguimos criar um pet com essas fotos. Tente fotos mais nítidas de um único pet."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из этих фото не удалось создать питомца. Попробуйте более чёткие снимки одного питомца."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法用这些照片制作宠物。请尝试一只宠物的更清晰照片。"
+          }
+        }
+      }
+    },
     "We'll apply your pick right now so you can see it live." : {
       "localizations" : {
         "de" : {
@@ -5806,6 +8374,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "我们将立即应用你的选择,让你实时查看效果。"
+          }
+        }
+      }
+    },
+    "We'll let you know when it's ready — usually within 48 hours. You can keep using WallPics in the meantime." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wir sagen dir Bescheid, sobald es fertig ist – meist innerhalb von 48 Stunden. Du kannst WallPics inzwischen weiter nutzen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Te avisaremos cuando esté listo, normalmente en 48 horas. Mientras tanto puedes seguir usando WallPics."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nous vous préviendrons quand il sera prêt, généralement sous 48 heures. Vous pouvez continuer à utiliser WallPics en attendant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成したらお知らせします。通常48時間以内です。その間も WallPics はそのまま使えます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avisaremos quando estiver pronto, normalmente em até 48 horas. Enquanto isso, continue usando o WallPics."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мы сообщим, когда всё будет готово — обычно в течение 48 часов. А пока продолжайте пользоваться WallPics."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成后我们会通知你，通常在 48 小时内。在此期间你可以继续使用 WallPics。"
           }
         }
       }
@@ -6002,6 +8616,7 @@
       }
     },
     "Your first %lld pets are free — WallPics Pro unlocks more" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6048,6 +8663,237 @@
       }
     },
     "Your pet" : {},
+    "Your pet is built. It's in Pets and in your DIY tab." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Haustier ist fertig. Es ist unter Haustiere und im DIY-Tab."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu mascota está lista. Está en Mascotas y en tu pestaña DIY."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre animal est prêt. Il est dans Animaux et dans votre onglet DIY."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットが完成しました。「ペット」とDIYタブにあります。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu pet está pronto. Está em Pets e na sua aba DIY."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Питомец готов. Он в разделе «Питомцы» и во вкладке DIY."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的宠物已完成，在“宠物”和 DIY 标签页中。"
+          }
+        }
+      }
+    },
+    "Your pet is built. Open WallPics to put it on your desktop." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Haustier ist fertig. Öffne WallPics, um es auf den Schreibtisch zu setzen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu mascota está lista. Abre WallPics para ponerla en tu escritorio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre animal est prêt. Ouvrez WallPics pour le placer sur votre bureau."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットが完成しました。WallPics を開いてデスクトップに置きましょう。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu pet está pronto. Abra o WallPics para colocá-lo na sua mesa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Питомец готов. Откройте WallPics, чтобы поставить его на рабочий стол."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的宠物已完成。打开 WallPics 把它放到桌面上。"
+          }
+        }
+      }
+    },
+    "Your pet is in the Pets tab. Put it on your desktop." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Haustier ist im Tab „Haustiere“. Setze es auf deinen Schreibtisch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu mascota está en la pestaña Mascotas. Ponla en tu escritorio."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre animal est dans l'onglet Animaux. Placez-le sur votre bureau."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットは「ペット」タブにあります。デスクトップに置きましょう。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seu pet está na aba Pets. Coloque-o na sua mesa."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Питомец во вкладке «Питомцы». Поставьте его на рабочий стол."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的宠物已在“宠物”标签页中。把它放到桌面上吧。"
+          }
+        }
+      }
+    },
+    "Your pets" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Haustiere"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus mascotas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos animaux"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたのペット"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seus pets"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваши питомцы"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的宠物"
+          }
+        }
+      }
+    },
+    "Your submissions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Einsendungen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus envíos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos envois"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送信済み"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seus envios"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваши заявки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的提交"
+          }
+        }
+      }
+    },
     "by %@" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6091,6 +8937,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "由 %@ 创作"
+          }
+        }
+      }
+    },
+    "macOS replaced the lock screen clip — set the wallpaper again." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS hat den Sperrbildschirm-Clip ersetzt – lege das Hintergrundbild erneut fest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS reemplazó el clip de la pantalla de bloqueo: vuelve a establecer el fondo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS a remplacé le clip de l'écran verrouillé – redéfinissez le fond d'écran."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS がロック画面用クリップを置き換えました。壁紙をもう一度設定してください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O macOS substituiu o clipe da tela de bloqueio — defina o papel de parede novamente."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS заменила ролик экрана блокировки — установите обои ещё раз."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 替换了锁屏视频片段，请重新设置壁纸。"
           }
         }
       }

@@ -5,6 +5,8 @@ struct PaywallScreen: View {
     @Environment(StoreKitService.self) private var store
     var onDone: () -> Void
     var onSkip: () -> Void
+    var animatesIn: Bool = true
+    var compact: Bool = false
 
     @State private var selectedProductID: String?
     @State private var appeared = false
@@ -21,15 +23,9 @@ struct PaywallScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: Theme.Space.xl) {
-                    header
-                    benefits
-                    productPicker
-                }
-                .padding(Theme.Space.xl)
-                .frame(maxWidth: 460)
-                .frame(maxWidth: .infinity)
+            ViewThatFits(in: .vertical) {
+                offer
+                ScrollView { offer }
             }
             footer
         }
@@ -45,8 +41,13 @@ struct PaywallScreen: View {
         }
         .environment(\.colorScheme, .dark)
         .overlay(alignment: .topTrailing) { closeButton }
+        .onAppear {
+            if !animatesIn { appeared = true }
+        }
         .task {
-            withAnimation(Motion.transition) { appeared = true }
+            if animatesIn {
+                withAnimation(Motion.transition) { appeared = true }
+            }
             print("[Paywall] 🟡 .task fired — calling loadProducts()")
             await store.loadProducts()
             print("[Paywall] 🟢 loadProducts() returned. store.products.count=\(store.products.count) lastError=\(store.lastError ?? "nil")")
@@ -79,9 +80,22 @@ struct PaywallScreen: View {
         }
     }
 
+    private var offer: some View {
+        VStack(spacing: compact ? Theme.Space.l : Theme.Space.xl) {
+            header
+            benefits
+            productPicker
+        }
+        .padding(.horizontal, Theme.Space.xl)
+        .padding(.vertical, compact ? Theme.Space.l : Theme.Space.xl)
+        .frame(maxWidth: 460)
+        .frame(maxWidth: .infinity)
+        .animation(.smooth(duration: 0.28), value: store.products.count)
+    }
+
     private var header: some View {
-        VStack(spacing: Theme.Space.m) {
-            AppIconView(size: 84)
+        VStack(spacing: compact ? Theme.Space.s : Theme.Space.m) {
+            AppIconView(size: compact ? 64 : 84)
             Text(verbatim: "PRO")
                 .font(.system(size: 10, weight: .heavy))
                 .kerning(2.5)
@@ -90,20 +104,20 @@ struct PaywallScreen: View {
                 .padding(.vertical, 3)
                 .background(.white, in: Capsule())
             Text("Unlock WallPics Pro")
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: compact ? 26 : 30, weight: .bold))
             Text("Every wallpaper, every pet, no watermark — and support a small, independent team.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
         }
-        .padding(.top, Theme.Space.l)
+        .padding(.top, compact ? Theme.Space.s : Theme.Space.l)
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 14)
     }
 
     private var benefits: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.m) {
+        VStack(alignment: .leading, spacing: compact ? Theme.Space.s : Theme.Space.m) {
             Benefit(symbol: "drop.degreesign", text: "No watermark on any wallpaper", index: 0, appeared: appeared)
             Benefit(symbol: "rectangle.stack.fill", text: "Full 4K library, no daily limits", index: 1, appeared: appeared)
             Benefit(symbol: "pawprint.fill", text: "Pro wallpapers and unlimited pets from your photos", index: 2, appeared: appeared)
@@ -161,7 +175,7 @@ struct PaywallScreen: View {
     }
 
     private var footer: some View {
-        VStack(spacing: Theme.Space.m) {
+        VStack(spacing: compact ? Theme.Space.s : Theme.Space.m) {
             if selectedProduct == nil && didAttemptLoad {
                 whitePill(String(localized: "Continue with Free"), action: onSkip)
             } else {
@@ -186,7 +200,8 @@ struct PaywallScreen: View {
             .font(.footnote)
             .foregroundStyle(.secondary)
         }
-        .padding(Theme.Space.xl)
+        .padding(.horizontal, Theme.Space.xl)
+        .padding(.vertical, compact ? Theme.Space.l : Theme.Space.xl)
         .background(.black.opacity(0.45))
         .overlay(alignment: .top) {
             Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
