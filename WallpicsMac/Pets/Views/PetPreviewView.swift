@@ -4,14 +4,17 @@ import SwiftUI
 
 struct PetPreviewView: NSViewRepresentable {
     let species: PetSpecies
+    var sensitivity: PetSensitivity = .normal
 
     func makeNSView(context: Context) -> PetPreviewNSView {
         let view = PetPreviewNSView()
+        view.sensitivity = sensitivity
         view.configure(species: species)
         return view
     }
 
     func updateNSView(_ nsView: PetPreviewNSView, context: Context) {
+        nsView.sensitivity = sensitivity
         nsView.configure(species: species)
     }
 
@@ -26,6 +29,7 @@ final class PetPreviewNSView: NSView {
     private var lastTick: CFTimeInterval = 0
     private var currentSlug: String?
     private var observer: NSObjectProtocol?
+    var sensitivity: PetSensitivity = .normal
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -126,6 +130,6 @@ final class PetPreviewNSView: NSView {
         let localRect = renderer.layer.frame
         let inWindow = convert(localRect, to: nil)
         let global = window.convertToScreen(inWindow)
-        renderer.tick(dt: dt, cursor: NSEvent.mouseLocation, petRect: global)
+        renderer.tick(dt: dt, cursor: NSEvent.mouseLocation, petRect: global, sensitivity: sensitivity)
     }
 }

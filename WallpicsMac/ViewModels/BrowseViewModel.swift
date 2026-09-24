@@ -70,7 +70,7 @@ final class BrowseViewModel {
 
     var filteredWallpapers: [Wallpaper] {
         guard isSearching else { return wallpapers }
-        let needle = query.lowercased()
+        let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
         return wallpapers.filter {
             $0.name.lowercased().contains(needle) ||
             $0.safeTags.contains { $0.name.lowercased().contains(needle) }

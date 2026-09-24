@@ -68,7 +68,7 @@ struct UploadsView: View {
             ForEach(model.imported) { wallpaper in
                 WallpaperCard(wallpaper: wallpaper, isSelected: env.selectedWallpaper?.id == wallpaper.id)
                     .onTapGesture {
-                        withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
+                        withAnimation(Motion.transition) { env.showDetail(wallpaper, in: model.imported) }
                     }
                     .contextMenu {
                         Button(role: .destructive) {

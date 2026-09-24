@@ -88,7 +88,7 @@ struct BrowseView: View {
                 ForEach(Array(gridWallpapers.enumerated()), id: \.element.id) { index, wallpaper in
                     WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
                         .onTapGesture {
-                            withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
+                            withAnimation(Motion.transition) { env.showDetail(wallpaper) }
                         }
                         .onAppear { prefetchAhead(from: index) }
                         .scrollTransition { content, phase in
@@ -180,7 +180,7 @@ struct BrowseView: View {
                     WallpaperCard(wallpaper: wallpaper, isSelected: env.detailWallpaper?.id == wallpaper.id)
                         .frame(width: Self.railCardWidth)
                         .onTapGesture {
-                            withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
+                            withAnimation(Motion.transition) { env.showDetail(wallpaper, in: items) }
                         }
                 }
             }
@@ -203,7 +203,8 @@ struct BrowseView: View {
                     ForEach(pets) { pet in
                         PetTile(pet: pet,
                                 isPlaced: PetStore.shared.isActive(pet.slug),
-                                isLocked: PetAccess.requiresPaywall(pet: pet, state: StoreKitService.shared.state))
+                                isLocked: PetAccess.requiresPaywall(pet: pet, state: StoreKitService.shared.state,
+                                                                    ownedIDs: PetSubmissionStore.shared.unlockedPetIDs))
                             .frame(width: 150, height: 150)
                             .onTapGesture { env.selectedSection = .pets }
                     }

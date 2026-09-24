@@ -195,12 +195,13 @@ struct PetPlacement: Codable, Equatable, Sendable {
 }
 
 enum PetAccess {
-    static func requiresPaywall(pet: PetSpecies, state: SubscriptionState) -> Bool {
-        requiresPro(state)
+    static func requiresPaywall(pet: PetSpecies, state: SubscriptionState, ownedIDs: Set<Int>) -> Bool {
+        if let id = pet.remoteID, ownedIDs.contains(id) { return false }
+        return requiresPro(state)
     }
 
-    static func submissionsRequirePro(state: SubscriptionState) -> Bool {
-        requiresPro(state)
+    static func submissionNeedsPurchase(credits: Int) -> Bool {
+        credits < 1
     }
 
     private static func requiresPro(_ state: SubscriptionState) -> Bool {

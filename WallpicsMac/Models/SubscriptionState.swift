@@ -22,4 +22,12 @@ enum SubscriptionState: Equatable {
     }
 
     var requiresWatermark: Bool { !isPro }
+
+    var expiresAt: Date? {
+        switch self {
+        case .trial(let date): return date
+        case .pro(let date): return date
+        case .free, .unknown: return nil
+        }
+    }
 }

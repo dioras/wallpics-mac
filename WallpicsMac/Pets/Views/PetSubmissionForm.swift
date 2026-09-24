@@ -5,8 +5,9 @@ import UniformTypeIdentifiers
 
 struct PetSubmissionForm: View {
     @Bindable var model: PetSubmissionModel
-    let locked: Bool
-    let onLockedSubmit: () -> Void
+    let needsPurchase: Bool
+    let price: String?
+    let hasCredit: Bool
     let onReset: () -> Void
 
     @State private var dropTargeted = false
@@ -14,7 +15,7 @@ struct PetSubmissionForm: View {
     private static let tips: [String] = [
         String(localized: "One pet per photo, front view plus a couple of angles works best"),
         String(localized: "Sharp, well-lit, the whole body in frame"),
-        String(localized: "Photos are only used to build your pet")
+        String(localized: "Finished pets also appear in Pets → DIY for everyone")
     ]
 
     var body: some View {
@@ -77,7 +78,7 @@ struct PetSubmissionForm: View {
                 }
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
             }
-            .disabled(model.isUploading)
+            .disabled(model.isBusy)
 
             footer
         }
@@ -105,15 +106,15 @@ struct PetSubmissionForm: View {
         .frame(height: 124)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard !model.isUploading else { return }
+            guard !model.isBusy else { return }
             model.choosePhotos()
         }
         .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
-            guard !model.isUploading else { return false }
+            guard !model.isBusy else { return false }
             loadDropped(providers)
             return true
         }
-        .opacity(model.isUploading ? 0.5 : 1)
+        .opacity(model.isBusy ? 0.5 : 1)
         .accessibilityLabel(String(localized: "Add photos of your pet"))
     }
 
@@ -167,7 +168,7 @@ struct PetSubmissionForm: View {
             .buttonStyle(.plain)
             .padding(4)
             .help(String(localized: "Remove photo"))
-            .disabled(model.isUploading)
+            .disabled(model.isBusy)
         }
     }
 
@@ -211,39 +212,44 @@ struct PetSubmissionForm: View {
 
     private var footer: some View {
         HStack(spacing: Theme.Space.m) {
-            if model.isUploading {
+            if model.isBusy {
                 ProgressView()
                     .controlSize(.small)
-                Text("Uploading…")
+                Text(model.phase == .purchasing
+                     ? String(localized: "Waiting for the App Store…")
+                     : String(localized: "Uploading…"))
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.6))
-            } else if locked {
-                Text("Making your own pet is part of WallPics Pro.")
+            } else if let note = footerNote {
+                Text(note)
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.55))
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Button {
-                if locked {
-                    onLockedSubmit()
-                } else {
-                    Task { await model.submit() }
-                }
+                Task { await model.submit() }
             } label: {
-                HStack(spacing: 6) {
-                    if locked {
-                        Image(systemName: "lock.fill").font(.system(size: 11, weight: .bold))
-                    }
-                    Text(locked ? "Unlock and send" : "Send for review")
-                }
+                Text(submitTitle)
             }
             .buttonStyle(PrimaryButtonStyle(fullWidth: false))
             .frame(minWidth: 160)
-            .disabled(locked ? model.isUploading : !model.canSubmit)
-            .help(locked
-                  ? String(localized: "WallPics Pro unlocks custom pets")
-                  : String(localized: "Send photos of your pet and we'll turn it into a desktop companion"))
+            .disabled(!model.canSubmit)
+            .help(String(localized: "Send photos of your pet and we'll turn it into a desktop companion"))
         }
+    }
+
+    private var footerNote: String? {
+        if needsPurchase {
+            return price.map { String(localized: "One-time purchase per pet · \($0)") }
+                ?? String(localized: "One-time purchase per pet")
+        }
+        return hasCredit ? String(localized: "Paid — send your photos whenever you're ready.") : nil
+    }
+
+    private var submitTitle: String {
+        guard needsPurchase else { return String(localized: "Send for review") }
+        return price.map { String(localized: "Buy and send · \($0)") } ?? String(localized: "Buy and send")
     }
 
     private func successState(_ record: PetSubmissionRecord) -> some View {
@@ -330,14 +336,14 @@ enum PetSubmissionThumbnails {
     }
 }
 
-#Preview("Unlocked") {
-    PetSubmissionForm(model: PetSubmissionModel(), locked: false, onLockedSubmit: {}, onReset: {})
+#Preview("Paid") {
+    PetSubmissionForm(model: PetSubmissionModel(), needsPurchase: false, price: nil, hasCredit: true, onReset: {})
         .padding()
         .background(.black)
 }
 
-#Preview("Locked") {
-    PetSubmissionForm(model: PetSubmissionModel(), locked: true, onLockedSubmit: {}, onReset: {})
+#Preview("Needs purchase") {
+    PetSubmissionForm(model: PetSubmissionModel(), needsPurchase: true, price: "$6.99", hasCredit: false, onReset: {})
         .padding()
         .background(.black)
 }

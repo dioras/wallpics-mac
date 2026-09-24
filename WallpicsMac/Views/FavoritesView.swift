@@ -27,7 +27,7 @@ struct FavoritesView: View {
                         ForEach(model.wallpapers) { wallpaper in
                             WallpaperCard(wallpaper: wallpaper, isSelected: env.selectedWallpaper?.id == wallpaper.id)
                                 .onTapGesture {
-                                    withAnimation(Motion.transition) { env.detailWallpaper = wallpaper }
+                                    withAnimation(Motion.transition) { env.showDetail(wallpaper, in: model.wallpapers) }
                                 }
                                 .transition(.asymmetric(
                                     insertion: .scale(scale: 0.85).combined(with: .opacity),

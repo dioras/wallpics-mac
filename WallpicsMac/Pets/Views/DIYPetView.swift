@@ -9,7 +9,9 @@ struct DIYPetView: View {
     private static let formColumnWidth: CGFloat = 560
     private let stepColumns = [GridItem(.adaptive(minimum: 200, maximum: 320), spacing: Theme.Space.m)]
 
-    private var locked: Bool { PetAccess.submissionsRequirePro(state: store.state) }
+    private var needsPurchase: Bool { PetAccess.submissionNeedsPurchase(credits: model.submissions.credits) }
+
+    private var price: String? { store.diyPetProduct?.displayPrice }
 
     var body: some View {
         GeometryReader { geo in
@@ -45,6 +47,7 @@ struct DIYPetView: View {
             model.submissionSync.refreshNow()
             model.submissions.markReadySeen()
         }
+        .task { await store.loadDIYPetProduct() }
         .onChange(of: model.submissions.unseenReady.count) { _, count in
             if count > 0, PetReadyCenter.isAppInFront { model.submissions.markReadySeen() }
         }
@@ -68,24 +71,28 @@ struct DIYPetView: View {
                     .frame(maxWidth: 620, alignment: .leading)
             }
             Spacer()
-            if locked {
-                Button { PaywallPresenter.show() } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "crown.fill")
-                            .font(.system(size: 11, weight: .bold))
-                        Text("Part of WallPics Pro")
-                            .font(.callout.weight(.semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 9)
-                    .background(Theme.accent.gradient, in: Capsule())
+            if let badge = priceBadge {
+                HStack(spacing: 6) {
+                    Image(systemName: needsPurchase ? "tag.fill" : "checkmark.seal.fill")
+                        .font(.system(size: 11, weight: .bold))
+                    Text(badge)
+                        .font(.callout.weight(.semibold))
                 }
-                .buttonStyle(.plain)
-                .help(String(localized: "WallPics Pro unlocks custom pets"))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 9)
+                .background(Theme.accent.gradient, in: Capsule())
             }
         }
         .padding(.top, Theme.Space.xl)
+    }
+
+    private var priceBadge: String? {
+        guard needsPurchase else {
+            let credits = model.submissions.credits
+            return credits > 0 ? String(localized: "Paid pets ready to send: \(credits)") : nil
+        }
+        return price.map { String(localized: "\($0) per pet") }
     }
 
     private var howItWorks: some View {
@@ -126,7 +133,8 @@ struct DIYPetView: View {
                     ForEach(pets) { pet in
                         PetTile(pet: pet,
                                 isPlaced: model.store.isActive(pet.slug),
-                                isLocked: PetAccess.requiresPaywall(pet: pet, state: store.state),
+                                isLocked: PetAccess.requiresPaywall(pet: pet, state: store.state,
+                                                                    ownedIDs: model.submissions.unlockedPetIDs),
                                 isDIY: true)
                             .onTapGesture {
                                 model.select(pet)
@@ -153,23 +161,12 @@ struct DIYPetView: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
                 Spacer()
-                if locked {
-                    HStack(spacing: 5) {
-                        Image(systemName: "lock.fill")
-                            .font(.system(size: 9, weight: .bold))
-                        Text(verbatim: "PRO")
-                    }
-                    .font(.system(size: 9, weight: .heavy))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(.white, in: Capsule(style: .continuous))
-                }
             }
             PetSubmissionForm(
                 model: model.submission,
-                locked: locked,
-                onLockedSubmit: { PaywallPresenter.show() },
+                needsPurchase: needsPurchase,
+                price: price,
+                hasCredit: model.submissions.credits > 0,
                 onReset: { model.submission.reset() }
             )
         }

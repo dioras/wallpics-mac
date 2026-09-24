@@ -100,13 +100,15 @@ enum PetSubmissionPhotoPrep {
 }
 
 private struct PetSubmissionsFile: Codable {
-    static let currentVersion = 3
+    static let currentVersion = 4
     static let maxRememberedDigests = 200
 
     var version: Int = currentVersion
     var records: [PetSubmissionRecord] = []
     var submissionCount: Int = 0
     var sentPhotoDigests: [String] = []
+    var ownedPetIDs: [Int] = []
+    var credits = DIYCreditLedger()
 
     init() {}
 
@@ -116,6 +118,8 @@ private struct PetSubmissionsFile: Codable {
         records = try c.decodeIfPresent([PetSubmissionRecord].self, forKey: .records) ?? []
         submissionCount = try c.decodeIfPresent(Int.self, forKey: .submissionCount) ?? records.count
         sentPhotoDigests = try c.decodeIfPresent([String].self, forKey: .sentPhotoDigests) ?? []
+        ownedPetIDs = try c.decodeIfPresent([Int].self, forKey: .ownedPetIDs) ?? records.compactMap(\.serverPetID)
+        credits = try c.decodeIfPresent(DIYCreditLedger.self, forKey: .credits) ?? DIYCreditLedger()
     }
 }
 
@@ -127,6 +131,8 @@ final class PetSubmissionStore {
 
     private(set) var records: [PetSubmissionRecord] = []
     private(set) var submissionCount = 0
+    private(set) var ownedPetIDs: Set<Int> = []
+    private(set) var ledger = DIYCreditLedger()
     private var sentPhotoDigests: [String] = []
 
     static var fileURL: URL { PetPaths.root.appendingPathComponent("submissions.json") }
@@ -136,6 +142,47 @@ final class PetSubmissionStore {
         records = file.records
         submissionCount = file.submissionCount
         sentPhotoDigests = file.sentPhotoDigests
+        ownedPetIDs = Set(file.ownedPetIDs)
+        ledger = file.credits
+    }
+
+    var credits: Int { ledger.credits }
+
+    var unlockedPetIDs: Set<Int> { ownedPetIDs.intersection(RemotePetService.shared.communityIDs.union(readyServerIDs)) }
+
+    @discardableResult
+    func grantCredit(transactionID: UInt64) -> Bool {
+        let before = ledger
+        guard ledger.grant(transactionID: transactionID) else { return true }
+        guard persist() else {
+            ledger = before
+            return false
+        }
+        Log.store.info("PetSubmissionStore: DIY pet credit added, \(self.ledger.credits) available")
+        return true
+    }
+
+    @discardableResult
+    func revokeCredit(transactionID: UInt64) -> Bool {
+        let before = (ledger, records, ownedPetIDs)
+        switch ledger.revoke(transactionID: transactionID) {
+        case .ignored:
+            return true
+        case .unspent:
+            break
+        case .spent(let paidPetID):
+            if let paidPetID { ownedPetIDs.remove(paidPetID) }
+            if let index = records.firstIndex(where: { $0.creditTransactionID == transactionID }) {
+                records[index].creditTransactionID = nil
+                if let serverID = records[index].serverPetID { ownedPetIDs.remove(serverID) }
+            }
+        }
+        guard persist() else {
+            (ledger, records, ownedPetIDs) = before
+            return false
+        }
+        Log.store.notice("PetSubmissionStore: DIY pet purchase \(transactionID) was refunded, \(self.ledger.credits) credit(s) left")
+        return true
     }
 
     func hasSent(digest: String) -> Bool {
@@ -144,9 +191,15 @@ final class PetSubmissionStore {
 
     @discardableResult
     func add(_ record: PetSubmissionRecord, photoDigests: [String]) -> Bool {
+        var stored = record
+        stored.creditTransactionID = ledger.consume()
+        if let transactionID = stored.creditTransactionID, let serverID = record.serverPetID {
+            ledger.recordPurchase(transactionID: transactionID, serverPetID: serverID)
+        }
         records.removeAll { $0.id == record.id }
-        records.insert(record, at: 0)
+        records.insert(stored, at: 0)
         submissionCount += 1
+        if let serverID = record.serverPetID { ownedPetIDs.insert(serverID) }
         sentPhotoDigests.append(contentsOf: photoDigests.filter { !sentPhotoDigests.contains($0) })
         if sentPhotoDigests.count > PetSubmissionsFile.maxRememberedDigests {
             sentPhotoDigests.removeFirst(sentPhotoDigests.count - PetSubmissionsFile.maxRememberedDigests)
@@ -204,6 +257,11 @@ final class PetSubmissionStore {
         records[index].status = .rejected
         records[index].rejectionReason = reason
         Log.app.notice("PetSubmissionStore: pet \(serverID) was rejected")
+        if let transactionID = records[index].creditTransactionID {
+            records[index].creditTransactionID = nil
+            ledger.restore(transactionID: transactionID)
+            Log.store.info("PetSubmissionStore: DIY pet credit returned after rejection, \(self.ledger.credits) available")
+        }
         persist()
     }
 
@@ -214,6 +272,8 @@ final class PetSubmissionStore {
         file.records = records
         file.submissionCount = submissionCount
         file.sentPhotoDigests = sentPhotoDigests
+        file.ownedPetIDs = ownedPetIDs.sorted()
+        file.credits = ledger
         do {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
@@ -247,6 +307,7 @@ final class PetSubmissionStore {
 final class PetSubmissionModel {
     enum Phase: Equatable {
         case editing
+        case purchasing
         case uploading
         case done(PetSubmissionRecord)
         case failed(String)
@@ -266,7 +327,7 @@ final class PetSubmissionModel {
     }
 
     func reset() {
-        guard !isUploading else { return }
+        guard !isBusy else { return }
         photoURLs = []
         thumbnails = [:]
         name = ""
@@ -275,7 +336,7 @@ final class PetSubmissionModel {
         phase = .editing
     }
 
-    var isUploading: Bool { phase == .uploading }
+    var isBusy: Bool { phase == .uploading || phase == .purchasing }
 
     func addPhotos(_ urls: [URL]) {
         notice = nil
@@ -336,10 +397,6 @@ final class PetSubmissionModel {
 
     func submit() async {
         guard canSubmit else { return }
-        guard !PetAccess.submissionsRequirePro(state: StoreKitService.shared.state) else {
-            notice = String(localized: "WallPics Pro is required to make your own pet.")
-            return
-        }
 
         let urls = photoURLs
         let trimmedName = String(name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -360,6 +417,26 @@ final class PetSubmissionModel {
                 notice = PetSubmissionError.alreadySent.errorDescription
                 phase = .editing
                 return
+            }
+
+            if PetAccess.submissionNeedsPurchase(credits: PetSubmissionStore.shared.credits) {
+                phase = .purchasing
+                let outcome = await StoreKitService.shared.purchaseDIYPet()
+                switch outcome {
+                case .granted:
+                    phase = .uploading
+                case .cancelled:
+                    phase = .editing
+                    return
+                case .pending:
+                    notice = String(localized: "Your purchase is waiting for approval. Send your photos again once it goes through.")
+                    phase = .editing
+                    return
+                case .failed(let message):
+                    notice = message
+                    phase = .editing
+                    return
+                }
             }
 
             let serverID = try await WallpaperAPI.shared.submitPet(

@@ -5,10 +5,15 @@ struct PetsView: View {
     @Environment(StoreKitService.self) private var store
     @Environment(AppEnvironment.self) private var env
 
-    private let columns = [GridItem(.adaptive(minimum: 160, maximum: 200), spacing: Theme.Space.l)]
+    private let columns = [GridItem(.adaptive(minimum: 160), spacing: Theme.Space.l)]
     private static let previewMaxHeight: CGFloat = 400
     private static let activeColumnWidth: CGFloat = 660
     private static let sideBySideMinWidth: CGFloat = 1180
+    private static let gridInset: CGFloat = Theme.Space.m
+
+    @State private var previewSize: PetSize = .medium
+    @State private var previewAnchor: PetAnchor = .bottomTrailing
+    @State private var previewSensitivity: PetSensitivity = .normal
 
     var body: some View {
         GeometryReader { geo in
@@ -25,8 +30,11 @@ struct PetsView: View {
                             toolbar
                             ScrollView {
                                 content
+                                    .padding(Self.gridInset)
                                     .padding(.bottom, Theme.Space.xxl)
                             }
+                            .padding(.horizontal, -Self.gridInset)
+                            .padding(.top, -Self.gridInset)
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
@@ -98,12 +106,13 @@ struct PetsView: View {
     }
 
     private func previewCard(_ pet: PetSpecies, sideBySide: Bool) -> some View {
-        let locked = PetAccess.requiresPaywall(pet: pet, state: store.state)
+        let locked = PetAccess.requiresPaywall(pet: pet, state: store.state, ownedIDs: model.submissions.unlockedPetIDs)
         return VStack(alignment: .leading, spacing: Theme.Space.l) {
             PetPlacementPreview(
                 species: pet,
-                size: model.store.placement?.size ?? .medium,
-                anchor: model.store.placement?.anchor ?? .bottomCenter
+                size: locked ? previewSize : model.store.placement?.size ?? .medium,
+                anchor: locked ? previewAnchor : model.store.placement?.anchor ?? .bottomCenter,
+                sensitivity: locked ? previewSensitivity : model.store.placement?.sensitivity ?? .normal
             )
             .frame(maxWidth: .infinity, maxHeight: sideBySide ? nil : Self.previewMaxHeight, alignment: .topLeading)
             .allowsHitTesting(false)
@@ -146,6 +155,13 @@ struct PetsView: View {
             }
 
             if locked {
+                placementControls(size: previewSize,
+                                  sensitivity: previewSensitivity,
+                                  anchor: previewAnchor,
+                                  onSize: { previewSize = $0 },
+                                  onSensitivity: { previewSensitivity = $0 },
+                                  onAnchor: { previewAnchor = $0 })
+
                 VStack(alignment: .leading, spacing: Theme.Space.s) {
                     Button {
                         PaywallPresenter.show()
@@ -156,7 +172,7 @@ struct PetsView: View {
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle())
-                    Text("Every pet, and your own DIY pets, come with WallPics Pro.")
+                    Text("Every pet in the catalog comes with WallPics Pro.")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.5))
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -187,7 +203,8 @@ struct PetsView: View {
             PetPlacementPreview(
                 species: pet,
                 size: model.store.placement?.size ?? .medium,
-                anchor: model.store.placement?.anchor ?? .bottomTrailing
+                anchor: model.store.placement?.anchor ?? .bottomTrailing,
+                sensitivity: model.store.placement?.sensitivity ?? .normal
             )
             .frame(maxWidth: .infinity, maxHeight: sideBySide ? nil : Self.previewMaxHeight, alignment: .topLeading)
             .allowsHitTesting(false)
@@ -234,46 +251,12 @@ struct PetsView: View {
                     .background(.yellow.opacity(0.10), in: RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
                 }
 
-                HStack(alignment: .top, spacing: Theme.Space.xl) {
-                    optionRow(title: String(localized: "Size")) {
-                        ForEach(PetSize.allCases) { size in
-                            PetChip(title: size.label, isSelected: model.store.placement?.size == size) {
-                                model.setSize(size)
-                            }
-                        }
-                    }
-                    optionRow(title: String(localized: "Sensitivity")) {
-                        ForEach(PetSensitivity.allCases) { level in
-                            PetChip(title: level.label,
-                                    isSelected: model.store.placement?.sensitivity == level) {
-                                model.setSensitivity(level)
-                            }
-                        }
-                    }
-                }
-
-                HStack(alignment: .top, spacing: Theme.Space.xl) {
-                    VStack(alignment: .leading, spacing: Theme.Space.s) {
-                        Text("Position")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.45))
-                        HStack(spacing: Theme.Space.m) {
-                            PetPositionGrid(selection: model.store.placement?.anchor) { anchor in
-                                model.setAnchor(anchor)
-                            }
-                            if let anchor = model.store.placement?.anchor {
-                                Text(anchor.label)
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.45))
-                            }
-                        }
-                    }
-                    Text(model.store.placement?.sensitivity.detail ?? "")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.45))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 18)
-                }
+                placementControls(size: model.store.placement?.size,
+                                  sensitivity: model.store.placement?.sensitivity,
+                                  anchor: model.store.placement?.anchor,
+                                  onSize: model.setSize,
+                                  onSensitivity: model.setSensitivity,
+                                  onAnchor: model.setAnchor)
 
                 VStack(alignment: .leading, spacing: Theme.Space.s) {
                     Toggle(isOn: Binding(
@@ -336,6 +319,55 @@ struct PetsView: View {
             RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
                 .strokeBorder(.white.opacity(0.08), lineWidth: 1)
         )
+    }
+
+    private func placementControls(size: PetSize?,
+                                   sensitivity: PetSensitivity?,
+                                   anchor: PetAnchor?,
+                                   onSize: @escaping (PetSize) -> Void,
+                                   onSensitivity: @escaping (PetSensitivity) -> Void,
+                                   onAnchor: @escaping (PetAnchor) -> Void) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.m) {
+            HStack(alignment: .top, spacing: Theme.Space.xl) {
+                optionRow(title: String(localized: "Size")) {
+                    ForEach(PetSize.allCases) { option in
+                        PetChip(title: option.label, isSelected: size == option) {
+                            onSize(option)
+                        }
+                    }
+                }
+                optionRow(title: String(localized: "Sensitivity")) {
+                    ForEach(PetSensitivity.allCases) { level in
+                        PetChip(title: level.label, isSelected: sensitivity == level) {
+                            onSensitivity(level)
+                        }
+                    }
+                }
+            }
+
+            HStack(alignment: .top, spacing: Theme.Space.xl) {
+                VStack(alignment: .leading, spacing: Theme.Space.s) {
+                    Text("Position")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.45))
+                    HStack(spacing: Theme.Space.m) {
+                        PetPositionGrid(selection: anchor) { value in
+                            onAnchor(value)
+                        }
+                        if let anchor {
+                            Text(anchor.label)
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.45))
+                        }
+                    }
+                }
+                Text(sensitivity?.detail ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.45))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 18)
+            }
+        }
     }
 
     private func optionRow<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
@@ -413,7 +445,7 @@ struct PetsView: View {
                 ForEach(model.filtered) { pet in
                     PetTile(pet: pet,
                             isPlaced: model.store.isActive(pet.slug),
-                            isLocked: PetAccess.requiresPaywall(pet: pet, state: store.state),
+                            isLocked: PetAccess.requiresPaywall(pet: pet, state: store.state, ownedIDs: model.submissions.unlockedPetIDs),
                             isDIY: diyIDs.contains(pet.remoteID ?? -1),
                             isSelected: model.focused?.slug == pet.slug)
                         .onTapGesture { withAnimation(Motion.transition) { model.select(pet) } }
@@ -758,6 +790,7 @@ struct PetPlacementPreview: View {
     let species: PetSpecies
     let size: PetSize
     let anchor: PetAnchor
+    var sensitivity: PetSensitivity = .normal
 
     private var screenFrame: CGRect {
         NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1512, height: 982)
@@ -779,14 +812,12 @@ struct PetPlacementPreview: View {
                 LinearGradient(colors: [Color(red: 0.16, green: 0.19, blue: 0.30),
                                         Color(red: 0.08, green: 0.09, blue: 0.15)],
                                startPoint: .top, endPoint: .bottom)
-                Rectangle()
-                    .fill(.white.opacity(0.08))
-                    .frame(height: 5)
-                PetPreviewView(species: species)
+                PetPreviewView(species: species, sensitivity: sensitivity)
                     .frame(width: rect.width, height: rect.height)
                     .position(x: rect.midX, y: mock.height - rect.midY)
                     .animation(Motion.reward, value: anchor)
                     .animation(Motion.reward, value: size)
+                DesktopMenuBar()
             }
         }
         .aspectRatio(screenFrame.width / max(screenFrame.height, 1), contentMode: .fit)
@@ -798,6 +829,39 @@ struct PetPlacementPreview: View {
     }
 }
 
+
+struct DesktopMenuBar: View {
+    static let height: CGFloat = 20
+    var trailingInset: CGFloat = 12
+
+    private static let lights: [Color] = [
+        Color(red: 1.0, green: 0.37, blue: 0.34),
+        Color(red: 1.0, green: 0.74, blue: 0.18),
+        Color(red: 0.16, green: 0.78, blue: 0.25)
+    ]
+
+    var body: some View {
+        HStack(spacing: 7) {
+            ForEach(Self.lights.indices, id: \.self) { index in
+                Circle()
+                    .fill(Self.lights[index])
+                    .frame(width: 7, height: 7)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "wifi")
+            Image(systemName: "battery.75percent")
+            Text(Date(), style: .time)
+        }
+        .font(.system(size: 9, weight: .semibold))
+        .foregroundStyle(.white.opacity(0.85))
+        .padding(.leading, 12)
+        .padding(.trailing, trailingInset)
+        .frame(height: Self.height)
+        .frame(maxWidth: .infinity)
+        .background(.black.opacity(0.35))
+        .accessibilityHidden(true)
+    }
+}
 
 struct PetPositionGrid: View {
     let selection: PetAnchor?

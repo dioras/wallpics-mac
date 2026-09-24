@@ -24,3 +24,15 @@ tools/wallpets/qa/
 # local tool binaries
 Tools/GazeAnalyze/gazeanalyze
 Tools/GazeTests/gazetests*
+
+# Dev-only notes, plans, scripts and agent files (not part of the app)
+docs/
+Tools/
+*.md
+*.py
+*.sh
+CLAUDE.md
+AGENTS.md
+.cursor/
+.bsp/
+buildServer.json

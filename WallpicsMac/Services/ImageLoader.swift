@@ -185,7 +185,11 @@ struct ThumbnailView: View {
             .frame(width: geo.size.width, height: geo.size.height)
         }
         .task(id: url) {
-            guard let url else { return }
+            guard let url else {
+                image = nil
+                didFail = true
+                return
+            }
             image = nil
             didFail = false
             do {

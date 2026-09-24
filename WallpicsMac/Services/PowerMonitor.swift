@@ -46,10 +46,13 @@ final class PowerMonitor: NSObject {
     }
 
     @objc private func lowPowerModeChanged() {
-        let newValue = ProcessInfo.processInfo.isLowPowerModeEnabled
-        if newValue != isLowPowerMode {
-            isLowPowerMode = newValue
-            onChange?(currentSource, isLowPowerMode)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let newValue = ProcessInfo.processInfo.isLowPowerModeEnabled
+            if newValue != self.isLowPowerMode {
+                self.isLowPowerMode = newValue
+                self.onChange?(self.currentSource, self.isLowPowerMode)
+            }
         }
     }
 

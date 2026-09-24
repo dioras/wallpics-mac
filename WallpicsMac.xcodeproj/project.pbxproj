@@ -79,6 +79,7 @@
 		AC000062000000000000001 /* StoreKitTesting.storekit in Resources */ = {isa = PBXBuildFile; fileRef = AD000062000000000000001 /* StoreKitTesting.storekit */; };
 		AC000070000000000000001 /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000070000000000000001 /* ImageLoader.swift */; };
 		AC000071000000000000001 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AD000071000000000000001 /* Localizable.xcstrings */; };
+		AC00000000000000000000C2 /* PaywallClips in Resources */ = {isa = PBXBuildFile; fileRef = AD00000000000000000000C1 /* PaywallClips */; };
 		AC000080000000000000001 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000080000000000000001 /* DesignSystem.swift */; };
 		AC000090000000000000001 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD000090000000000000001 /* AppLanguage.swift */; };
 		AC0000A0000000000000001 /* ImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000A0000000000000001 /* ImportService.swift */; };
@@ -206,6 +207,7 @@
 		AD000062000000000000001 /* StoreKitTesting.storekit */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = StoreKitTesting.storekit; sourceTree = "<group>"; };
 		AD000070000000000000001 /* ImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoader.swift; sourceTree = "<group>"; };
 		AD000071000000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		AD00000000000000000000C1 /* PaywallClips */ = {isa = PBXFileReference; lastKnownFileType = folder; path = PaywallClips; sourceTree = "<group>"; };
 		AD000080000000000000001 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		AD000090000000000000001 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
 		AD0000A0000000000000001 /* ImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportService.swift; sourceTree = "<group>"; };
@@ -531,6 +533,7 @@
 				AD000061000000000000001 /* PrivacyInfo.xcprivacy */,
 				AD000062000000000000001 /* StoreKitTesting.storekit */,
 				AD000071000000000000001 /* Localizable.xcstrings */,
+				AD00000000000000000000C1 /* PaywallClips */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -723,6 +726,7 @@
 				AC000061000000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 				AC000062000000000000001 /* StoreKitTesting.storekit in Resources */,
 				AC000071000000000000001 /* Localizable.xcstrings in Resources */,
+				AC00000000000000000000C2 /* PaywallClips in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

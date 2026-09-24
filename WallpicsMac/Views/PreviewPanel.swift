@@ -724,6 +724,7 @@ struct DetailOverlay: View {
             axis = nil
             configureSwipe()
         }
+        .onChange(of: list.count) { _, _ in configureSwipe() }
         .onExitCommand(perform: onClose)
     }
 

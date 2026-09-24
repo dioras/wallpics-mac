@@ -1,7 +1,23 @@
 {
   "identifier" : "44F5B6E2-0001-4BAC-9E12-AAA000000001",
   "nonRenewingSubscriptions" : [],
-  "products" : [],
+  "products" : [
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : false,
+      "internalID" : "AAA000000020",
+      "localizations" : [
+        {
+          "description" : "Turn photos of your pet into a desktop companion.",
+          "displayName" : "DIY Pet",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "diy_pets",
+      "referenceName" : "DIY Pet",
+      "type" : "Consumable"
+    }
+  ],
   "settings" : {
     "_applicationInternalID" : "AAA000000003",
     "_developerTeamID" : "QE3Q29UECT",

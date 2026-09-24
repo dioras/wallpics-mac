@@ -7,10 +7,13 @@ struct PaywallScreen: View {
     var onSkip: () -> Void
     var animatesIn: Bool = true
     var compact: Bool = false
+    var onOpenDIY: (() -> Void)? = nil
 
     @State private var selectedProductID: String?
     @State private var appeared = false
     @State private var didAttemptLoad = false
+    @State private var isRestoring = false
+    @State private var purchaseNote: String?
     // Soft paywall: the dismiss (✕) is withheld for a few seconds so the offer is seen first,
     // then fades in. Lets the user close the screen without committing.
     @State private var showCloseButton = false
@@ -24,18 +27,25 @@ struct PaywallScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             ViewThatFits(in: .vertical) {
-                offer
-                ScrollView { offer }
+                offer(stageHeight: compact ? 250 : 280)
+                offer(stageHeight: compact ? 190 : 220)
+                offer(stageHeight: compact ? 140 : 160)
+                offer(stageHeight: compact ? 140 : 160, showsFeatures: false)
+                ScrollView { offer(stageHeight: compact ? 140 : 160) }
+                    .mask {
+                        LinearGradient(stops: [.init(color: .black, location: 0.9),
+                                               .init(color: .clear, location: 1)],
+                                       startPoint: .top, endPoint: .bottom)
+                    }
             }
+            .frame(maxHeight: .infinity, alignment: .top)
             footer
         }
         .background {
             ZStack {
                 Color.black
-                RadialGradient(colors: [Theme.accent.opacity(0.22), .clear],
-                               center: .topLeading, startRadius: 0, endRadius: 620)
-                RadialGradient(colors: [Color(red: 0.5, green: 0.2, blue: 0.7).opacity(0.16), .clear],
-                               center: .bottomTrailing, startRadius: 0, endRadius: 660)
+                RadialGradient(colors: [.white.opacity(0.08), .clear],
+                               center: .top, startRadius: 0, endRadius: 560)
             }
             .ignoresSafeArea()
         }
@@ -54,6 +64,7 @@ struct PaywallScreen: View {
             selectProduct()
             print("[Paywall] 🟢 selectedProductID=\(selectedProductID ?? "nil")")
             didAttemptLoad = true
+            await store.loadDIYPetProduct()
         }
         .task {
             try? await Task.sleep(for: closeButtonDelay)
@@ -73,57 +84,146 @@ struct PaywallScreen: View {
                     .overlay(Circle().strokeBorder(.separator, lineWidth: 0.5))
             }
             .buttonStyle(.plain)
-            .padding(Theme.Space.l)
+            .padding(.top, Theme.Space.l + DesktopMenuBar.height + Theme.Space.s)
+            .padding(.trailing, Theme.Space.l + Theme.Space.s)
             .transition(.opacity.combined(with: .scale(scale: 0.8)))
             .help(String(localized: "Close"))
             .accessibilityLabel(String(localized: "Close"))
         }
     }
 
-    private var offer: some View {
+    private func offer(stageHeight: CGFloat, showsFeatures: Bool = true) -> some View {
         VStack(spacing: compact ? Theme.Space.l : Theme.Space.xl) {
-            header
-            benefits
-            productPicker
+            PaywallStage(pets: stagePets, height: stageHeight)
+                .opacity(appeared ? 1 : 0)
+            VStack(spacing: compact ? Theme.Space.l : Theme.Space.xl) {
+                header
+                if showsFeatures {
+                    features
+                }
+                productPicker
+                diyOffer
+            }
+            .padding(.horizontal, Theme.Space.xl)
+            .frame(maxWidth: 480)
         }
-        .padding(.horizontal, Theme.Space.xl)
-        .padding(.vertical, compact ? Theme.Space.l : Theme.Space.xl)
-        .frame(maxWidth: 460)
+        .padding(.top, Theme.Space.l)
+        .padding(.bottom, compact ? Theme.Space.l : Theme.Space.xl)
         .frame(maxWidth: .infinity)
         .animation(.smooth(duration: 0.28), value: store.products.count)
     }
 
     private var header: some View {
-        VStack(spacing: compact ? Theme.Space.s : Theme.Space.m) {
-            AppIconView(size: compact ? 64 : 84)
+        VStack(spacing: Theme.Space.s) {
             Text(verbatim: "PRO")
                 .font(.system(size: 10, weight: .heavy))
                 .kerning(2.5)
                 .foregroundStyle(.black)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
                 .background(.white, in: Capsule())
             Text("Unlock WallPics Pro")
-                .font(.system(size: compact ? 26 : 30, weight: .bold))
-            Text("Every wallpaper, every pet, no watermark — and support a small, independent team.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: 360)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Every wallpaper, every pet, no watermark.")
+                .font(.callout)
+                .foregroundStyle(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 380)
         }
-        .padding(.top, compact ? Theme.Space.s : Theme.Space.l)
+        .padding(.top, 0)
         .opacity(appeared ? 1 : 0)
         .offset(y: appeared ? 0 : 14)
     }
 
-    private var benefits: some View {
-        VStack(alignment: .leading, spacing: compact ? Theme.Space.s : Theme.Space.m) {
-            Benefit(symbol: "drop.degreesign", text: "No watermark on any wallpaper", index: 0, appeared: appeared)
-            Benefit(symbol: "rectangle.stack.fill", text: "Full 4K library, no daily limits", index: 1, appeared: appeared)
-            Benefit(symbol: "pawprint.fill", text: "Pro wallpapers and unlimited pets from your photos", index: 2, appeared: appeared)
+    private var features: some View {
+        HStack(alignment: .top, spacing: Theme.Space.m) {
+            BenefitBadge(symbol: "play.rectangle.fill", text: String(localized: "1,000+ live & 4K wallpapers"))
+            BenefitBadge(symbol: "pawprint.fill", text: String(localized: "Every desktop pet"))
+            BenefitBadge(symbol: "drop.degreesign", text: String(localized: "No watermark"))
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(Motion.transition.delay(0.06), value: appeared)
+    }
+
+    private var diyPriceText: String {
+        store.diyPetProduct.map { String(localized: "One-time purchase · \($0.displayPrice)") }
+            ?? String(localized: "Sold separately")
+    }
+
+    @ViewBuilder
+    private var diyOffer: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Also available")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.5))
+            let row = HStack(spacing: Theme.Space.s) {
+                Image(systemName: "photo.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(.white.opacity(0.6))
+                if let poster = stagePets.first.flatMap({ PetPosterCache.image(for: $0.posterURL) }) {
+                    Image(nsImage: poster)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 34)
+                } else {
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(Theme.accent)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Make your own pet from photos")
+                        .font(.callout.weight(.bold))
+                        .foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(diyPriceText)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer(minLength: 0)
+                if onOpenDIY != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.5))
+                }
+            }
+            .padding(Theme.Space.s)
+            .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+            )
+            if let onOpenDIY {
+                Button(action: onOpenDIY) { row.contentShape(Rectangle()) }
+                    .buttonStyle(.plain)
+                    .help(String(localized: "Open DIY Pet"))
+            } else {
+                row
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(appeared ? 1 : 0)
     }
+
+    private static let featuredPetIDs = [12, 41, 43, 22, 40]
+
+    private var stagePets: [PetSpecies] {
+        let all = RemotePetService.shared.pets
+        let featured = Self.featuredPetIDs.compactMap { id in all.first { $0.remoteID == id } }
+        guard featured.isEmpty else { return featured }
+        let community = RemotePetService.shared.communityIDs
+        return Array(all.filter { !($0.remoteID.map(community.contains) ?? false) }.prefix(5))
+    }
+
 
     private var productPicker: some View {
         VStack(spacing: Theme.Space.m) {
@@ -180,7 +280,7 @@ struct PaywallScreen: View {
                 whitePill(String(localized: "Continue with Free"), action: onSkip)
             } else {
                 whitePill(subscribeButtonTitle, busy: store.isPurchasing, action: subscribe)
-                    .disabled(selectedProductID == nil || store.isPurchasing)
+                    .disabled(selectedProductID == nil || store.isPurchasing || isRestoring)
             }
 
             if let renewalNote {
@@ -190,8 +290,16 @@ struct PaywallScreen: View {
                     .multilineTextAlignment(.center)
             }
 
+            if let purchaseNote {
+                Text(purchaseNote)
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+            }
+
             HStack(spacing: Theme.Space.l) {
-                Button("Restore") { Task { await store.restore() } }
+                Button(isRestoring ? String(localized: "Restoring…") : String(localized: "Restore"), action: restore)
+                    .disabled(isRestoring || store.isPurchasing)
                 Button("Privacy") { NSWorkspace.shared.open(privacyURL) }
                 Button("Terms") { NSWorkspace.shared.open(termsURL) }
                 Button("Maybe Later", action: onSkip)
@@ -202,22 +310,24 @@ struct PaywallScreen: View {
         }
         .padding(.horizontal, Theme.Space.xl)
         .padding(.vertical, compact ? Theme.Space.l : Theme.Space.xl)
-        .background(.black.opacity(0.45))
-        .overlay(alignment: .top) {
-            Rectangle().fill(.white.opacity(0.08)).frame(height: 1)
-        }
+        .frame(maxWidth: .infinity)
+        .background(
+            LinearGradient(colors: [.clear, Color(red: 0.05, green: 0.03, blue: 0.09).opacity(0.85)],
+                           startPoint: .top, endPoint: .center)
+        )
     }
 
     private func whitePill(_ title: String, busy: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 if busy { ProgressView().controlSize(.small) }
-                Text(title).font(.headline)
+                Text(title).font(.system(.headline, design: .rounded).weight(.heavy))
             }
             .frame(maxWidth: 420)
-            .padding(.vertical, 13)
+            .padding(.vertical, 14)
             .foregroundStyle(.black)
             .background(.white, in: Capsule())
+            .shadow(color: .white.opacity(0.12), radius: 16, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -271,32 +381,208 @@ struct PaywallScreen: View {
     private func subscribe() {
         guard let product = selectedProduct else { return }
         Task {
+            purchaseNote = nil
             let success = await store.purchase(product)
-            if success { onDone() }
+            if success { onDone() } else { purchaseNote = store.lastError }
+        }
+    }
+
+    private func restore() {
+        Task {
+            isRestoring = true
+            purchaseNote = nil
+            await store.restore()
+            isRestoring = false
+            if store.state.isPro {
+                onDone()
+            } else {
+                purchaseNote = store.lastError ?? String(localized: "No purchases found to restore.")
+            }
         }
     }
 }
 
-private struct Benefit: View {
-    let symbol: String
-    let text: LocalizedStringKey
-    let index: Int
-    let appeared: Bool
+private struct PaywallClip {
+    let file: String
+    let title: String
+
+    static let all: [PaywallClip] = [
+        PaywallClip(file: "gojo", title: "Satoru Gojo Six Eyes"),
+        PaywallClip(file: "skyline", title: "Skyline R34"),
+        PaywallClip(file: "spiderman", title: "Spider-Man Red Suit"),
+        PaywallClip(file: "knight", title: "Crimson Knight"),
+        PaywallClip(file: "sasuke", title: "Sasuke Rinnegan"),
+        PaywallClip(file: "goku", title: "Goku Ascent")
+    ].filter { $0.videoURL != nil }
+
+    var videoURL: URL? { Bundle.main.url(forResource: file, withExtension: "mp4", subdirectory: "PaywallClips") }
+
+    var poster: NSImage? {
+        Bundle.main.url(forResource: file, withExtension: "jpg", subdirectory: "PaywallClips").flatMap(NSImage.init(contentsOf:))
+    }
+}
+
+private struct PaywallStage: View {
+    let pets: [PetSpecies]
+    let height: CGFloat
+
+    @State private var slide = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let clips = PaywallClip.all
+    private static let posters: [String: NSImage] = Dictionary(
+        uniqueKeysWithValues: clips.compactMap { clip in clip.poster.map { (clip.file, $0) } })
+
+    private var clip: PaywallClip? { Self.clips.isEmpty ? nil : Self.clips[slide % Self.clips.count] }
+    private var pet: PetSpecies? { pets.isEmpty ? nil : pets[(slide / 2) % pets.count] }
 
     var body: some View {
-        HStack(spacing: Theme.Space.m) {
-            Image(systemName: symbol)
-                .font(.body.weight(.semibold))
-                .frame(width: 30, height: 30)
-                .foregroundStyle(.white)
-                .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(.white.opacity(0.10), lineWidth: 1))
-            Text(text).font(.callout)
-            Spacer()
+        ZStack(alignment: .bottom) {
+            backdrop
+            VStack(spacing: 0) {
+                DesktopMenuBar()
+                Spacer(minLength: 0)
+            }
+            HStack(alignment: .bottom, spacing: 0) {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let clip {
+                        liveChip(clip)
+                    }
+                    if Self.clips.count > 1 {
+                        dock
+                    }
+                }
+                .padding(.leading, Theme.Space.m)
+                .padding(.bottom, Theme.Space.m)
+                Spacer(minLength: 0)
+                if let pet {
+                    petView(pet)
+                        .padding(.trailing, Theme.Space.l)
+                }
+            }
         }
-        .opacity(appeared ? 1 : 0)
-        .offset(x: appeared ? 0 : -12)
-        .animation(Motion.transition.delay(0.05 * Double(index)), value: appeared)
+        .frame(height: height)
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.white.opacity(0.14), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.6), radius: 24, y: 12)
+        .padding(.horizontal, Theme.Space.l)
+        .task(id: pets.map(\.slug)) { await cycle() }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Live wallpapers with a desktop pet that follows your cursor"))
+    }
+
+    private func cycle() async {
+        guard !reduceMotion, Self.clips.count > 1 || pets.count > 1 else { return }
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.9)) { slide += 1 }
+        }
+    }
+
+    private var backdrop: some View {
+        ZStack {
+            Color(white: 0.06)
+            if let clip, let url = clip.videoURL {
+                HeroVideoPlayer(url: url)
+                    .id(clip.file)
+                    .transition(.opacity)
+            }
+            LinearGradient(colors: [.clear, .black.opacity(0.45)], startPoint: .center, endPoint: .bottom)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private func liveChip(_ clip: PaywallClip) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(Theme.accent).frame(width: 6, height: 6)
+            Text(verbatim: "LIVE")
+                .font(.system(size: 9, weight: .heavy))
+                .kerning(1)
+            Text(verbatim: clip.title)
+                .font(.system(size: 10, weight: .semibold))
+                .lineLimit(1)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(.black.opacity(0.55), in: Capsule())
+        .id(clip.file)
+        .transition(.opacity)
+    }
+
+    private var dock: some View {
+        let active = Self.clips.isEmpty ? 0 : slide % Self.clips.count
+        return HStack(alignment: .bottom, spacing: 5) {
+            ForEach(Array(Self.clips.enumerated()), id: \.element.file) { index, item in
+                Group {
+                    if let image = Self.posters[item.file] {
+                        Image(nsImage: image)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Color.white.opacity(0.1)
+                    }
+                }
+                .frame(width: 38, height: 22)
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .strokeBorder(.white.opacity(index == active ? 0.95 : 0.15), lineWidth: index == active ? 1.5 : 0.5)
+                )
+                .scaleEffect(index == active ? 1.25 : 1, anchor: .bottom)
+                .offset(y: index == active ? -3 : 0)
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.top, 9)
+        .padding(.bottom, 6)
+        .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
+        )
+        .animation(Motion.reward, value: slide)
+    }
+
+    private func petView(_ pet: PetSpecies) -> some View {
+        let petHeight = height * 0.8
+        let petWidth = petHeight * pet.aspectRatio
+        return PetPreviewView(species: pet)
+            .frame(width: petWidth, height: petHeight)
+            .offset(y: petHeight * (1 - pet.subjectBottom))
+            .id(pet.slug)
+            .transition(.opacity)
+    }
+}
+
+private struct BenefitBadge: View {
+    let symbol: String
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 32, height: 32)
+                .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+                )
+            Text(text)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.85))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -338,9 +624,9 @@ private struct ProductRow: View {
                             .font(.headline)
                         if isBestValue {
                             Text("Best value")
-                                .font(.caption2.weight(.bold))
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 2)
+                                .font(.caption2.weight(.heavy))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
                                 .background(Theme.accent, in: Capsule())
                                 .foregroundStyle(.white)
                         }

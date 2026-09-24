@@ -102,16 +102,19 @@ final class PetsViewModel {
     func setSize(_ size: PetSize) {
         store.update { $0.size = size }
         desktop.refresh()
+        backdrop.reapply()
     }
 
     func setAnchor(_ anchor: PetAnchor) {
         store.update { $0.anchor = anchor }
         desktop.refresh()
+        backdrop.reapply()
     }
 
     func setAllScreens(_ value: Bool) {
         store.update { $0.allScreens = value }
         desktop.refresh()
+        backdrop.reapply()
     }
 
     func setSensitivity(_ value: PetSensitivity) {
@@ -166,7 +169,8 @@ enum PetScope: String, CaseIterable, Identifiable {
 enum PetDesktopActions {
     @discardableResult
     static func place(_ pet: PetSpecies) -> Bool {
-        guard !PetAccess.requiresPaywall(pet: pet, state: StoreKitService.shared.state) else {
+        guard !PetAccess.requiresPaywall(pet: pet, state: StoreKitService.shared.state,
+                                        ownedIDs: PetSubmissionStore.shared.unlockedPetIDs) else {
             PaywallPresenter.show()
             return false
         }

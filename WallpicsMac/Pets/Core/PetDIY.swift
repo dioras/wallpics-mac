@@ -19,9 +19,11 @@ struct PetSubmissionRecord: Codable, Identifiable, Equatable, Sendable {
     var status: PetSubmissionStatus = .inReview
     var rejectionReason: String?
     var readySeen: Bool = false
+    var creditTransactionID: UInt64?
 
     init(id: UUID, name: String, submittedAt: Date, photoCount: Int, serverPetID: Int?,
-         status: PetSubmissionStatus = .inReview, rejectionReason: String? = nil, readySeen: Bool = false) {
+         status: PetSubmissionStatus = .inReview, rejectionReason: String? = nil, readySeen: Bool = false,
+         creditTransactionID: UInt64? = nil) {
         self.id = id
         self.name = name
         self.submittedAt = submittedAt
@@ -30,6 +32,7 @@ struct PetSubmissionRecord: Codable, Identifiable, Equatable, Sendable {
         self.status = status
         self.rejectionReason = rejectionReason
         self.readySeen = readySeen
+        self.creditTransactionID = creditTransactionID
     }
 
     init(from decoder: Decoder) throws {
@@ -42,6 +45,7 @@ struct PetSubmissionRecord: Codable, Identifiable, Equatable, Sendable {
         status = (try? c.decodeIfPresent(PetSubmissionStatus.self, forKey: .status)) ?? .inReview
         rejectionReason = try c.decodeIfPresent(String.self, forKey: .rejectionReason)
         readySeen = try c.decodeIfPresent(Bool.self, forKey: .readySeen) ?? true
+        creditTransactionID = try c.decodeIfPresent(UInt64.self, forKey: .creditTransactionID)
     }
 
     var catalogSlug: String? { serverPetID.map(PetSpecies.remoteSlug(id:)) }
@@ -50,6 +54,75 @@ struct PetSubmissionRecord: Codable, Identifiable, Equatable, Sendable {
 
     func isOverdue(now: Date = Date()) -> Bool {
         status == .inReview && (serverPetID == nil || PetSubmissionAge.isStale(submittedAt: submittedAt, now: now))
+    }
+}
+
+struct DIYCreditLedger: Codable, Equatable, Sendable {
+    static let maxRememberedTransactions = 100
+
+    enum Revocation: Equatable, Sendable {
+        case ignored
+        case unspent
+        case spent(serverPetID: Int?)
+    }
+
+    private(set) var unspent: [UInt64] = []
+    private(set) var grantedTransactions: [UInt64] = []
+    private(set) var revokedTransactions: [UInt64] = []
+    private(set) var paidPets: [UInt64: Int] = [:]
+
+    var credits: Int { unspent.count }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        unspent = try c.decodeIfPresent([UInt64].self, forKey: .unspent) ?? []
+        grantedTransactions = try c.decodeIfPresent([UInt64].self, forKey: .grantedTransactions) ?? []
+        revokedTransactions = try c.decodeIfPresent([UInt64].self, forKey: .revokedTransactions) ?? []
+        paidPets = try c.decodeIfPresent([UInt64: Int].self, forKey: .paidPets) ?? [:]
+    }
+
+    mutating func grant(transactionID: UInt64) -> Bool {
+        guard !grantedTransactions.contains(transactionID) else { return false }
+        unspent.append(transactionID)
+        Self.remember(transactionID, in: &grantedTransactions)
+        paidPets = paidPets.filter { grantedTransactions.contains($0.key) }
+        return true
+    }
+
+    mutating func recordPurchase(transactionID: UInt64, serverPetID: Int) {
+        guard grantedTransactions.contains(transactionID) else { return }
+        paidPets[transactionID] = serverPetID
+    }
+
+    mutating func consume() -> UInt64? {
+        guard !unspent.isEmpty else { return nil }
+        return unspent.removeFirst()
+    }
+
+    mutating func restore(transactionID: UInt64) {
+        guard !revokedTransactions.contains(transactionID), !unspent.contains(transactionID) else { return }
+        paidPets[transactionID] = nil
+        unspent.append(transactionID)
+    }
+
+    mutating func revoke(transactionID: UInt64) -> Revocation {
+        guard grantedTransactions.contains(transactionID),
+              !revokedTransactions.contains(transactionID) else { return .ignored }
+        Self.remember(transactionID, in: &revokedTransactions)
+        guard let index = unspent.firstIndex(of: transactionID) else {
+            return .spent(serverPetID: paidPets.removeValue(forKey: transactionID))
+        }
+        unspent.remove(at: index)
+        return .unspent
+    }
+
+    private static func remember(_ id: UInt64, in list: inout [UInt64]) {
+        list.append(id)
+        if list.count > maxRememberedTransactions {
+            list.removeFirst(list.count - maxRememberedTransactions)
+        }
     }
 }
 

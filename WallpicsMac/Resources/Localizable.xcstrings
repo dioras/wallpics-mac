@@ -106,6 +106,53 @@
         }
       }
     },
+    "%@ per pet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ pro Haustier"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ por mascota"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ par animal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペット1匹あたり %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ por pet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ за питомца"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每只宠物 %@"
+          }
+        }
+      }
+    },
     "%@ — in review" : {
       "localizations" : {
         "de" : {
@@ -868,6 +915,53 @@
         }
       }
     },
+    "1,000+ live & 4K wallpapers" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1.000+ Live- & 4K-Hintergründe"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más de 1000 fondos animados y 4K"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 000+ fonds animés et 4K"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1,000点以上のライブ＆4K壁紙"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mais de 1.000 papéis animados e 4K"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1000+ живых и 4K обоев"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1000+ 动态与 4K 壁纸"
+          }
+        }
+      }
+    },
     "24-hour time" : {},
     "A person checks the photos, then our pipeline animates your pet so it can look around. Usually within 48 hours." : {
       "localizations" : {
@@ -1107,6 +1201,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "完成!"
+          }
+        }
+      }
+    },
+    "Also available" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Außerdem erhältlich"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "También disponible"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Également disponible"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "こちらもおすすめ"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Também disponível"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Также доступно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "另有"
           }
         }
       }
@@ -1490,6 +1631,100 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "购买 %@"
+          }
+        }
+      }
+    },
+    "Buy and send" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaufen und senden"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprar y enviar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acheter et envoyer"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入して送る"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprar e enviar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Купить и отправить"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购买并发送"
+          }
+        }
+      }
+    },
+    "Buy and send · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaufen und senden · %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprar y enviar · %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acheter et envoyer · %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入して送る · %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprar e enviar · %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Купить и отправить · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购买并发送 · %@"
           }
         }
       }
@@ -2564,6 +2799,99 @@
         }
       }
     },
+    "Couldn't verify the purchase. Try Restore." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Kauf konnte nicht bestätigt werden. Versuche „Wiederherstellen“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo verificar la compra. Prueba Restaurar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de vérifier l’achat. Essayez Restaurer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入を確認できませんでした。「復元」をお試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível verificar a compra. Tente Restaurar."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось подтвердить покупку. Попробуйте «Восстановить»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法验证此次购买。请尝试“恢复”。"
+          }
+        }
+      }
+    },
+    "Couldn't verify the purchase. Try again in a moment." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Kauf konnte nicht bestätigt werden. Versuche es gleich noch einmal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo verificar la compra. Inténtalo de nuevo en un momento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de vérifier l'achat. Réessayez dans un instant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入を確認できませんでした。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não foi possível verificar a compra. Tente de novo em instantes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось подтвердить покупку. Попробуйте ещё раз чуть позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法验证此次购买，请稍后再试。"
+          }
+        }
+      }
+    },
     "Create a widget from your photos or videos" : {},
     "Customize and place live widgets on your desktop." : {},
     "Customize…" : {},
@@ -2859,94 +3187,143 @@
     "Edit" : {},
     "Edit Widget" : {},
     "Elevator" : {},
-    "Every pet, and your own DIY pets, come with WallPics Pro." : {
+    "Every desktop pet" : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle Haustiere und deine eigenen DIY-Haustiere gibt es mit WallPics Pro."
+            "value" : "Alle Desktop-Haustiere"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todas las mascotas, y las tuyas DIY, vienen con WallPics Pro."
+            "value" : "Todas las mascotas"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tous les animaux, et vos animaux DIY, sont inclus dans WallPics Pro."
+            "value" : "Tous les animaux"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべてのペットとあなたのDIYペットは WallPics Pro で使えます。"
+            "value" : "すべてのペット"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todos os pets, e os seus pets DIY, vêm com o WallPics Pro."
+            "value" : "Todos os pets"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Все питомцы и ваши DIY-питомцы доступны в WallPics Pro."
+            "value" : "Все питомцы"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "所有宠物以及你的 DIY 宠物都包含在 WallPics Pro 中。"
+            "value" : "所有桌面宠物"
           }
         }
       }
     },
-    "Every wallpaper, every pet, no watermark — and support a small, independent team." : {
+    "Every pet in the catalog comes with WallPics Pro." : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle Hintergründe, alle Haustiere, kein Wasserzeichen – und du unterstützt ein kleines, unabhängiges Team."
+            "value" : "Alle Haustiere im Katalog gibt es mit WallPics Pro."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todos los fondos, todas las mascotas, sin marca de agua, y apoyas a un pequeño equipo independiente."
+            "value" : "Todas las mascotas del catálogo vienen con WallPics Pro."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tous les fonds d'écran, tous les animaux, sans filigrane — et vous soutenez une petite équipe indépendante."
+            "value" : "Tous les animaux du catalogue sont inclus dans WallPics Pro."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべての壁紙とペットをウォーターマークなしで。小さな独立チームの応援にもなります。"
+            "value" : "カタログのすべてのペットは WallPics Pro に含まれます。"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todos os papéis de parede, todos os pets, sem marca d'água — e você apoia uma equipe pequena e independente."
+            "value" : "Todos os pets do catálogo vêm com o WallPics Pro."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Все обои, все питомцы, без водяного знака — и поддержка маленькой независимой команды."
+            "value" : "Все питомцы из каталога входят в WallPics Pro."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "所有壁纸、所有宠物、无水印，同时支持一个小型独立团队。"
+            "value" : "目录中的所有宠物均包含在 WallPics Pro 中。"
+          }
+        }
+      }
+    },
+    "Every wallpaper, every pet, no watermark." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedes Hintergrundbild, jedes Haustier, kein Wasserzeichen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos los fondos, todas las mascotas, sin marca de agua."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tous les fonds d'écran, tous les animaux, sans filigrane."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての壁紙とペット、透かしなし。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todos os papéis de parede, todos os pets, sem marca d'água."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все обои, все питомцы, без водяного знака."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有壁纸、所有宠物，无水印。"
           }
         }
       }
@@ -2998,6 +3375,53 @@
       }
     },
     "Fill (crop to fit)" : {},
+    "Finished pets also appear in Pets → DIY for everyone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fertige Haustiere erscheinen für alle auch unter Pets → DIY"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las mascotas terminadas también aparecen para todos en Pets → DIY"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les animaux terminés apparaissent aussi pour tous dans Pets → DIY"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成したペットは Pets → DIY にも表示され、誰でも見られます"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pets prontos também aparecem para todos em Pets → DIY"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готовые питомцы также появляются для всех в Pets → DIY"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成的宠物也会在 Pets → DIY 中向所有人显示"
+          }
+        }
+      }
+    },
     "Follow system appearance" : {
       "localizations" : {
         "de" : {
@@ -3227,52 +3651,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "免费壁纸包含小水印。"
-          }
-        }
-      }
-    },
-    "Full 4K library, no daily limits" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Komplette 4K-Bibliothek, keine Tageslimits"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toda la biblioteca 4K, sin límites diarios"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bibliothèque 4K complète, sans limites quotidiennes"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全 4K ライブラリ、毎日の制限なし"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Biblioteca 4K completa, sem limites diários"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вся библиотека 4K без ограничений"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完整 4K 库,无每日限制"
           }
         }
       }
@@ -3800,6 +4178,53 @@
     "Likes:" : {},
     "Live" : {},
     "Live and shader wallpapers only play while WallPics is running. Add it to Login Items so it starts automatically and your wallpaper keeps going after a restart — otherwise the desktop falls back to a still image." : {},
+    "Live wallpapers with a desktop pet that follows your cursor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live-Hintergründe mit einem Desktop-Haustier, das deinem Cursor folgt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fondos animados con una mascota que sigue tu cursor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fonds animés avec un animal qui suit votre curseur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カーソルを追うペットとライブ壁紙"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Papéis de parede animados com um pet que segue seu cursor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Живые обои с питомцем, который следит за курсором"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动态壁纸与跟随光标的桌面宠物"
+          }
+        }
+      }
+    },
     "Load more wallpapers" : {
       "localizations" : {
         "de" : {
@@ -4079,48 +4504,49 @@
         }
       }
     },
-    "Making your own pet is part of WallPics Pro." : {
+    "Make your own pet from photos" : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ein eigenes Haustier zu erstellen ist Teil von WallPics Pro."
+            "value" : "Erstelle dein Haustier aus Fotos"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crear tu propia mascota está incluido en WallPics Pro."
+            "value" : "Crea tu mascota con fotos"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Créer votre propre animal fait partie de WallPics Pro."
+            "value" : "Créez votre animal à partir de photos"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "オリジナルのペット作成は WallPics Pro の機能です。"
+            "value" : "写真から自分のペットを作成"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Criar seu próprio pet faz parte do WallPics Pro."
+            "value" : "Crie seu pet a partir de fotos"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Создание своего питомца входит в WallPics Pro."
+            "value" : "Создайте своего питомца из фото"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "制作自己的宠物是 WallPics Pro 的功能。"
+            "value" : "用照片制作你的宠物"
           }
         }
       }
@@ -4598,48 +5024,49 @@
         }
       }
     },
-    "No watermark on any wallpaper" : {
+    "No watermark" : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Wasserzeichen auf Hintergründen"
+            "value" : "Kein Wasserzeichen"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sin marca de agua en ningún fondo"
+            "value" : "Sin marca de agua"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun filigrane sur les fonds d'écran"
+            "value" : "Sans filigrane"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべての壁紙でウォーターマークなし"
+            "value" : "透かしなし"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sem marca d'água em nenhum papel de parede"
+            "value" : "Sem marca d'água"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Без водяных знаков на любых обоях"
+            "value" : "Без водяного знака"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "所有壁纸无水印"
+            "value" : "无水印"
           }
         }
       }
@@ -4835,6 +5262,147 @@
     "On your desktop — click to remove" : {},
     "On your desktop, behind your icons." : {},
     "One pet per photo, front view plus a couple of angles works best" : {},
+    "One-time purchase per pet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einmalkauf pro Haustier"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compra única por mascota"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achat unique par animal"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットごとの1回限りの購入"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compra única por pet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разовая покупка за питомца"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每只宠物一次性购买"
+          }
+        }
+      }
+    },
+    "One-time purchase per pet · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einmalkauf pro Haustier · %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compra única por mascota · %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achat unique par animal · %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ペットごとの1回限りの購入 · %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compra única por pet · %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разовая покупка за питомца · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每只宠物一次性购买 · %@"
+          }
+        }
+      }
+    },
+    "One-time purchase · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einmalkauf · %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compra única · %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achat unique · %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1回限りの購入 · %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compra única · %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разовая покупка · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一次性购买 · %@"
+          }
+        }
+      }
+    },
     "Only images can be sent — anything else was skipped." : {},
     "Open" : {},
     "Open Browse" : {
@@ -4931,48 +5499,96 @@
     },
     "Open WallPics at login" : {},
     "Opened Eyes" : {},
-    "Part of WallPics Pro" : {
+    "Paid pets ready to send: %lld" : {
+      "extractionState" : "manual",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Teil von WallPics Pro"
+            "value" : "Bezahlte Haustiere zum Senden: %lld"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Incluido en WallPics Pro"
+            "value" : "Mascotas pagadas listas para enviar: %lld"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inclus dans WallPics Pro"
+            "value" : "Animaux payés prêts à envoyer : %lld"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "WallPics Pro の機能"
+            "value" : "送信できる支払い済みペット: %lld"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Parte do WallPics Pro"
+            "value" : "Pets pagos prontos para enviar: %lld"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Входит в WallPics Pro"
+            "value" : "Оплаченных питомцев к отправке: %lld"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "WallPics Pro 功能"
+            "value" : "已付款待发送的宠物：%lld"
+          }
+        }
+      }
+    },
+    "Paid — send your photos whenever you're ready." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezahlt – sende deine Fotos, wann immer du bereit bist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagado: envía tus fotos cuando quieras."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Payé — envoyez vos photos quand vous voulez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "支払い済み — いつでも写真を送れます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pago — envie suas fotos quando quiser."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оплачено — отправьте фото, когда будете готовы."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已付款 — 准备好后随时发送照片。"
           }
         }
       }
@@ -5173,7 +5789,6 @@
     "Photo Widget" : {},
     "Photos" : {},
     "Photos (carousel)" : {},
-    "Photos are only used to build your pet" : {},
     "Photos, videos, GIFs, Metal shaders and Rive animations — they all work, watermark-free with Pro." : {},
     "Pick a wallpaper to preview it." : {
       "extractionState" : "stale",
@@ -5597,52 +6212,6 @@
         }
       }
     },
-    "Pro wallpapers and unlimited pets from your photos" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro-Hintergründe und unbegrenzt Haustiere aus deinen Fotos"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fondos Pro y mascotas ilimitadas a partir de tus fotos"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fonds d'écran Pro et animaux illimités à partir de vos photos"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro壁紙と、写真から作るペットが無制限"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Papéis de parede Pro e pets ilimitados a partir das suas fotos"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro-обои и питомцы из ваших фото без ограничений"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro 壁纸，以及用你的照片制作不限数量的宠物"
-          }
-        }
-      }
-    },
     "Pull to refresh." : {
       "localizations" : {
         "de" : {
@@ -5685,6 +6254,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下拉刷新。"
+          }
+        }
+      }
+    },
+    "Purchase is pending approval. Pro unlocks automatically once it's approved." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Kauf wartet auf Freigabe. Pro wird nach der Freigabe automatisch freigeschaltet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La compra está pendiente de aprobación. Pro se desbloqueará automáticamente cuando se apruebe."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’achat est en attente d’approbation. Pro se débloquera automatiquement une fois approuvé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入は承認待ちです。承認されると Pro が自動的にロック解除されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A compra está aguardando aprovação. O Pro será liberado automaticamente após a aprovação."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покупка ожидает подтверждения. Pro откроется автоматически после одобрения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购买正在等待批准。批准后 Pro 将自动解锁。"
           }
         }
       }
@@ -6249,6 +6864,52 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "恢复购买"
+          }
+        }
+      }
+    },
+    "Restoring…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird wiederhergestellt…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurando…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restauration…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復元中…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurando…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Восстановление…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在恢复…"
           }
         }
       }
@@ -7059,6 +7720,53 @@
     "Size" : {},
     "Small" : {},
     "Snaps to the cursor straight away" : {},
+    "Sold separately" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Separat erhältlich"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se vende por separado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vendu séparément"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別売り"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vendido separadamente"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покупается отдельно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需单独购买"
+          }
+        }
+      }
+    },
     "Some dropped items couldn't be read and were skipped." : {},
     "Sort wallpapers" : {},
     "Start Free Trial" : {
@@ -7439,6 +8147,53 @@
       }
     },
     "Text color" : {},
+    "The App Store isn't available right now. Try again in a moment." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der App Store ist gerade nicht erreichbar. Versuche es gleich noch einmal."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La App Store no está disponible ahora. Inténtalo de nuevo en un momento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'App Store n'est pas disponible pour le moment. Réessayez dans un instant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在App Storeに接続できません。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A App Store não está disponível agora. Tente de novo em instantes."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store сейчас недоступен. Попробуйте ещё раз чуть позже."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store 暂时无法使用，请稍后再试。"
+          }
+        }
+      }
+    },
     "The animated lock screen needs a build of WallPics that runs outside the App Sandbox." : {
       "localizations" : {
         "de" : {
@@ -7481,6 +8236,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "动态锁定屏幕需要在 App 沙盒之外运行的 WallPics 版本。"
+          }
+        }
+      }
+    },
+    "They watch your cursor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie folgen deinem Cursor"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siguen tu cursor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ils suivent votre curseur"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カーソルを目で追う"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eles seguem seu cursor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Следят за курсором"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它们会盯着你的光标"
           }
         }
       }
@@ -7632,52 +8434,6 @@
         }
       }
     },
-    "Unlock and send" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Freischalten und senden"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desbloquear y enviar"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Débloquer et envoyer"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ロック解除して送信"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desbloquear e enviar"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Открыть и отправить"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解锁并发送"
-          }
-        }
-      }
-    },
     "Unlock with Pro" : {
       "localizations" : {
         "de" : {
@@ -7817,7 +8573,52 @@
         }
       }
     },
-    "Uploading…" : {},
+    "Uploading…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird hochgeladen…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subiendo…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoi en cours…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アップロード中…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviando…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загрузка…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在上传…"
+          }
+        }
+      }
+    },
     "Uploads" : {},
     "Version" : {
       "localizations" : {
@@ -7867,6 +8668,53 @@
     },
     "Video" : {},
     "Video Widget" : {},
+    "Waiting for the App Store…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warte auf den App Store…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esperando a la App Store…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En attente de l'App Store…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Storeを待っています…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aguardando a App Store…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ждём App Store…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待 App Store…"
+          }
+        }
+      }
+    },
     "Waiting for you to drag it out…" : {},
     "WallPics" : {},
     "WallPics Pro" : {
@@ -7959,98 +8807,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加更多宠物需要 WallPics Pro。"
-          }
-        }
-      }
-    },
-    "WallPics Pro is required to make your own pet." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Für ein eigenes Haustier ist WallPics Pro erforderlich."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se necesita WallPics Pro para crear tu propia mascota."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro est nécessaire pour créer votre propre animal."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "オリジナルのペットを作るには WallPics Pro が必要です。"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O WallPics Pro é necessário para criar seu próprio pet."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Чтобы создать своего питомца, нужен WallPics Pro."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "制作自己的宠物需要 WallPics Pro。"
-          }
-        }
-      }
-    },
-    "WallPics Pro unlocks custom pets" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro schaltet eigene Haustiere frei"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro desbloquea mascotas personalizadas"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro débloque les animaux personnalisés"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro でオリジナルのペットが作れます"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "O WallPics Pro libera pets personalizados"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro открывает своих питомцев"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "WallPics Pro 解锁自定义宠物"
           }
         }
       }
@@ -8844,6 +9600,100 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的宠物"
+          }
+        }
+      }
+    },
+    "Your purchase is waiting for approval. Send your photos again once it goes through." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Kauf wartet auf Freigabe. Sende deine Fotos erneut, sobald er bestätigt ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu compra está pendiente de aprobación. Vuelve a enviar tus fotos cuando se complete."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre achat attend une approbation. Renvoyez vos photos une fois qu'il est validé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入は承認待ちです。承認されたら、もう一度写真を送ってください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua compra está aguardando aprovação. Envie suas fotos de novo quando ela for concluída."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покупка ждёт подтверждения. Отправьте фото ещё раз, когда она пройдёт."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的购买正在等待批准。批准后请重新发送照片。"
+          }
+        }
+      }
+    },
+    "Your purchase went through but couldn't be saved. Quit and reopen WallPics to get it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Kauf war erfolgreich, konnte aber nicht gespeichert werden. Beende WallPics und öffne es erneut, um ihn zu erhalten."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu compra se realizó, pero no se pudo guardar. Cierra y vuelve a abrir WallPics para recibirla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre achat a abouti mais n'a pas pu être enregistré. Quittez puis rouvrez WallPics pour le récupérer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入は完了しましたが、保存できませんでした。WallPicsを終了して再度開くと反映されます。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sua compra foi concluída, mas não pôde ser salva. Feche e abra o WallPics de novo para recebê-la."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покупка прошла, но не сохранилась. Закройте и снова откройте WallPics, чтобы получить её."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "购买已完成，但未能保存。请退出并重新打开 WallPics 以领取。"
           }
         }
       }

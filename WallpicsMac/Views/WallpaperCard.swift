@@ -86,7 +86,15 @@ struct WallpaperCard: View {
                 BadgePill(role: .status) { Text(verbatim: "NEW") }
             }
             if wallpaper.isPremiumContent {
-                BadgePill(role: .status) { Text(verbatim: "PRO") }
+                BadgePill(role: .status) {
+                    HStack(spacing: 3) {
+                        if !StoreKitService.shared.state.isPro {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 7, weight: .bold))
+                        }
+                        Text(verbatim: "PRO")
+                    }
+                }
             }
         }
     }

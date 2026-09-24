@@ -17,6 +17,7 @@ final class AppEnvironment {
     var selectedSection: Section = .browse
     var selectedWallpaper: Wallpaper?
     var detailWallpaper: Wallpaper?
+    var detailList: [Wallpaper]?
     var widgetEditRequestID: UUID?
 
     // Sheet presentation flags. Driven from anywhere via AppEnvironment.shared.
@@ -53,4 +54,14 @@ final class AppEnvironment {
     }
 
     private init() {}
+
+    func showDetail(_ wallpaper: Wallpaper, in list: [Wallpaper]? = nil) {
+        detailList = list
+        detailWallpaper = wallpaper
+    }
+
+    func hideDetail() {
+        detailWallpaper = nil
+        detailList = nil
+    }
 }

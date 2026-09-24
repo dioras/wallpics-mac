@@ -21,8 +21,8 @@ struct ContentView: View {
         }
         .overlay {
             if let wallpaper = env.detailWallpaper {
-                DetailOverlay(wallpaper: wallpaper, list: browseModel.filteredWallpapers) {
-                    withAnimation(Motion.transition) { env.detailWallpaper = nil }
+                DetailOverlay(wallpaper: wallpaper, list: env.detailList ?? browseModel.filteredWallpapers) {
+                    withAnimation(Motion.transition) { env.hideDetail() }
                 } onShow: { next in
                     env.detailWallpaper = next
                 }
@@ -31,6 +31,10 @@ struct ContentView: View {
             }
         }
         .animation(Motion.transition, value: env.detailWallpaper?.id)
+        .onChange(of: env.selectedSection) { _, _ in
+            guard env.detailWallpaper != nil else { return }
+            withAnimation(Motion.transition) { env.hideDetail() }
+        }
         .onChange(of: browseModel.query) { _, newValue in
             if !newValue.isEmpty && env.selectedSection != .browse {
                 env.selectedSection = .browse
@@ -266,6 +270,7 @@ private struct PaywallModal: View {
 
     private static let cardWidth: CGFloat = 560
     private static let margin: CGFloat = 32
+    private static let maxCardHeight: CGFloat = 860
 
     var body: some View {
         GeometryReader { geo in
@@ -277,10 +282,11 @@ private struct PaywallModal: View {
                         .onTapGesture(perform: close)
                         .transition(.opacity)
 
-                    PaywallScreen(onDone: close, onSkip: close, animatesIn: false, compact: true)
+                    PaywallScreen(onDone: close, onSkip: close, animatesIn: false, compact: true,
+                                  onOpenDIY: openDIY)
                         .environment(StoreKitService.shared)
                         .frame(width: min(Self.cardWidth, geo.size.width - Self.margin * 2))
-                        .frame(maxHeight: geo.size.height - Self.margin * 2)
+                        .frame(height: min(Self.maxCardHeight, geo.size.height - Self.margin * 2))
                         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.hero, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: Theme.Radius.hero, style: .continuous)
@@ -304,5 +310,10 @@ private struct PaywallModal: View {
 
     private func close() {
         isPresented = false
+    }
+
+    private func openDIY() {
+        close()
+        AppEnvironment.shared.selectedSection = .diy
     }
 }

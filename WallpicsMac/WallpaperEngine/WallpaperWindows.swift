@@ -43,12 +43,14 @@ final class GIFWallpaperWindow: NSWindow, WallpaperWindowControl {
 
     private func setupGIF(url: URL, frame: NSRect) {
         guard let image = NSImage(contentsOf: url) else { return }
-        let imageView = NSImageView(frame: frame)
+        let bounds = NSRect(origin: .zero, size: frame.size)
+        let imageView = NSImageView(frame: bounds)
+        imageView.autoresizingMask = [.width, .height]
         imageView.imageScaling = .scaleAxesIndependently
         imageView.animates = true
         imageView.image = image
 
-        let container = NSView(frame: frame)
+        let container = NSView(frame: bounds)
         container.wantsLayer = true
         container.layer?.masksToBounds = true
         container.addSubview(imageView)
@@ -80,20 +82,22 @@ final class VideoWallpaperWindow: NSWindow, WallpaperWindowControl {
     }
 
     private func setupPlayer(url: URL, frame: NSRect) {
+        let bounds = NSRect(origin: .zero, size: frame.size)
         let layer = AVPlayerLayer()
-        layer.frame = frame
+        layer.frame = bounds
         layer.videoGravity = .resizeAspectFill
         layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
 
         let item = AVPlayerItem(url: url)
         let player = AVQueuePlayer()
         player.isMuted = true
+        player.preventsDisplaySleepDuringVideoPlayback = false
         player.actionAtItemEnd = .advance
         looper = AVPlayerLooper(player: player, templateItem: item)
         layer.player = player
         self.player = player
 
-        let container = NSView(frame: frame)
+        let container = NSView(frame: bounds)
         container.wantsLayer = true
         container.autoresizingMask = [.width, .height]
         container.layer?.addSublayer(layer)
@@ -118,6 +122,7 @@ final class VideoWallpaperWindow: NSWindow, WallpaperWindowControl {
 
 final class ShaderWallpaperWindow: NSWindow, WallpaperWindowControl {
     private var renderer: ShaderRenderer?
+    private weak var mtkView: MTKView?
 
     init(screen: NSScreen, shaderURL: URL) {
         let frame = screen.frame
@@ -140,11 +145,23 @@ final class ShaderWallpaperWindow: NSWindow, WallpaperWindowControl {
         self.renderer = renderer
         view.delegate = renderer
         self.contentView = view
+        mtkView = view
     }
 
-    func pause() { renderer?.pause() }
-    func resume() { renderer?.resume() }
-    func stop() { renderer = nil }
+    func pause() {
+        renderer?.pause()
+        mtkView?.isPaused = true
+    }
+
+    func resume() {
+        renderer?.resume()
+        mtkView?.isPaused = false
+    }
+
+    func stop() {
+        mtkView?.isPaused = true
+        renderer = nil
+    }
 }
 
 // MARK: - Animation (Rive)
@@ -189,7 +206,11 @@ final class AnimationWallpaperWindow: NSWindow, WallpaperWindowControl {
 
     func pause() { viewModel?.pause() }
     func resume() { viewModel?.play(loop: RiveLoop.loop) }
-    func stop() { viewModel?.stop(); viewModel = nil }
+    func stop() {
+        viewModel?.pause()
+        contentView = nil
+        viewModel = nil
+    }
 }
 
 // MARK: - Shader renderer
@@ -248,11 +269,13 @@ final class ShaderRenderer: NSObject, MTKViewDelegate {
     }
 
     func pause() {
+        guard !isPaused else { return }
         pausedElapsed = Float(Date().timeIntervalSince(startTime).truncatingRemainder(dividingBy: 300))
         isPaused = true
     }
 
     func resume() {
+        guard isPaused else { return }
         isPaused = false
         startTime = Date().addingTimeInterval(-Double(pausedElapsed))
     }

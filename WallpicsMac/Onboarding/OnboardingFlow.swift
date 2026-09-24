@@ -218,8 +218,9 @@ private struct PickStep: View {
                         }
                     }
                 }
-                .padding(.vertical, Theme.Space.s)
+                .padding(Theme.Space.m)
             }
+            .padding(.horizontal, -Theme.Space.m)
             .frame(maxHeight: .infinity)
 
             Button("Continue", action: onContinue)

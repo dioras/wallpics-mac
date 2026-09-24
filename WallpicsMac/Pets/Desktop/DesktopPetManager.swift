@@ -76,7 +76,8 @@ final class DesktopPetManager {
             stop()
             return
         }
-        guard !PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state) else {
+        guard !PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state,
+                                        ownedIDs: PetSubmissionStore.shared.unlockedPetIDs) else {
             stop()
             loadFailure = String(localized: "WallPics Pro is required for this pet")
             Log.app.notice("DesktopPetManager: \(species.slug, privacy: .public) not started, subscription lapsed")
@@ -240,7 +241,8 @@ final class DesktopPetManager {
                 guard let self else { return }
                 if let placement = PetStore.shared.placement,
                    let species = PetCatalog.species(slug: placement.speciesSlug),
-                   PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state) {
+                   PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state,
+                                             ownedIDs: PetSubmissionStore.shared.unlockedPetIDs) {
                     self.start()
                     return
                 }
@@ -254,10 +256,18 @@ final class DesktopPetManager {
     }
 
     @objc private func handleTick() {
-        guard isRunning, !isPaused,
-              let placement = PetStore.shared.placement,
-              let species = PetCatalog.species(slug: placement.speciesSlug) else { return }
-        if PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state) {
+        guard isRunning, !isPaused else { return }
+        guard let placement = PetStore.shared.placement else {
+            stop()
+            return
+        }
+        guard let species = PetCatalog.species(slug: placement.speciesSlug) else {
+            lastCursor = NSEvent.mouseLocation
+            enterIdle()
+            return
+        }
+        if PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state,
+                                     ownedIDs: PetSubmissionStore.shared.unlockedPetIDs) {
             start()
             return
         }
