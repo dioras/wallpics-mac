@@ -5,22 +5,27 @@ import Foundation
 final class PoseSequence: @unchecked Sendable {
     let samples: [CMSampleBuffer]
     let pixelSize: CGSize
+    let frameRate: Double
 
     private static var cache: [String: PoseSequence] = [:]
     private static var cacheOrder: [String] = []
     private static var inflight: [String: Task<PoseSequence, Error>] = [:]
     private static let cacheLock = NSLock()
-    private static let cacheLimit = 2
+    private static let cacheLimit = 4
 
-    private init(samples: [CMSampleBuffer], pixelSize: CGSize) {
+    private init(samples: [CMSampleBuffer], pixelSize: CGSize, frameRate: Double) {
         self.samples = samples
         self.pixelSize = pixelSize
+        self.frameRate = frameRate
     }
 
     var count: Int { samples.count }
 
     static func load(url: URL) async throws -> PoseSequence {
-        let key = url.path
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+        let stamp = (attributes?[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+        let size = (attributes?[.size] as? Int) ?? 0
+        let key = "\(url.path)#\(stamp)#\(size)"
         cacheLock.lock()
         if let hit = cache[key] {
             cacheOrder.removeAll { $0 == key }
@@ -62,6 +67,7 @@ final class PoseSequence: @unchecked Sendable {
             throw PetError.noVideoTrack(url)
         }
         let size = try await track.load(.naturalSize)
+        let rate = Double(try await track.load(.nominalFrameRate))
         let reader = try AVAssetReader(asset: asset)
         let output = AVAssetReaderTrackOutput(track: track, outputSettings: nil)
         guard reader.canAdd(output) else { throw PetError.readerSetupFailed(url) }
@@ -76,7 +82,7 @@ final class PoseSequence: @unchecked Sendable {
         }
         guard reader.status != .failed else { throw PetError.readFailed(url, reader.error) }
         guard !samples.isEmpty else { throw PetError.emptySequence(url) }
-        return PoseSequence(samples: samples, pixelSize: size)
+        return PoseSequence(samples: samples, pixelSize: size, frameRate: rate > 0 ? rate : 24)
     }
 
     func displayBuffer(at index: Int, presentedAt time: CMTime) -> CMSampleBuffer? {

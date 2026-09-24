@@ -7,6 +7,8 @@ struct GazeTarget: Equatable {
     var upperHalf: Bool
     var horizontal: Double = 0
     var holdsMirror: Bool = false
+    var wantsCenter: Bool = false
+    var angle: Double? = nil
 }
 
 struct GazeMap {
@@ -27,10 +29,13 @@ struct GazeMap {
     }
 
     private func bucket(forAngle radians: Double) -> Int {
-        let buckets = Double(angleTable.count)
+        Self.bucket(forAngle: radians, count: angleTable.count)
+    }
+
+    static func bucket(forAngle radians: Double, count: Int) -> Int {
         let normalized = (radians + .pi) / (2 * .pi)
         let wrapped = normalized - floor(normalized)
-        return min(angleTable.count - 1, max(0, Int(wrapped * buckets)))
+        return min(count - 1, max(0, Int(wrapped * Double(count))))
     }
 
     func target(forAngle radians: Double) -> GazeTarget {
@@ -42,12 +47,24 @@ struct GazeMap {
             pose: min(max(angleTable[index], 0), max(poseCount - 1, 0)),
             mirrored: index < mirrorTable.count ? mirrorTable[index] : false,
             upperHalf: sin(radians) >= 0,
-            horizontal: cos(radians)
+            horizontal: cos(radians),
+            angle: radians
         )
     }
 
+    static func pose(forAngle radians: Double, table: [Int]) -> Int? {
+        guard !table.isEmpty else { return nil }
+        return table[bucket(forAngle: radians, count: table.count)]
+    }
+
+    static func faceZone(petRect: CGRect, faceCenter: CGPoint, subjectHeight: CGFloat) -> (center: CGPoint, radius: CGFloat) {
+        let center = CGPoint(x: petRect.minX + faceCenter.x * petRect.width,
+                             y: petRect.maxY - faceCenter.y * petRect.height)
+        return (center, petRect.height * subjectHeight * 0.3)
+    }
+
     func target(cursor: CGPoint?, petRect: CGRect, faceCenter: CGPoint, deadZone: CGFloat) -> GazeTarget {
-        let neutral = GazeTarget(pose: neutralPose, mirrored: false, upperHalf: true, holdsMirror: true)
+        let neutral = GazeTarget(pose: neutralPose, mirrored: false, upperHalf: true, holdsMirror: true, wantsCenter: true)
         guard let cursor, petRect.width > 0, petRect.height > 0 else { return neutral }
         let face = CGPoint(
             x: petRect.minX + faceCenter.x * petRect.width,
@@ -338,5 +355,244 @@ struct PetPlayhead {
             return min(max(raw, 0), Double(max(upperBound, 0)))
         }
         return raw - floor(raw / count) * count
+    }
+}
+
+struct PetFrame: Equatable {
+    enum Source: Equatable {
+        case main, side, petting
+    }
+
+    var source: Source
+    var index: Int
+}
+
+struct PettingStroke {
+    static let slack: CGFloat = 1.6
+    let threshold: CGFloat
+    private var last: CGPoint
+    private(set) var travelled: CGFloat = 0
+
+    init(at point: CGPoint, threshold: CGFloat) {
+        last = point
+        self.threshold = threshold
+    }
+
+    mutating func move(to point: CGPoint) -> Bool {
+        travelled += hypot(point.x - last.x, point.y - last.y)
+        last = point
+        return travelled >= threshold
+    }
+}
+
+struct PetTransitionDriver {
+    enum Stage: Equatable {
+        case loop
+        case track(Int)
+        case petting
+    }
+
+    let clips: [PetReturnClip]
+    let pettingFrameCount: Int
+    let pettingFrameRate: Double
+    private let poseAngles: [Double?]
+    private let loop: ClosedRange<Int>
+    private let seam: ClosedRange<Int>?
+    private let upperBound: Int
+    private let home: Int
+    private(set) var stage: Stage
+    private(set) var playhead: PetPlayhead
+    private var track: PetPlayhead
+    private var lastTrack: Int
+    private var pettingPosition: Double = 0
+    private(set) var pettingRequested = false
+
+    private static let maxTrackSpeedup: Double = 3
+
+    init?(clips: [PetReturnClip], poseAngles: [Double?], loop: ClosedRange<Int>, seam: ClosedRange<Int>?,
+          upperBound: Int, pettingFrameCount: Int = 0, pettingFrameRate: Double = 24) {
+        let usable = clips.filter { loop.contains($0.pivot) && $0.frames.count > 1 }
+        guard !usable.isEmpty, loop.lowerBound >= 0, loop.upperBound <= upperBound else { return nil }
+        self.clips = usable
+        self.poseAngles = poseAngles
+        self.loop = loop
+        self.seam = seam
+        self.upperBound = upperBound
+        self.pettingFrameCount = max(pettingFrameCount, 0)
+        self.pettingFrameRate = pettingFrameRate > 0 ? pettingFrameRate : 24
+        home = usable.firstIndex { $0.direction == .up } ?? 0
+        lastTrack = home
+        stage = .track(home)
+        track = PetPlayhead(pose: usable[home].frames.count - 1)
+        var head = PetPlayhead(pose: usable[home].pivot)
+        head.poseAngles = poseAngles
+        playhead = head
+    }
+
+    var canPet: Bool { pettingFrameCount > 1 }
+
+    var isCentered: Bool {
+        guard case .track(let i) = stage else { return false }
+        return track.value >= centerPosition(i) - 0.5
+    }
+
+    var frame: PetFrame {
+        switch stage {
+        case .loop:
+            return PetFrame(source: .main, index: playhead.poseIndex % (upperBound + 1))
+        case .track(let i):
+            let clip = clips[i]
+            let offset = min(max(track.poseIndex, 0), clip.frames.count - 1)
+            return PetFrame(source: .side, index: clip.frames.lowerBound + offset)
+        case .petting:
+            return PetFrame(source: .petting, index: min(max(Int(pettingPosition), 0), pettingFrameCount - 1))
+        }
+    }
+
+    mutating func adopt(_ legacy: PetPlayhead) {
+        guard loop.contains(legacy.poseIndex) else { return }
+        var head = legacy
+        head.poseAngles = poseAngles
+        playhead = head
+        stage = .loop
+    }
+
+    mutating func center() {
+        pettingRequested = false
+        enterTrack(home, at: centerPosition(home))
+    }
+
+    @discardableResult
+    mutating func requestPetting() -> Bool {
+        guard canPet, stage != .petting, !pettingRequested else { return false }
+        pettingRequested = true
+        return true
+    }
+
+    mutating func step(dt: Double, target: GazeTarget, sensitivity: PetSensitivity, gazeSpan: Int) -> Bool {
+        playhead.apply(sensitivity: sensitivity, gazeSpan: gazeSpan)
+        switch stage {
+        case .petting:
+            pettingPosition += dt * pettingFrameRate
+            if pettingPosition >= Double(pettingFrameCount) {
+                pettingRequested = false
+                enterTrack(lastTrack, at: centerPosition(lastTrack))
+            }
+            return true
+        case .loop:
+            guard target.wantsCenter || pettingRequested else {
+                stepLoop(dt: dt, target: target.pose)
+                return playhead.poseIndex != target.pose && !playhead.isHolding
+            }
+            let i = nearestClip(toPose: playhead.poseIndex)
+            if arrived(atPivotOf: i) {
+                enterTrack(i, at: 0)
+                return true
+            }
+            stepLoop(dt: dt, target: clips[i].pivot)
+            return true
+        case .track:
+            return stepTrack(dt: dt, target: target, sensitivity: sensitivity, gazeSpan: gazeSpan)
+        }
+    }
+
+    private mutating func stepTrack(dt: Double, target: GazeTarget, sensitivity: PetSensitivity, gazeSpan: Int) -> Bool {
+        guard case .track(let i) = stage else { return false }
+        let end = centerPosition(i)
+        if target.wantsCenter || pettingRequested {
+            if track.value >= end - 0.5 {
+                track.value = end
+                guard pettingRequested else { return false }
+                lastTrack = i
+                pettingPosition = 0
+                stage = .petting
+                return true
+            }
+            advanceTrack(i, dt: dt, goal: Int(end), sensitivity: sensitivity, gazeSpan: gazeSpan)
+            return true
+        }
+        let best = bestClip(for: target)
+        if best != i, track.value >= end - 0.5 {
+            enterTrack(best, at: centerPosition(best))
+            return true
+        }
+        let goal = best == i || track.value < end / 2 ? 0 : Int(end)
+        if goal == 0, track.value <= 0.5 {
+            lastTrack = i
+            var head = PetPlayhead(pose: clips[i].pivot)
+            head.poseAngles = poseAngles
+            head.apply(sensitivity: sensitivity, gazeSpan: gazeSpan)
+            playhead = head
+            stage = .loop
+            stepLoop(dt: dt, target: target.pose)
+            return true
+        }
+        advanceTrack(i, dt: dt, goal: goal, sensitivity: sensitivity, gazeSpan: gazeSpan)
+        return true
+    }
+
+    private mutating func advanceTrack(_ i: Int, dt: Double, goal: Int, sensitivity: PetSensitivity, gazeSpan: Int) {
+        track.apply(sensitivity: sensitivity, gazeSpan: gazeSpan)
+        let quarterTurn = max(Double(loop.count) / 4, 1)
+        let speedup = min(max(centerPosition(i) / quarterTurn, 1), Self.maxTrackSpeedup)
+        track.maxPosesPerSecond *= speedup
+        track.step(dt: dt, target: goal, upperBound: clips[i].frames.count - 1)
+    }
+
+    private mutating func stepLoop(dt: Double, target: Int) {
+        playhead.step(dt: dt, target: target, upperBound: upperBound, wraps: true, chord: loop, seam: seam)
+    }
+
+    private mutating func enterTrack(_ i: Int, at position: Double) {
+        stage = .track(i)
+        track = PetPlayhead(pose: Int(position.rounded()))
+    }
+
+    private func centerPosition(_ i: Int) -> Double {
+        Double(clips[i].frames.count - 1)
+    }
+
+    private func arrived(atPivotOf i: Int) -> Bool {
+        let pivot = clips[i].pivot
+        if abs(playhead.value - Double(pivot)) <= 1 { return true }
+        guard pivot == loop.lowerBound || pivot == loop.upperBound else { return false }
+        return abs(playhead.value - Double(loop.lowerBound)) <= 1 || abs(playhead.value - Double(loop.upperBound)) <= 1
+    }
+
+    private func angle(ofPose pose: Int) -> Double? {
+        guard pose >= 0, pose < poseAngles.count else { return nil }
+        return poseAngles[pose]
+    }
+
+    private func clipAngle(_ i: Int) -> Double {
+        angle(ofPose: clips[i].pivot) ?? clips[i].direction.angle
+    }
+
+    private func closestClip(toAngle angle: Double) -> Int {
+        var best = 0
+        var bestDistance = Double.infinity
+        for i in clips.indices {
+            let a = clipAngle(i)
+            let distance = abs(atan2(sin(angle - a), cos(angle - a)))
+            if distance < bestDistance {
+                bestDistance = distance
+                best = i
+            }
+        }
+        return best
+    }
+
+    private func closestClip(toFrame pose: Int) -> Int {
+        clips.indices.min { abs(clips[$0].pivot - pose) < abs(clips[$1].pivot - pose) } ?? 0
+    }
+
+    private func nearestClip(toPose pose: Int) -> Int {
+        if let a = angle(ofPose: pose) { return closestClip(toAngle: a) }
+        return closestClip(toFrame: pose)
+    }
+
+    private func bestClip(for target: GazeTarget) -> Int {
+        if let a = target.angle ?? angle(ofPose: target.pose) { return closestClip(toAngle: a) }
+        return closestClip(toFrame: target.pose)
     }
 }

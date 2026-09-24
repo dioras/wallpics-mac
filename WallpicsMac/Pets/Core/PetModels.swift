@@ -21,6 +21,7 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
     var summary: String? = nil
     let mediaURL: URL
     let posterURL: URL
+    var transitions: PetTransitions? = nil
 
     var id: String { slug }
 
@@ -42,6 +43,32 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
     var aspectRatio: CGFloat {
         pixelHeight > 0 ? CGFloat(pixelWidth) / CGFloat(pixelHeight) : 1
     }
+}
+
+enum PetTurnDirection: String, CaseIterable, Sendable {
+    case up, right, down, left
+
+    var angle: Double {
+        switch self {
+        case .right: return 0
+        case .up: return .pi / 2
+        case .left: return .pi
+        case .down: return -.pi / 2
+        }
+    }
+}
+
+struct PetReturnClip: Hashable, Sendable {
+    let direction: PetTurnDirection
+    let pivot: Int
+    let frames: ClosedRange<Int>
+}
+
+struct PetTransitions: Hashable, Sendable {
+    let clips: [PetReturnClip]
+    let sideRemoteURL: URL
+    let pettingRemoteURL: URL?
+    let cacheDirectory: URL
 }
 
 enum PetSize: String, Codable, CaseIterable, Identifiable, Sendable {

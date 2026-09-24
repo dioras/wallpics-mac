@@ -31,9 +31,12 @@ final class DesktopPetManager {
     @ObservationIgnored private var lastCursor: CGPoint = .zero
     @ObservationIgnored private var settledSince: CFTimeInterval = 0
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
+    @ObservationIgnored private var pettingMonitors: [Any] = []
+    @ObservationIgnored private var stroke: (display: CGDirectDisplayID, gesture: PettingStroke)?
 
     private let idleGracePeriod: CFTimeInterval = 5.5
     private static let maxSubjectScreenFraction: CGFloat = 0.8
+    private static let strokeLength: CGFloat = 40
 
     private init() {
         let center = NotificationCenter.default
@@ -55,7 +58,13 @@ final class DesktopPetManager {
             MainActor.assumeIsolated {
                 self?.setPaused(false, reason: .screenSleep)
                 self?.reassertWindows()
+                self?.renderers.values.forEach { $0.retryTransitionsIfNeeded() }
             }
+        })
+        observers.append(center.addObserver(
+            forName: RemotePetService.didUpdate, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.catalogDidUpdate() }
         })
         observers.append(DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main
@@ -86,12 +95,14 @@ final class DesktopPetManager {
         isRunning = true
         loadFailure = nil
         rebuildWindows(species: species, placement: placement)
+        installPettingMonitors()
         resumeTicking()
     }
 
     func stop() {
         isRunning = false
         stopTicking()
+        removePettingMonitors()
         for window in windows.values {
             window.petView.detach()
             window.close()
@@ -103,6 +114,16 @@ final class DesktopPetManager {
     func refresh() {
         guard isRunning else { return }
         start()
+    }
+
+    private func catalogDidUpdate() {
+        guard isRunning, let placement = PetStore.shared.placement,
+              let species = PetCatalog.species(slug: placement.speciesSlug) else { return }
+        if renderers.values.contains(where: { $0.species != species }) {
+            start()
+        } else {
+            renderers.values.forEach { $0.retryTransitionsIfNeeded() }
+        }
     }
 
     func setPaused(_ paused: Bool, reason: PauseReason) {
@@ -253,6 +274,98 @@ final class DesktopPetManager {
         }
         RunLoop.main.add(timer, forMode: .common)
         idleTimer = timer
+    }
+
+    private func installPettingMonitors() {
+        guard pettingMonitors.isEmpty else { return }
+        let mask: NSEvent.EventTypeMask = [.leftMouseDown, .leftMouseDragged, .leftMouseUp]
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: { [weak self] event in
+            let type = event.type
+            MainActor.assumeIsolated { self?.handlePetting(type) }
+        }) {
+            pettingMonitors.append(global)
+        }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in
+            let type = event.type
+            MainActor.assumeIsolated { self?.handlePetting(type) }
+            return event
+        }) {
+            pettingMonitors.append(local)
+        }
+    }
+
+    private func removePettingMonitors() {
+        pettingMonitors.forEach(NSEvent.removeMonitor)
+        pettingMonitors.removeAll()
+        stroke = nil
+    }
+
+    private func handlePetting(_ type: NSEvent.EventType) {
+        guard isRunning, !isPaused, let placement = PetStore.shared.placement,
+              let species = PetCatalog.species(slug: placement.speciesSlug) else {
+            stroke = nil
+            return
+        }
+        let point = NSEvent.mouseLocation
+        switch type {
+        case .leftMouseDown:
+            stroke = nil
+            for (id, window) in windows {
+                guard let renderer = renderers[id], renderer.canPet,
+                      let screen = window.screen ?? NSScreen.screens.first(where: { $0.displayID == id }),
+                      screen.frame.contains(point) else { continue }
+                let zone = GazeMap.faceZone(petRect: globalRect(species: species, placement: placement, screen: screen),
+                                            faceCenter: species.faceCenter, subjectHeight: species.subjectHeight)
+                guard hypot(point.x - zone.center.x, point.y - zone.center.y) <= zone.radius,
+                      Self.desktopIsExposed(at: point) else { continue }
+                stroke = (id, PettingStroke(at: point, threshold: Self.strokeLength))
+                return
+            }
+        case .leftMouseDragged:
+            guard var current = stroke, let window = windows[current.display],
+                  let screen = window.screen ?? NSScreen.screens.first(where: { $0.displayID == current.display }) else {
+                stroke = nil
+                return
+            }
+            let zone = GazeMap.faceZone(petRect: globalRect(species: species, placement: placement, screen: screen),
+                                        faceCenter: species.faceCenter, subjectHeight: species.subjectHeight)
+            guard hypot(point.x - zone.center.x, point.y - zone.center.y) <= zone.radius * PettingStroke.slack else {
+                stroke = nil
+                return
+            }
+            if current.gesture.move(to: point) {
+                stroke = nil
+                if renderers[current.display]?.pet() == true {
+                    resumeTicking()
+                }
+            } else {
+                stroke = current
+            }
+        default:
+            stroke = nil
+        }
+    }
+
+    private static func desktopIsExposed(at point: CGPoint) -> Bool {
+        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
+                                                       kCGNullWindowID) as? [[String: Any]] else { return true }
+        let top = NSScreen.screens.first?.frame.maxY ?? 0
+        let flipped = CGPoint(x: point.x, y: top - point.y)
+        let overlays = Int(CGWindowLevelForKey(.dockWindow))
+        let displays = NSScreen.screens.map {
+            CGRect(x: $0.frame.minX, y: top - $0.frame.maxY, width: $0.frame.width, height: $0.frame.height)
+        }
+        for info in windows {
+            let layer = info[kCGWindowLayer as String] as? Int ?? 0
+            guard layer >= 0, layer <= overlays else { continue }
+            if let alpha = info[kCGWindowAlpha as String] as? Double, alpha < 0.05 { continue }
+            guard let bounds = info[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary) else { continue }
+            if layer == overlays,
+               displays.contains(where: { rect.insetBy(dx: -2, dy: -2).contains($0.insetBy(dx: 2, dy: 2)) }) { continue }
+            if rect.contains(flipped) { return false }
+        }
+        return true
     }
 
     @objc private func handleTick() {

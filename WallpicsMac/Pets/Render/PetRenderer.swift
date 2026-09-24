@@ -6,20 +6,28 @@ import CoreMedia
 final class PetRenderer {
     let species: PetSpecies
     let layer = AVSampleBufferDisplayLayer()
+    let allowsTransitions: Bool
+    let transitionDelay: Double
 
     private let map: GazeMap
     private var playhead: PetPlayhead
     private let chord: ClosedRange<Int>?
     private static let apexSine = 0.85
     private static let restAfter: Double = 4
+    private static let centerZoneBonus: CGFloat = 0.06
     private var heldTarget: GazeTarget?
     private var stillFor: Double = 0
     private var lastCursor: CGPoint?
     private(set) var isResting = true
     private var sequence: PoseSequence?
-    private var lastEnqueuedPose = -1
+    private var sideSequence: PoseSequence?
+    private var pettingSequence: PoseSequence?
+    private var driver: PetTransitionDriver?
+    private var pendingDriver: PetTransitionDriver?
+    private var lastFrame: PetFrame?
     private var clock = CMTime.zero
     private var loadTask: Task<Void, Never>?
+    private var transitionTask: Task<Void, Never>?
     private var droppedFrames = 0
 
     private(set) var isLoaded = false
@@ -29,8 +37,13 @@ final class PetRenderer {
     private(set) var loadFailure: String?
     var onLoadFailure: ((String?) -> Void)?
 
-    init(species: PetSpecies) {
+    var canPet: Bool { driver?.canPet ?? false }
+    private static let transitionRetryDelays: [Double] = [0, 20, 90, 300]
+
+    init(species: PetSpecies, allowsTransitions: Bool = true, transitionDelay: Double = 0) {
         self.species = species
+        self.allowsTransitions = allowsTransitions
+        self.transitionDelay = transitionDelay
         map = GazeMap(species: species)
         playhead = PetPlayhead(pose: species.neutralPose)
         var angles: [Double?] = []
@@ -48,6 +61,7 @@ final class PetRenderer {
 
     deinit {
         loadTask?.cancel()
+        transitionTask?.cancel()
     }
 
     static func apexChord(loop: ClosedRange<Int>?, table: [Int], poseCount: Int) -> ClosedRange<Int>? {
@@ -78,6 +92,7 @@ final class PetRenderer {
                 self.loadFailure = nil
                 self.onLoadFailure?(nil)
                 self.enqueue(pose: min(self.species.neutralPose, loaded.count - 1))
+                self.loadTransitions(main: loaded)
             } catch {
                 Log.app.error("PetRenderer: \(error.localizedDescription, privacy: .public)")
                 guard let self else { return }
@@ -88,25 +103,125 @@ final class PetRenderer {
         }
     }
 
+    private func loadTransitions(main: PoseSequence) {
+        guard allowsTransitions, transitionTask == nil, species.wrapsAround,
+              let transitions = species.transitions, let loop = species.gazeLoop else { return }
+        let lastPose = main.count - 1
+        let clampedLoop = min(loop.lowerBound, lastPose)...min(loop.upperBound, lastPose)
+        let seam = chord.map { min($0.lowerBound, lastPose)...min($0.upperBound, lastPose) }
+        let angles = playhead.poseAngles
+        let slug = species.slug
+        let delay = transitionDelay
+        transitionTask = Task { [weak self] in
+            if delay > 0 {
+                try? await Task.sleep(for: .seconds(delay))
+                guard !Task.isCancelled else { return }
+            }
+            var fetched: (side: URL, petting: URL?)?
+            for delay in Self.transitionRetryDelays where fetched == nil {
+                if delay > 0 {
+                    Log.app.notice("PetRenderer: \(slug, privacy: .public) side clips unavailable, retrying in \(Int(delay))s")
+                    try? await Task.sleep(for: .seconds(delay))
+                }
+                guard !Task.isCancelled else { return }
+                fetched = await RemotePetService.shared.transitionMedia(for: transitions)
+            }
+            guard !Task.isCancelled else { return }
+            guard let media = fetched else {
+                Log.app.error("PetRenderer: \(slug, privacy: .public) side clips still unavailable, classic return until the next retry")
+                self?.transitionTask = nil
+                return
+            }
+            do {
+                let side = try await PoseSequence.load(url: media.side)
+                var petting: PoseSequence?
+                if let url = media.petting {
+                    do {
+                        petting = try await PoseSequence.load(url: url)
+                    } catch {
+                        Log.app.error("PetRenderer: \(slug, privacy: .public) petting clip failed — \(error.localizedDescription, privacy: .public)")
+                    }
+                }
+                guard let self, !Task.isCancelled else { return }
+                guard side.pixelSize == main.pixelSize else {
+                    Log.app.error("PetRenderer: \(slug, privacy: .public) side clips are \(side.pixelSize.debugDescription, privacy: .public), main is \(main.pixelSize.debugDescription, privacy: .public); keeping the classic return")
+                    return
+                }
+                if let clip = petting, clip.pixelSize != main.pixelSize {
+                    Log.app.error("PetRenderer: \(slug, privacy: .public) petting clip size differs from the main clip, petting off")
+                    petting = nil
+                }
+                let clips = transitions.clips.filter { $0.frames.upperBound < side.count }
+                guard let next = PetTransitionDriver(clips: clips, poseAngles: angles, loop: clampedLoop, seam: seam,
+                                                     upperBound: lastPose,
+                                                     pettingFrameCount: petting?.count ?? 0,
+                                                     pettingFrameRate: petting?.frameRate ?? 24) else {
+                    Log.app.error("PetRenderer: \(slug, privacy: .public) side clip data unusable (\(transitions.clips.count) clips, \(side.count) frames)")
+                    return
+                }
+                self.sideSequence = side
+                self.pettingSequence = petting
+                self.pendingDriver = next
+                Log.app.info("PetRenderer: \(slug, privacy: .public) returns via \(clips.count) side clips, petting \(petting == nil ? "off" : "on", privacy: .public)")
+            } catch {
+                Log.app.error("PetRenderer: \(slug, privacy: .public) side clips failed — \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    func retryTransitionsIfNeeded() {
+        guard driver == nil, pendingDriver == nil, transitionTask == nil, let sequence else { return }
+        loadTransitions(main: sequence)
+    }
+
     func snapToNeutral() {
+        let angles = playhead.poseAngles
         playhead = PetPlayhead(pose: species.neutralPose)
+        playhead.poseAngles = angles
         heldTarget = nil
         isResting = true
         stillFor = Self.restAfter
-        enqueue(pose: species.neutralPose)
+        if var driver {
+            driver.center()
+            self.driver = driver
+            enqueue(driver.frame)
+        } else {
+            enqueue(pose: species.neutralPose)
+        }
+    }
+
+    @discardableResult
+    func pet() -> Bool {
+        guard var driver, driver.requestPetting() else { return false }
+        self.driver = driver
+        return true
     }
 
     @discardableResult
     func tick(dt: Double, cursor: CGPoint?, petRect: CGRect,
               sensitivity: PetSensitivity = .normal) -> Bool {
         guard let sequence else { return false }
+        adoptPendingDriver()
+        let zone = sensitivity.deadZoneFraction + (driver == nil ? 0 : Self.centerZoneBonus)
         let raw = map.target(
             cursor: cursor,
             petRect: petRect,
             faceCenter: species.faceCenter,
-            deadZone: petRect.height * species.subjectHeight * sensitivity.deadZoneFraction
+            deadZone: petRect.height * species.subjectHeight * zone
         )
         let target = resolveTarget(raw: raw, cursor: cursor, dt: dt)
+
+        if var driver {
+            let moving = driver.step(dt: dt, target: target, sensitivity: isResting ? .calm : sensitivity,
+                                     gazeSpan: species.gazeSpan)
+            self.driver = driver
+            let frame = driver.frame
+            if frame != lastFrame {
+                enqueue(frame)
+            }
+            return moving
+        }
+
         playhead.apply(sensitivity: isResting ? .calm : sensitivity, gazeSpan: species.gazeSpan)
 
         let lastPose = sequence.count - 1
@@ -128,10 +243,22 @@ final class PetRenderer {
         let pose = species.wrapsAround
             ? playhead.poseIndex % sequence.count
             : min(playhead.poseIndex, lastPose)
-        if pose != lastEnqueuedPose {
+        if PetFrame(source: .main, index: pose) != lastFrame {
             enqueue(pose: pose)
         }
         return pose != stepTarget && !playhead.isHolding
+    }
+
+    private func adoptPendingDriver() {
+        guard var next = pendingDriver else { return }
+        let pose = playhead.poseIndex
+        let inLoop = species.gazeLoop?.contains(pose) ?? false
+        guard inLoop || pose == species.neutralPose else { return }
+        if inLoop { next.adopt(playhead) }
+        pendingDriver = nil
+        driver = next
+        heldTarget = nil
+        setMirrored(false)
     }
 
     private func resolveTarget(raw: GazeTarget, cursor: CGPoint?, dt: Double) -> GazeTarget {
@@ -144,8 +271,12 @@ final class PetRenderer {
         }
         lastCursor = cursor
         if stillFor >= Self.restAfter { isResting = true }
-        if isResting { return GazeTarget(pose: species.neutralPose, mirrored: false, upperHalf: true, holdsMirror: true) }
+        if isResting {
+            return GazeTarget(pose: species.neutralPose, mirrored: false, upperHalf: true,
+                              holdsMirror: true, wantsCenter: true)
+        }
         if raw.holdsMirror {
+            if driver != nil, raw.wantsCenter { return raw }
             return heldTarget ?? raw
         }
         heldTarget = raw
@@ -161,8 +292,20 @@ final class PetRenderer {
         CATransaction.commit()
     }
 
+    private func frames(for source: PetFrame.Source) -> PoseSequence? {
+        switch source {
+        case .main: return sequence
+        case .side: return sideSequence
+        case .petting: return pettingSequence
+        }
+    }
+
     private func enqueue(pose: Int) {
-        guard let sequence else { return }
+        enqueue(PetFrame(source: .main, index: pose))
+    }
+
+    private func enqueue(_ frame: PetFrame) {
+        guard let source = frames(for: frame.source) else { return }
         let renderer = layer.sampleBufferRenderer
         if renderer.status == .failed {
             Log.app.error("PetRenderer: \(self.species.slug, privacy: .public) renderer failed — \(renderer.error?.localizedDescription ?? "unknown", privacy: .public); flushing")
@@ -176,12 +319,12 @@ final class PetRenderer {
             return
         }
         clock = CMTimeAdd(clock, CMTime(value: 1, timescale: 600))
-        guard let buffer = sequence.displayBuffer(at: pose, presentedAt: clock) else {
-            Log.app.error("PetRenderer: \(self.species.slug, privacy: .public) could not build a display buffer for pose \(pose)")
+        guard let buffer = source.displayBuffer(at: frame.index, presentedAt: clock) else {
+            Log.app.error("PetRenderer: \(self.species.slug, privacy: .public) could not build a display buffer for \(String(describing: frame.source), privacy: .public) frame \(frame.index)")
             return
         }
         renderer.enqueue(buffer)
-        lastEnqueuedPose = pose
+        lastFrame = frame
         decodeCount += 1
     }
 }

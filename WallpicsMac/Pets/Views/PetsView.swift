@@ -115,7 +115,6 @@ struct PetsView: View {
                 sensitivity: locked ? previewSensitivity : model.store.placement?.sensitivity ?? .normal
             )
             .frame(maxWidth: .infinity, maxHeight: sideBySide ? nil : Self.previewMaxHeight, alignment: .topLeading)
-            .allowsHitTesting(false)
 
             HStack(alignment: .top, spacing: Theme.Space.m) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -207,7 +206,6 @@ struct PetsView: View {
                 sensitivity: model.store.placement?.sensitivity ?? .normal
             )
             .frame(maxWidth: .infinity, maxHeight: sideBySide ? nil : Self.previewMaxHeight, alignment: .topLeading)
-            .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: Theme.Space.m) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -812,7 +810,7 @@ struct PetPlacementPreview: View {
                 LinearGradient(colors: [Color(red: 0.16, green: 0.19, blue: 0.30),
                                         Color(red: 0.08, green: 0.09, blue: 0.15)],
                                startPoint: .top, endPoint: .bottom)
-                PetPreviewView(species: species, sensitivity: sensitivity)
+                PetPreviewView(species: species, sensitivity: sensitivity, interactive: true)
                     .frame(width: rect.width, height: rect.height)
                     .position(x: rect.midX, y: mock.height - rect.midY)
                     .animation(Motion.reward, value: anchor)

@@ -32,6 +32,7 @@ final class RemotePetService {
     private(set) var isRefreshing = false
     private(set) var lastError: String?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private var mediaTasks: [URL: Task<URL, Error>] = [:]
 
     private static let listURL = URL(string: "https://backend.wallpics.app/api/pets")!
     private static var unreachableMessage: String {
@@ -77,6 +78,19 @@ final class RemotePetService {
             let x: Double
             let y: Double
         }
+        struct SideTransitions: Codable {
+            let poseCount: Int?
+            let pivotRight: Int?
+            let pivotLeft: Int?
+            let topStart: Int?
+            let topEnd: Int?
+            let rightStart: Int?
+            let rightEnd: Int?
+            let bottomStart: Int?
+            let bottomEnd: Int?
+            let leftStart: Int?
+            let leftEnd: Int?
+        }
         struct Gaze: Codable {
             let poseCount: Int
             let neutralPose: Int
@@ -91,6 +105,43 @@ final class RemotePetService {
             let wraps: Bool?
             let loopStart: Int?
             let loopEnd: Int?
+            let pettingAppropriate: Bool?
+            let sideTransitionData: SideTransitions?
+
+            enum CodingKeys: String, CodingKey {
+                case poseCount, neutralPose, faceCenter, angleBuckets, angleTable, mirrorTable
+                case pivotUp, pivotDown, subjectHeight, subjectBottom, wraps, loopStart, loopEnd
+                case pettingAppropriate, sideTransitionData
+            }
+
+            init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                poseCount = try c.decode(Int.self, forKey: .poseCount)
+                neutralPose = try c.decode(Int.self, forKey: .neutralPose)
+                faceCenter = try c.decode(Point.self, forKey: .faceCenter)
+                angleBuckets = try c.decode(Int.self, forKey: .angleBuckets)
+                angleTable = try c.decode([Int].self, forKey: .angleTable)
+                mirrorTable = try c.decodeIfPresent([Bool].self, forKey: .mirrorTable)
+                pivotUp = try c.decodeIfPresent(Int.self, forKey: .pivotUp)
+                pivotDown = try c.decodeIfPresent(Int.self, forKey: .pivotDown)
+                subjectHeight = try c.decodeIfPresent(Double.self, forKey: .subjectHeight)
+                subjectBottom = try c.decodeIfPresent(Double.self, forKey: .subjectBottom)
+                wraps = try c.decodeIfPresent(Bool.self, forKey: .wraps)
+                loopStart = try c.decodeIfPresent(Int.self, forKey: .loopStart)
+                loopEnd = try c.decodeIfPresent(Int.self, forKey: .loopEnd)
+                do {
+                    pettingAppropriate = try c.decodeIfPresent(Bool.self, forKey: .pettingAppropriate)
+                } catch {
+                    Log.api.error("RemotePetService: unreadable pettingAppropriate — \(String(describing: error), privacy: .public)")
+                    pettingAppropriate = nil
+                }
+                do {
+                    sideTransitionData = try c.decodeIfPresent(SideTransitions.self, forKey: .sideTransitionData)
+                } catch {
+                    Log.api.error("RemotePetService: unreadable sideTransitionData — \(String(describing: error), privacy: .public)")
+                    sideTransitionData = nil
+                }
+            }
         }
         let id: Int
         let name: String?
@@ -100,11 +151,40 @@ final class RemotePetService {
         let videoMov: URL?
         let thumbnail: URL
         let gaze: Gaze
+        let sideVideoMov: URL?
+        let pettingVideoMov: URL?
 
         enum CodingKeys: String, CodingKey {
             case id, name, description, video, thumbnail, gaze
             case isPremium = "is_premium"
             case videoMov = "video_mov"
+            case sideVideoMov = "side_video_mov"
+            case pettingVideoMov = "petting_video_mov"
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            let petID = try c.decode(Int.self, forKey: .id)
+            id = petID
+            name = try c.decodeIfPresent(String.self, forKey: .name)
+            description = try c.decodeIfPresent(String.self, forKey: .description)
+            isPremium = try c.decodeIfPresent(Bool.self, forKey: .isPremium)
+            video = try c.decode(URL.self, forKey: .video)
+            videoMov = try c.decodeIfPresent(URL.self, forKey: .videoMov)
+            thumbnail = try c.decode(URL.self, forKey: .thumbnail)
+            gaze = try c.decode(Gaze.self, forKey: .gaze)
+            do {
+                sideVideoMov = try c.decodeIfPresent(URL.self, forKey: .sideVideoMov)
+            } catch {
+                Log.api.error("RemotePetService: pet \(petID) has an unreadable side_video_mov — \(String(describing: error), privacy: .public)")
+                sideVideoMov = nil
+            }
+            do {
+                pettingVideoMov = try c.decodeIfPresent(URL.self, forKey: .pettingVideoMov)
+            } catch {
+                Log.api.error("RemotePetService: pet \(petID) has an unreadable petting_video_mov — \(String(describing: error), privacy: .public)")
+                pettingVideoMov = nil
+            }
         }
     }
 
@@ -244,6 +324,7 @@ final class RemotePetService {
         let dir = try Self.cacheDir(petId: pet.id)
         let source = pet.videoMov ?? pet.video
         Self.evictStaleMedia(in: dir, source: source, thumbnail: pet.thumbnail)
+        Self.evictStaleTransitions(in: dir, pet: pet)
         _ = try await cachedFile(remote: pet.thumbnail, in: dir, name: "poster.png",
                                  mimePrefix: "image/")
         let ext = source.pathExtension.isEmpty ? "mov" : source.pathExtension
@@ -267,6 +348,81 @@ final class RemotePetService {
         if cached.thumbnail != thumbnail {
             try? fm.removeItem(at: dir.appendingPathComponent("poster.png"))
         }
+    }
+
+    private static let sideFileName = "side.mov"
+    private static let pettingFileName = "petting.mov"
+
+    private static func evictStaleTransitions(in dir: URL, pet: RemotePet) {
+        guard let data = try? Data(contentsOf: dir.appendingPathComponent("meta.json")),
+              let cached = try? JSONDecoder().decode(RemotePet.self, from: data) else { return }
+        let fm = FileManager.default
+        if cached.sideVideoMov != pet.sideVideoMov {
+            try? fm.removeItem(at: dir.appendingPathComponent(sideFileName))
+        }
+        if cached.pettingVideoMov != pet.pettingVideoMov {
+            try? fm.removeItem(at: dir.appendingPathComponent(pettingFileName))
+        }
+    }
+
+    func transitionMedia(for transitions: PetTransitions) async -> (side: URL, petting: URL?)? {
+        let dir = transitions.cacheDirectory
+        do {
+            let side = try await sharedDownload(remote: transitions.sideRemoteURL, in: dir, name: Self.sideFileName)
+            var petting: URL?
+            if let remote = transitions.pettingRemoteURL {
+                do {
+                    petting = try await sharedDownload(remote: remote, in: dir, name: Self.pettingFileName)
+                } catch {
+                    Log.api.error("RemotePetService: petting clip unavailable — \(String(describing: error), privacy: .public)")
+                }
+            }
+            return (side, petting)
+        } catch {
+            Log.api.error("RemotePetService: side clips unavailable — \(String(describing: error), privacy: .public)")
+            return nil
+        }
+    }
+
+    private func sharedDownload(remote: URL, in dir: URL, name: String) async throws -> URL {
+        let key = dir.appendingPathComponent(name)
+        if let pending = mediaTasks[key] { return try await pending.value }
+        let task = Task { try await cachedFile(remote: remote, in: dir, name: name, mimePrefix: "video/") }
+        mediaTasks[key] = task
+        defer { mediaTasks[key] = nil }
+        return try await task.value
+    }
+
+    private static func transitions(for pet: RemotePet, dir: URL, angleTable: [Int],
+                                    loop: ClosedRange<Int>?) -> PetTransitions? {
+        guard let remote = pet.sideVideoMov, let side = pet.gaze.sideTransitionData else { return nil }
+        guard let loop else {
+            Log.api.error("RemotePetService: pet \(pet.id) has side clips but no 360 loop, keeping the classic return")
+            return nil
+        }
+        var clips: [PetReturnClip] = []
+        func add(_ direction: PetTurnDirection, _ start: Int?, _ end: Int?, _ pivot: Int?) {
+            guard let start, let end, start >= 0, end > start, side.poseCount.map({ end < $0 }) ?? true else {
+                Log.api.error("RemotePetService: pet \(pet.id) \(direction.rawValue, privacy: .public) clip has an invalid range, skipped")
+                return
+            }
+            guard let resolved = pivot ?? GazeMap.pose(forAngle: direction.angle, table: angleTable),
+                  loop.contains(resolved) else {
+                Log.api.error("RemotePetService: pet \(pet.id) \(direction.rawValue, privacy: .public) pivot is outside the 360 loop, skipped")
+                return
+            }
+            clips.append(PetReturnClip(direction: direction, pivot: resolved, frames: start...end))
+        }
+        add(.up, side.topStart, side.topEnd, pet.gaze.pivotUp)
+        add(.right, side.rightStart, side.rightEnd, side.pivotRight)
+        add(.down, side.bottomStart, side.bottomEnd, pet.gaze.pivotDown)
+        add(.left, side.leftStart, side.leftEnd, side.pivotLeft)
+        guard !clips.isEmpty else {
+            Log.api.error("RemotePetService: pet \(pet.id) has side clips but none are usable")
+            return nil
+        }
+        let petting = pet.gaze.pettingAppropriate == false ? nil : pet.pettingVideoMov
+        return PetTransitions(clips: clips, sideRemoteURL: remote, pettingRemoteURL: petting, cacheDirectory: dir)
     }
 
     private static func mediaFile(in dir: URL) -> URL? {
@@ -338,7 +494,8 @@ final class RemotePetService {
             isPremium: pet.isPremium ?? false,
             summary: (summary?.isEmpty ?? true) ? nil : summary,
             mediaURL: mediaURL,
-            posterURL: posterURL
+            posterURL: posterURL,
+            transitions: transitions(for: pet, dir: dir, angleTable: angleTable, loop: gazeLoop)
         )
     }
 
