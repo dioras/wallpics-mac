@@ -9,6 +9,7 @@ final class WidgetStore {
     static let shared = WidgetStore()
 
     private(set) var instances: [WidgetInstance] = []
+    @ObservationIgnored private var unreadableItems: [Data] = []
 
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -31,9 +32,15 @@ final class WidgetStore {
         guard FileManager.default.fileExists(atPath: url.path) else { return }
         do {
             let data = try Data(contentsOf: url)
-            instances = try decoder.decode([FailableInstance].self, from: data)
-                .compactMap(\.value)
-                .sorted { $0.updatedAt > $1.updatedAt }
+            let decoded = try decoder.decode([FailableInstance].self, from: data)
+            instances = decoded.compactMap(\.value).sorted { $0.updatedAt > $1.updatedAt }
+            if instances.count != decoded.count {
+                let raw = (try? JSONSerialization.jsonObject(with: data)) as? [Any] ?? []
+                unreadableItems = zip(decoded, raw).compactMap { item, object in
+                    item.value == nil ? try? JSONSerialization.data(withJSONObject: object) : nil
+                }
+                Log.app.error("Kept \(self.unreadableItems.count, privacy: .public) widget instance(s) this version can't read")
+            }
         } catch {
             Log.app.error("Widget instances load failed; backing up corrupt file: \(error.localizedDescription, privacy: .public)")
             let backup = url.appendingPathExtension("corrupt")
@@ -44,7 +51,11 @@ final class WidgetStore {
 
     private func persist() {
         do {
-            let data = try encoder.encode(instances)
+            var data = try encoder.encode(instances)
+            if !unreadableItems.isEmpty, var items = try JSONSerialization.jsonObject(with: data) as? [Any] {
+                items += unreadableItems.compactMap { try? JSONSerialization.jsonObject(with: $0) }
+                data = try JSONSerialization.data(withJSONObject: items, options: [.prettyPrinted, .sortedKeys])
+            }
             try data.write(to: WidgetPaths.instancesFile, options: .atomic)
         } catch {
             Log.app.error("Widget instances save failed: \(error.localizedDescription, privacy: .public)")
@@ -188,7 +199,7 @@ final class WidgetStore {
                 }
                 WidgetSharedExport.sync()
             }
-        case .photo, .staticImage, .polaroid, .diyAnimated, .template, .dateTime:
+        case .photo, .staticImage, .polaroid, .diyAnimated, .template, .dateTime, .calendar, .countdown, .weather:
             removeRenderImage(for: instance.id)
         }
     }
@@ -216,7 +227,7 @@ final class WidgetStore {
     }
 }
 
-private struct FailableInstance: Decodable {
+struct FailableInstance: Decodable {
     let value: WidgetInstance?
     init(from decoder: Decoder) throws {
         value = try? WidgetInstance(from: decoder)

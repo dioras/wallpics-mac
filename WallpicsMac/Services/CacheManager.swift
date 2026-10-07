@@ -111,6 +111,10 @@ actor CacheManager {
     /// Leading integer of a media filename, e.g. "36547-free.jpg" -> 36547, "12.jpg" -> 12,
     /// "-840-free.jpg" -> -840 (imported wallpapers use negative ids).
     private func leadingID(of filename: String) -> Int? {
+        Self.wallpaperID(fromFilename: filename)
+    }
+
+    nonisolated static func wallpaperID(fromFilename filename: String) -> Int? {
         var s = Substring(filename)
         let negative = s.first == "-"
         if negative { s = s.dropFirst() }
@@ -234,9 +238,10 @@ actor CacheManager {
 
     /// Remove any cached image files for a wallpaper id (all watermark variants), so
     /// re-applying after a Pro upgrade doesn't leave a pinned orphan behind.
-    func removeCachedImages(for wallpaperID: Int) {
+    func removeCachedImages(for wallpaperID: Int, keepingOriginal: Bool = false) {
         guard let items = try? fileManager.contentsOfDirectory(atPath: folderURL(.images).path) else { return }
         for name in items where leadingID(of: name) == wallpaperID {
+            if keepingOriginal, name.hasPrefix("\(wallpaperID)-full.") { continue }
             try? fileManager.removeItem(at: folderURL(.images).appendingPathComponent(name))
         }
     }
@@ -248,6 +253,14 @@ actor CacheManager {
         } else {
             try? fileManager.removeItem(at: url)
         }
+    }
+
+    /// Pin exactly the wallpaper(s) currently on screen and release every older pin, so the
+    /// size cap applies to everything that isn't active.
+    func pinOnly(_ wallpaperIDs: Set<Int>) {
+        let current = downloadedIDs()
+        for id in current.subtracting(wallpaperIDs) { markDownloaded(id, downloaded: false) }
+        for id in wallpaperIDs.subtracting(current) { markDownloaded(id, downloaded: true) }
     }
 
     func isDownloaded(_ wallpaperID: Int) -> Bool {

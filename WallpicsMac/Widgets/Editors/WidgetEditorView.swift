@@ -9,6 +9,7 @@ struct WidgetEditorView: View {
     @Environment(\.colorScheme) private var scheme
     @State private var dropTargeted = false
     @State private var dragStart: CGPoint?
+    @State private var citySearch = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -138,25 +139,29 @@ struct WidgetEditorView: View {
             if model.instance.kind.supportedFamilies.count > 1 { familyPicker }
             photoControls
             if model.instance.kind == .polaroid { polaroidControls }
-            if model.instance.kind == .dateTime { dateTimeControls }
+            if model.instance.kind.usesClockPayload { dateTimeControls }
             Spacer(minLength: 0)
         }
     }
 
     private var dateTimeControls: some View {
         VStack(alignment: .leading, spacing: Theme.Space.m) {
-            VStack(alignment: .leading, spacing: Theme.Space.xs) {
-                Text("Style").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                Picker("Style", selection: Binding(
-                    get: { model.dateTimeState.style },
-                    set: { model.setClockStyle($0) }
-                )) {
-                    Text("Time").tag(DateTimeWidgetState.Style.time)
-                    Text("Date").tag(DateTimeWidgetState.Style.date)
-                    Text("Both").tag(DateTimeWidgetState.Style.timeAndDate)
+            if model.instance.kind == .dateTime {
+                VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                    Text("Style").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    Picker("Style", selection: Binding(
+                        get: { model.dateTimeState.style },
+                        set: { model.setClockStyle($0) }
+                    )) {
+                        Text("Time").tag(DateTimeWidgetState.Style.time)
+                        Text("Date").tag(DateTimeWidgetState.Style.date)
+                        Text("Both").tag(DateTimeWidgetState.Style.timeAndDate)
+                    }
+                    .pickerStyle(.segmented).labelsHidden()
                 }
-                .pickerStyle(.segmented).labelsHidden()
             }
+            if model.instance.kind == .countdown { countdownControls }
+            if model.instance.kind == .weather { weatherControls }
             VStack(alignment: .leading, spacing: Theme.Space.xs) {
                 Text("Background").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -200,11 +205,65 @@ struct WidgetEditorView: View {
                 }
                 .pickerStyle(.segmented).labelsHidden()
             }
-            Toggle("24-hour time", isOn: Binding(
-                get: { model.dateTimeState.use24Hour },
-                set: { model.setClock24Hour($0) }
-            ))
-            .toggleStyle(.checkbox).font(.caption)
+            if model.instance.kind == .dateTime {
+                Toggle("24-hour time", isOn: Binding(
+                    get: { model.dateTimeState.use24Hour },
+                    set: { model.setClock24Hour($0) }
+                ))
+                .toggleStyle(.checkbox).font(.caption)
+            }
+        }
+    }
+
+    private var countdownControls: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.m) {
+            VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                Text("Title").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                TextField("Event name", text: Binding(
+                    get: { model.dateTimeState.countdownTitle },
+                    set: { model.setCountdownTitle($0) }
+                ))
+                .textFieldStyle(.roundedBorder)
+            }
+            VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                Text("Counts down to").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                DatePicker("Counts down to", selection: Binding(
+                    get: { model.dateTimeState.countdownTarget ?? Date() },
+                    set: { model.setCountdownTarget($0) }
+                ), displayedComponents: [.date, .hourAndMinute])
+                .datePickerStyle(.field)
+                .labelsHidden()
+            }
+        }
+    }
+
+    private var weatherControls: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.xs) {
+            Text("City").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            HStack(spacing: Theme.Space.s) {
+                TextField("Search city", text: $citySearch)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { Task { await model.searchCity(citySearch) } }
+                Button {
+                    Task { await model.searchCity(citySearch) }
+                } label: {
+                    if model.isSearchingCity {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text("Find")
+                    }
+                }
+                .disabled(model.isSearchingCity || citySearch.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            if let error = model.citySearchError {
+                Text(error).font(.caption).foregroundStyle(.orange)
+            } else if !model.dateTimeState.weatherCity.isEmpty {
+                Label(model.dateTimeState.weatherCity, systemImage: "mappin.and.ellipse")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("Weather by Open-Meteo. Search a city to show its forecast.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -235,7 +294,7 @@ struct WidgetEditorView: View {
     @ViewBuilder
     private var photoControls: some View {
         switch model.instance.kind {
-        case .staticImage, .template, .dateTime:
+        case .staticImage, .template, .dateTime, .calendar, .countdown, .weather:
             EmptyView()
         case .video:
             videoControls

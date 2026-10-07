@@ -62,6 +62,13 @@ struct WidgetsView: View {
         .padding(.top, Theme.Space.xl)
     }
 
+    private func dateEditor() -> WidgetEditorModel {
+        let model = WidgetEditorModel(creating: .dateTime)
+        model.setClockStyle(.date)
+        model.instance.name = String(localized: "Date")
+        return model
+    }
+
     private var newWidgetMenu: some View {
         Menu {
             Button { editor = WidgetEditorModel(creating: .photo) } label: { Label("Photo Widget", systemImage: "photo") }
@@ -69,6 +76,10 @@ struct WidgetsView: View {
             Button { editor = WidgetEditorModel(creating: .polaroid) } label: { Label("Polaroid Widget", systemImage: "photo.stack") }
             Divider()
             Button { editor = WidgetEditorModel(creating: .dateTime) } label: { Label("Clock", systemImage: "clock") }
+            Button { editor = dateEditor() } label: { Label("Date", systemImage: "calendar.day.timeline.left") }
+            Button { editor = WidgetEditorModel(creating: .calendar) } label: { Label("Calendar", systemImage: "calendar") }
+            Button { editor = WidgetEditorModel(creating: .countdown) } label: { Label("Countdown", systemImage: "hourglass") }
+            Button { editor = WidgetEditorModel(creating: .weather) } label: { Label("Weather", systemImage: "cloud.sun") }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "plus").font(.system(size: 12, weight: .bold))

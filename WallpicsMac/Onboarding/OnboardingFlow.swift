@@ -6,6 +6,8 @@ struct OnboardingFlow: View {
     @State private var pickedWallpaper: Wallpaper?
     @State private var showcase: [Wallpaper] = []
     @State private var freePicks: [Wallpaper] = []
+    @State private var loadFailed = false
+    @State private var isLoading = false
 
     private static let showcaseCount = 5
     private static let pickCount = 12
@@ -30,8 +32,25 @@ struct OnboardingFlow: View {
                         .padding(.bottom, Theme.Space.xl)
                 }
             }
+
+            if step != .paywall {
+                Button("Skip", action: onDone)
+                    .buttonStyle(.plain)
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(Theme.Space.l)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .help(String(localized: "Skip the intro and go straight to the app"))
+            }
         }
         .task { await loadSamples() }
+        .task(id: loadFailed) {
+            while loadFailed && !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                if Task.isCancelled { return }
+                await loadSamples()
+            }
+        }
         .animation(Motion.transition, value: step)
     }
 
@@ -48,7 +67,8 @@ struct OnboardingFlow: View {
         case .welcome:
             WelcomeStep(samples: showcase) { advance(to: .pick) }
         case .pick:
-            PickStep(samples: freePicks, picked: $pickedWallpaper) {
+            PickStep(samples: freePicks, picked: $pickedWallpaper, loadFailed: loadFailed, isLoading: isLoading,
+                     onRetry: { Task { await loadSamples() } }, onSkip: onDone) {
                 if pickedWallpaper != nil { advance(to: .set) }
             }
         case .set:
@@ -64,6 +84,9 @@ struct OnboardingFlow: View {
     }
 
     private func loadSamples() async {
+        guard freePicks.isEmpty, !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
         let timestamp = Int(Date().timeIntervalSince1970)
         var popular: [Wallpaper] = []
         var free: [Wallpaper] = []
@@ -81,6 +104,7 @@ struct OnboardingFlow: View {
                 break
             }
         }
+        loadFailed = freePicks.isEmpty
     }
 }
 
@@ -194,6 +218,10 @@ private struct FloatingCollage: View {
 private struct PickStep: View {
     let samples: [Wallpaper]
     @Binding var picked: Wallpaper?
+    var loadFailed = false
+    var isLoading = false
+    var onRetry: () -> Void = {}
+    var onSkip: () -> Void = {}
     var onContinue: () -> Void
 
     // 16:9 landscape cards in a vertically-scrolling grid (desktop wallpapers are landscape).
@@ -210,18 +238,51 @@ private struct PickStep: View {
             }
             .padding(.top, Theme.Space.l)
 
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: Theme.Space.m) {
-                    ForEach(samples) { wallpaper in
-                        PickCard(wallpaper: wallpaper, isSelected: picked?.id == wallpaper.id) {
-                            withAnimation(Motion.hover) { picked = wallpaper }
+            if samples.isEmpty {
+                VStack(spacing: Theme.Space.m) {
+                    Spacer(minLength: 0)
+                    if loadFailed {
+                        Image(systemName: "wifi.exclamationmark")
+                            .font(.system(size: 40))
+                            .foregroundStyle(.secondary)
+                        Text("Couldn't load wallpapers")
+                            .font(.title3.weight(.semibold))
+                        Text("Check your internet connection. We'll keep trying automatically.")
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                        HStack(spacing: Theme.Space.m) {
+                            Button(action: onRetry) {
+                                HStack(spacing: Theme.Space.s) {
+                                    if isLoading { ProgressView().controlSize(.small) }
+                                    Text("Try Again")
+                                }
+                            }
+                            .disabled(isLoading)
+                            Button("Skip for now", action: onSkip)
+                        }
+                        .controlSize(.large)
+                    } else {
+                        ProgressView()
+                        Text("Loading wallpapers…")
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: Theme.Space.m) {
+                        ForEach(samples) { wallpaper in
+                            PickCard(wallpaper: wallpaper, isSelected: picked?.id == wallpaper.id) {
+                                withAnimation(Motion.hover) { picked = wallpaper }
+                            }
                         }
                     }
+                    .padding(Theme.Space.m)
                 }
-                .padding(Theme.Space.m)
+                .padding(.horizontal, -Theme.Space.m)
+                .frame(maxHeight: .infinity)
             }
-            .padding(.horizontal, -Theme.Space.m)
-            .frame(maxHeight: .infinity)
 
             Button("Continue", action: onContinue)
                 .buttonStyle(.primaryCTA)
@@ -282,6 +343,7 @@ private struct SetStep: View {
     var onContinue: () -> Void
     @State private var isSetting = false
     @State private var applied = false
+    @State private var errorMessage: String?
 
     var body: some View {
         VStack(spacing: Theme.Space.xl) {
@@ -299,6 +361,13 @@ private struct SetStep: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 420)
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 420)
+                }
             }
 
             Spacer(minLength: 0)
@@ -322,21 +391,33 @@ private struct SetStep: View {
     }
 
     private func applyAndAdvance(_ wallpaper: Wallpaper) async {
-        guard let url = wallpaper.wallpaperURL else { return }
+        guard let url = wallpaper.wallpaperURL else {
+            errorMessage = String(localized: "This wallpaper isn't available right now.")
+            return
+        }
         isSetting = true
+        errorMessage = nil
         defer { isSetting = false }
         do {
-            let downloaded = try await WallpaperAPI.shared.downloadImage(from: url)
-            let variant = StoreKitService.shared.state.isPro ? "pro" : "free"
-            let destination = await CacheManager.shared.folderURL(.images)
-                .appendingPathComponent("\(wallpaper.id)-\(variant).jpg")
-            try WatermarkService.applyIfNeeded(to: downloaded, destinationURL: destination, isPro: StoreKitService.shared.state.isPro, appIcon: NSApplication.shared.applicationIconImage, screenAspects: NSScreen.screens.map { $0.frame.width / max(1, $0.frame.height) })
-            WallpaperRenderer.shared.setStaticImage(destination)
-            await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
+            let isPro = StoreKitService.shared.state.isPro
+            let imagesDir = await CacheManager.shared.folderURL(.images)
+            let ext = url.pathExtension.isEmpty ? "jpg" : url.pathExtension
+            let original = imagesDir.appendingPathComponent("\(wallpaper.id)-full.\(ext)")
+            if !FileManager.default.fileExists(atPath: original.path) {
+                let downloaded = try await WallpaperAPI.shared.downloadImage(from: url)
+                try? FileManager.default.removeItem(at: original)
+                try FileManager.default.moveItem(at: downloaded, to: original)
+            }
+            let variant = isPro ? "pro" : "free"
+            let destination = imagesDir.appendingPathComponent("\(wallpaper.id)-\(variant).jpg")
+            try WatermarkService.applyIfNeeded(to: original, destinationURL: destination, isPro: isPro, appIcon: NSApplication.shared.applicationIconImage, screenAspects: NSScreen.screens.map { $0.frame.width / max(1, $0.frame.height) })
+            await CacheManager.shared.pinOnly([wallpaper.id])
+            WallpaperRenderer.shared.setStaticImage(destination, source: original, watermarked: !isPro)
             await WallpaperAPI.shared.recordDownload(wallpaperID: wallpaper.id)
             withAnimation(Motion.reward) { applied = true }
         } catch {
             Log.ui.error("Onboarding set failed: \(error.localizedDescription, privacy: .public)")
+            errorMessage = String(localized: "Couldn't apply the wallpaper. Check your connection and try again, or skip for now.")
         }
     }
 }

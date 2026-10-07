@@ -355,10 +355,12 @@ struct PaywallScreen: View {
 
     private var renewalNote: String? {
         guard let product = selectedProduct else { return nil }
+        let suffix = ProductRow.periodSuffix(for: product)
+        let price = suffix.isEmpty ? product.displayPrice : "\(product.displayPrice) \(suffix)"
         if hasFreeTrial(product), let trial = trialDescription(product) {
-            return String(localized: "\(trial) free, then \(product.displayPrice). Cancel anytime.")
+            return String(localized: "\(trial) free, then \(price). Cancel anytime.")
         }
-        return String(localized: "\(product.displayPrice), auto-renews. Cancel anytime.")
+        return String(localized: "\(price), auto-renews. Cancel anytime.")
     }
 
     private func hasFreeTrial(_ product: Product) -> Bool {
@@ -597,7 +599,9 @@ private struct ProductRow: View {
     /// App Store Connect can encode the same duration different ways — a weekly plan may come
     /// back as "1 week" *or* "7 days". We normalize so a 7-day period reads "/ week" (and 30-day
     /// → "/ month", 365-day → "/ year") instead of the misleading "/ day" the client reported.
-    private var periodSuffix: String {
+    private var periodSuffix: String { Self.periodSuffix(for: product) }
+
+    static func periodSuffix(for product: Product) -> String {
         guard let period = product.subscription?.subscriptionPeriod else { return "" }
         let unit: Product.SubscriptionPeriod.Unit
         switch (period.unit, period.value) {

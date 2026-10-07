@@ -8,10 +8,13 @@ actor WallpaperAPI {
     private let baseURL = URL(string: "https://backend.wallpics.app")!
     private let session: URLSession
     private let uploadSession: URLSession
+    private let mediaSession: URLSession
     private let decoder: JSONDecoder
     private var guestID: String?
 
     private static let guestIDKey = "guest_id"
+    private static let guestIDDefaultsKey = "guestID"
+    private static let guestIDMigratedKey = "guestIDKeychainMigrated"
     private static let salt = "wall"
 
     enum APIError: LocalizedError {
@@ -45,11 +48,27 @@ actor WallpaperAPI {
         uploadConfig.waitsForConnectivity = true
         self.uploadSession = URLSession(configuration: uploadConfig)
 
+        let mediaConfig = URLSessionConfiguration.default
+        mediaConfig.timeoutIntervalForRequest = 60
+        mediaConfig.timeoutIntervalForResource = 3600
+        mediaConfig.waitsForConnectivity = false
+        self.mediaSession = URLSession(configuration: mediaConfig)
+
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
         self.decoder = dec
 
-        self.guestID = KeychainStore.string(for: Self.guestIDKey)
+        self.guestID = Self.storedGuestID()
+    }
+
+    private static func storedGuestID() -> String? {
+        let defaults = UserDefaults.standard
+        if let id = defaults.string(forKey: guestIDDefaultsKey), !id.isEmpty { return id }
+        guard !defaults.bool(forKey: guestIDMigratedKey) else { return nil }
+        defaults.set(true, forKey: guestIDMigratedKey)
+        guard let legacy = KeychainStore.string(for: guestIDKey), !legacy.isEmpty else { return nil }
+        defaults.set(legacy, forKey: guestIDDefaultsKey)
+        return legacy
     }
 
     // MARK: - Guest
@@ -68,7 +87,7 @@ actor WallpaperAPI {
         struct InitResponse: Decodable { let data: Inner; struct Inner: Decodable { let guestId: String } }
         let parsed = try decoder.decode(InitResponse.self, from: data)
         let id = parsed.data.guestId
-        KeychainStore.set(id, for: Self.guestIDKey)
+        UserDefaults.standard.set(id, forKey: Self.guestIDDefaultsKey)
         guestID = id
         Log.api.debug("Guest ID provisioned")
         return id
@@ -367,7 +386,7 @@ actor WallpaperAPI {
                 if Task.isCancelled { throw CancellationError() }
             }
             do {
-                let (tempURL, response) = try await session.download(from: url) { written, total in
+                let (tempURL, response) = try await mediaSession.download(from: url) { written, total in
                     guard total > 0 else { return }
                     progress?(Double(written) / Double(total))
                 }

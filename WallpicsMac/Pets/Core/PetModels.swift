@@ -25,6 +25,8 @@ struct PetSpecies: Identifiable, Hashable, Sendable {
 
     var id: String { slug }
 
+    var canBePetted: Bool { transitions?.pettingRemoteURL != nil }
+
     var remoteID: Int? { Self.remoteID(fromSlug: slug) }
 
     private static let remotePrefix = "remote-"
@@ -223,6 +225,7 @@ struct PetPlacement: Codable, Equatable, Sendable {
 
 enum PetAccess {
     static func requiresPaywall(pet: PetSpecies, state: SubscriptionState, ownedIDs: Set<Int>) -> Bool {
+        guard pet.isPremium else { return false }
         if let id = pet.remoteID, ownedIDs.contains(id) { return false }
         return requiresPro(state)
     }

@@ -14,6 +14,8 @@ final class WidgetEditorModel: Identifiable {
 
     private(set) var isPreparing = false
     private(set) var prepareError: String?
+    private(set) var isSearchingCity = false
+    private(set) var citySearchError: String?
     var previewToggle = false
     var previewStep = 0
 
@@ -54,7 +56,7 @@ final class WidgetEditorModel: Identifiable {
         case .themed(let s): return s.photoRelativePath != nil
         case .diyAnimated(let s): return s.photoRelativePath != nil || s.coverRelativePath != nil
         case .template: return true
-        case .dateTime: return true
+        case .dateTime(let s): return instance.kind != .weather || (s.weatherLatitude != nil && s.weatherLongitude != nil)
         }
     }
 
@@ -215,6 +217,36 @@ final class WidgetEditorModel: Identifiable {
         if case .dateTime(var s) = instance.payload { s.tintHex = hex; instance.payload = .dateTime(s) }
     }
 
+    func setCountdownTitle(_ title: String) {
+        if case .dateTime(var s) = instance.payload { s.countdownTitle = title; instance.payload = .dateTime(s) }
+    }
+
+    func setCountdownTarget(_ date: Date) {
+        if case .dateTime(var s) = instance.payload { s.countdownTarget = date; instance.payload = .dateTime(s) }
+    }
+
+    func searchCity(_ query: String) async {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        isSearchingCity = true
+        citySearchError = nil
+        defer { isSearchingCity = false }
+        do {
+            guard let place = try await WidgetWeather.shared.search(query) else {
+                citySearchError = String(localized: "No city found with that name.")
+                return
+            }
+            if case .dateTime(var s) = instance.payload {
+                s.weatherCity = place.name
+                s.weatherLatitude = place.latitude
+                s.weatherLongitude = place.longitude
+                instance.payload = .dateTime(s)
+            }
+            await WidgetWeather.shared.refreshIfNeeded(latitude: place.latitude, longitude: place.longitude)
+        } catch {
+            citySearchError = String(localized: "Couldn't search right now. Check your connection and try again.")
+        }
+    }
+
     var dateTimeState: DateTimeWidgetState {
         instance.payload.dateTimeState ?? DateTimeWidgetState()
     }
@@ -287,6 +319,13 @@ final class WidgetEditorModel: Identifiable {
         case .diyAnimated: return .diyAnimated(DIYAnimatedWidgetState())
         case .template: return .template(TemplateWidgetState())
         case .dateTime: return .dateTime(DateTimeWidgetState())
+        case .calendar: return .dateTime(DateTimeWidgetState(backgroundHexes: ["#FFFFFF", "#EDEDED"], tintHex: "#111111"))
+        case .countdown:
+            var s = DateTimeWidgetState(backgroundHexes: ["#6C5CE7", "#4B3FD1"])
+            let today = Calendar.current.startOfDay(for: Date())
+            s.countdownTarget = Calendar.current.date(byAdding: .day, value: 7, to: today)
+            return .dateTime(s)
+        case .weather: return .dateTime(DateTimeWidgetState(backgroundHexes: ["#2D9CFF", "#1466C7"]))
         }
     }
 

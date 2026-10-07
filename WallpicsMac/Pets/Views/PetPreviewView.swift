@@ -33,7 +33,8 @@ final class PetPreviewNSView: NSView {
     private var currentSpecies: PetSpecies?
     private var observer: NSObjectProtocol?
     private var stroke: PettingStroke?
-    private static let strokeLength: CGFloat = 28
+    private var rub: PettingRub?
+    private static let strokeLength: CGFloat = 24
     private static let transitionDelay: Double = 2
     var sensitivity: PetSensitivity = .normal
     var interactive = false
@@ -130,6 +131,35 @@ final class PetPreviewNSView: NSView {
 
     override func mouseUp(with event: NSEvent) {
         stroke = nil
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        guard interactive else { return }
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self, userInfo: nil))
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        guard interactive, let renderer, renderer.canPet, let zone = faceZone() else { rub = nil; return }
+        let point = NSEvent.mouseLocation
+        guard hypot(point.x - zone.center.x, point.y - zone.center.y) <= zone.radius * PettingStroke.slack else {
+            rub = nil
+            return
+        }
+        var gesture = rub ?? PettingRub(at: point, time: CACurrentMediaTime())
+        if gesture.move(to: point, at: CACurrentMediaTime()) {
+            rub = nil
+            renderer.pet()
+            startLink()
+        } else {
+            rub = gesture
+        }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        rub = nil
     }
 
     private func faceZone() -> (center: CGPoint, radius: CGFloat)? {

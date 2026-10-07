@@ -231,7 +231,7 @@ private struct DesktopWidgetContent: View {
             if let instance = store.instance(id: instanceID) {
                 let interactive = instance.kind.isInteractive
                 let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
-                let bordered = [WidgetKind.photo, .video, .staticImage, .dateTime].contains(instance.kind)
+                let bordered = [WidgetKind.photo, .video, .staticImage].contains(instance.kind) || instance.kind.usesClockPayload
                 WidgetRenderView(instance: instance,
                                  isToggled: Self.flag(for: instance),
                                  carouselStep: desktop.step(for: instanceID))

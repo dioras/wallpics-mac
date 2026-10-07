@@ -85,6 +85,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // keeps running instead of leaving the low-res still on the desktop. Paired with the
         // optional Login Item so the app actually relaunches.
         WallpaperRenderer.shared.restoreLast()
+        let activeWallpapers = WallpaperRenderer.shared.activeWallpaperIDs()
+        Task { await CacheManager.shared.pinOnly(activeWallpapers) }
 
         DesktopWidgetManager.shared.restoreAll()
         DesktopPetManager.shared.restoreAll()

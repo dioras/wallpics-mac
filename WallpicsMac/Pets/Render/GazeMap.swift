@@ -385,6 +385,44 @@ struct PettingStroke {
     }
 }
 
+struct PettingRub {
+    static let window: CFTimeInterval = 1.6
+    static let travel: CGFloat = 90
+    static let reversals = 2
+    private var start: CFTimeInterval
+    private var last: CGPoint
+    private var travelled: CGFloat = 0
+    private var turns = 0
+    private var signX = 0
+    private var signY = 0
+
+    init(at point: CGPoint, time: CFTimeInterval) {
+        start = time
+        last = point
+    }
+
+    mutating func move(to point: CGPoint, at time: CFTimeInterval) -> Bool {
+        if time - start > Self.window {
+            self = PettingRub(at: point, time: time)
+            return false
+        }
+        let dx = point.x - last.x, dy = point.y - last.y
+        last = point
+        travelled += hypot(dx, dy)
+        if abs(dx) > 2 {
+            let s = dx > 0 ? 1 : -1
+            if signX != 0, s != signX { turns += 1 }
+            signX = s
+        }
+        if abs(dy) > 2 {
+            let s = dy > 0 ? 1 : -1
+            if signY != 0, s != signY { turns += 1 }
+            signY = s
+        }
+        return travelled >= Self.travel && turns >= Self.reversals
+    }
+}
+
 struct PetTransitionDriver {
     enum Stage: Equatable {
         case loop

@@ -8,7 +8,7 @@ final class DesktopPetManager {
     static let shared = DesktopPetManager()
 
     enum PauseReason: Hashable {
-        case userToggle, lowPower, onBattery, screenSleep
+        case userToggle, lowPower, onBattery, screenSleep, displaySleep, screenLocked
     }
 
     private(set) var isPaused = false
@@ -33,10 +33,11 @@ final class DesktopPetManager {
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var pettingMonitors: [Any] = []
     @ObservationIgnored private var stroke: (display: CGDirectDisplayID, gesture: PettingStroke)?
+    @ObservationIgnored private var rub: (display: CGDirectDisplayID, gesture: PettingRub)?
 
     private let idleGracePeriod: CFTimeInterval = 5.5
     private static let maxSubjectScreenFraction: CGFloat = 0.8
-    private static let strokeLength: CGFloat = 40
+    private static let strokeLength: CGFloat = 24
 
     private init() {
         let center = NotificationCenter.default
@@ -61,6 +62,21 @@ final class DesktopPetManager {
                 self?.renderers.values.forEach { $0.retryTransitionsIfNeeded() }
             }
         })
+        observers.append(workspace.addObserver(
+            forName: NSWorkspace.screensDidSleepNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.setPaused(true, reason: .displaySleep) }
+        })
+        observers.append(workspace.addObserver(
+            forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.setPaused(false, reason: .displaySleep) }
+        })
+        observers.append(DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.setPaused(true, reason: .screenLocked) }
+        })
         observers.append(center.addObserver(
             forName: RemotePetService.didUpdate, object: nil, queue: .main
         ) { [weak self] _ in
@@ -69,7 +85,10 @@ final class DesktopPetManager {
         observers.append(DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.reassertWindows() }
+            MainActor.assumeIsolated {
+                self?.setPaused(false, reason: .screenLocked)
+                self?.reassertWindows()
+            }
         })
     }
 
@@ -346,6 +365,27 @@ final class DesktopPetManager {
         }
     }
 
+    private func trackRub(cursor: CGPoint, now: CFTimeInterval, species: PetSpecies, placement: PetPlacement) {
+        guard NSEvent.pressedMouseButtons == 0 else { rub = nil; return }
+        for (id, window) in windows {
+            guard let renderer = renderers[id], renderer.canPet,
+                  let screen = window.screen ?? NSScreen.screens.first(where: { $0.displayID == id }),
+                  screen.frame.contains(cursor) else { continue }
+            let zone = GazeMap.faceZone(petRect: globalRect(species: species, placement: placement, screen: screen),
+                                        faceCenter: species.faceCenter, subjectHeight: species.subjectHeight)
+            guard hypot(cursor.x - zone.center.x, cursor.y - zone.center.y) <= zone.radius * PettingStroke.slack else { break }
+            var gesture = rub?.display == id ? rub!.gesture : PettingRub(at: cursor, time: now)
+            if gesture.move(to: cursor, at: now) {
+                rub = nil
+                if Self.desktopIsExposed(at: cursor) { _ = renderer.pet() }
+            } else {
+                rub = (id, gesture)
+            }
+            return
+        }
+        rub = nil
+    }
+
     private static func desktopIsExposed(at point: CGPoint) -> Bool {
         guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements],
                                                        kCGNullWindowID) as? [[String: Any]] else { return true }
@@ -392,6 +432,7 @@ final class DesktopPetManager {
         let cursor = NSEvent.mouseLocation
         let cursorMoved = hypot(cursor.x - lastCursor.x, cursor.y - lastCursor.y) > 0.5
         lastCursor = cursor
+        if cursorMoved { trackRub(cursor: cursor, now: now, species: species, placement: placement) }
 
         var moving = false
         for (id, window) in windows {

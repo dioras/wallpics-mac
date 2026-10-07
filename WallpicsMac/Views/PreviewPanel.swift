@@ -372,25 +372,31 @@ struct FeaturedHero: View {
     @discardableResult
     private func setRemoteImage(_ wallpaper: Wallpaper, imageURL: URL) async -> Bool {
         do {
-            let downloaded = try await WallpaperAPI.shared.downloadImage(from: imageURL) { p in
-                Task { @MainActor in progress = p }
+            let imagesDir = await CacheManager.shared.folderURL(.images)
+            let ext = imageURL.pathExtension.isEmpty ? "jpg" : imageURL.pathExtension
+            let original = imagesDir.appendingPathComponent("\(wallpaper.id)-full.\(ext)")
+            if !FileManager.default.fileExists(atPath: original.path) {
+                let downloaded = try await WallpaperAPI.shared.downloadImage(from: imageURL) { p in
+                    Task { @MainActor in progress = p }
+                }
+                try? FileManager.default.removeItem(at: original)
+                try FileManager.default.moveItem(at: downloaded, to: original)
             }
             // Filename varies by watermark state so a Pro upgrade produces a new URL and
             // macOS actually refreshes the desktop instead of reusing the cached image.
             let variant = store.state.isPro ? "pro" : "free"
-            await CacheManager.shared.removeCachedImages(for: wallpaper.id)
-            let destination = await CacheManager.shared.folderURL(.images)
-                .appendingPathComponent("\(wallpaper.id)-\(variant).jpg")
+            await CacheManager.shared.removeCachedImages(for: wallpaper.id, keepingOriginal: true)
+            let destination = imagesDir.appendingPathComponent("\(wallpaper.id)-\(variant).jpg")
             try WatermarkService.applyIfNeeded(
-                to: downloaded,
+                to: original,
                 destinationURL: destination,
                 isPro: store.state.isPro,
                 appIcon: NSApplication.shared.applicationIconImage,
                 screenAspects: NSScreen.screens.map { $0.frame.width / max(1, $0.frame.height) }
             )
             // Pin before setting the desktop image so a concurrent cache sweep can't delete it.
-            await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
-            WallpaperRenderer.shared.setStaticImage(destination)
+            await CacheManager.shared.pinOnly([wallpaper.id])
+            WallpaperRenderer.shared.setStaticImage(destination, source: original, watermarked: !store.state.isPro)
             await WallpaperAPI.shared.recordDownload(wallpaperID: wallpaper.id)
             resultMessage = String(localized: "Wallpaper set.")
             return true
@@ -408,14 +414,16 @@ struct FeaturedHero: View {
         let isPro = store.state.isPro
         let icon = NSApplication.shared.applicationIconImage
         do {
-            let downloaded = try await WallpaperAPI.shared.downloadImage(from: assetURL) { p in
-                Task { @MainActor in progress = p }
-            }
             let ext = assetURL.pathExtension.isEmpty ? "mp4" : assetURL.pathExtension
             let dest = await CacheManager.shared.folderURL(.videos)
                 .appendingPathComponent("\(wallpaper.id).\(ext)")
-            try? FileManager.default.removeItem(at: dest)
-            try FileManager.default.moveItem(at: downloaded, to: dest)
+            if !FileManager.default.fileExists(atPath: dest.path) {
+                let downloaded = try await WallpaperAPI.shared.downloadImage(from: assetURL) { p in
+                    Task { @MainActor in progress = p }
+                }
+                try? FileManager.default.removeItem(at: dest)
+                try FileManager.default.moveItem(at: downloaded, to: dest)
+            }
 
             // Full-resolution first frame extracted from the 4K video — NOT the tiny thumbnail —
             // so the still shown the instant playback stops/relaunches isn't a pixelated 300px poster.
@@ -424,7 +432,7 @@ struct FeaturedHero: View {
                 firstFrame = await makeRemotePoster(wallpaper, isPro: isPro, icon: icon)
             }
             // Pin so the cache sweep can't evict the clip / first-frame while it's live.
-            await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
+            await CacheManager.shared.pinOnly([wallpaper.id])
             WallpaperRenderer.shared.startAnimated(kind: kind, url: dest,
                                                    firstFrameStaticURL: firstFrame,
                                                    needsWatermark: !isPro, appIcon: icon)
@@ -445,14 +453,23 @@ struct FeaturedHero: View {
         let isPro = store.state.isPro
         let icon = NSApplication.shared.applicationIconImage
         do {
-            let downloaded = try await WallpaperAPI.shared.downloadImage(from: zipURL) { p in
-                Task { @MainActor in progress = p }
-            }
-            let zipData = try Data(contentsOf: downloaded)
             let shadersDir = await CacheManager.shared.folderURL(.shaders)
-            guard let shaderURL = ZipExtractor.extractFirstFile(
-                from: zipData, extensions: ["msl", "metal"], to: shadersDir, baseName: "\(wallpaper.id)"
-            ) else {
+            let cached = ["msl", "metal"]
+                .map { shadersDir.appendingPathComponent("\(wallpaper.id).\($0)") }
+                .first { FileManager.default.fileExists(atPath: $0.path) }
+            let extracted: URL?
+            if let cached {
+                extracted = cached
+            } else {
+                let downloaded = try await WallpaperAPI.shared.downloadImage(from: zipURL) { p in
+                    Task { @MainActor in progress = p }
+                }
+                let zipData = try Data(contentsOf: downloaded)
+                extracted = ZipExtractor.extractFirstFile(
+                    from: zipData, extensions: ["msl", "metal"], to: shadersDir, baseName: "\(wallpaper.id)"
+                )
+            }
+            guard let shaderURL = extracted else {
                 resultMessage = String(localized: "Couldn't read this shader.")
                 return false
             }
@@ -464,7 +481,7 @@ struct FeaturedHero: View {
             if firstFrame == nil {
                 firstFrame = await makeRemotePoster(wallpaper, isPro: isPro, icon: icon)
             }
-            await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
+            await CacheManager.shared.pinOnly([wallpaper.id])
             WallpaperRenderer.shared.startAnimated(kind: .shader, url: shaderURL,
                                                    firstFrameStaticURL: firstFrame,
                                                    needsWatermark: !isPro, appIcon: icon)
@@ -549,8 +566,8 @@ struct FeaturedHero: View {
                     .appendingPathComponent("\(wallpaper.id)-\(variant).jpg")
                 try WatermarkService.applyIfNeeded(to: assetURL, destinationURL: destination,
                                                    isPro: isPro, appIcon: icon, screenAspects: aspects)
-                await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
-                WallpaperRenderer.shared.setStaticImage(destination)
+                await CacheManager.shared.pinOnly([wallpaper.id])
+                WallpaperRenderer.shared.setStaticImage(destination, source: assetURL, watermarked: !isPro)
             } else {
                 // Display-resolution first frame from the video/shader when possible; thumbnail only
                 // as a fallback. Same poster pipeline as remote wallpapers (matched watermark, PNG).
@@ -566,7 +583,7 @@ struct FeaturedHero: View {
                     firstFrame = await writePoster(cg, id: wallpaper.id, isPro: isPro, icon: icon)
                 }
                 // Pin so the cache sweep can't evict the first-frame fallback while it's active.
-                await CacheManager.shared.markDownloaded(wallpaper.id, downloaded: true)
+                await CacheManager.shared.pinOnly([wallpaper.id])
                 WallpaperRenderer.shared.startAnimated(kind: kind, url: assetURL,
                                                        firstFrameStaticURL: firstFrame,
                                                        needsWatermark: !isPro, appIcon: icon)

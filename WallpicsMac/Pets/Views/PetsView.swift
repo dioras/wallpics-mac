@@ -138,6 +138,9 @@ struct PetsView: View {
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.55))
                         .fixedSize(horizontal: false, vertical: true)
+                    if pet.canBePetted {
+                        pettingHint
+                    }
                 }
                 Spacer(minLength: Theme.Space.s)
                 Button {
@@ -171,7 +174,7 @@ struct PetsView: View {
                         }
                     }
                     .buttonStyle(PrimaryButtonStyle())
-                    Text("Every pet in the catalog comes with WallPics Pro.")
+                    Text("This pet comes with WallPics Pro.")
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.5))
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -195,6 +198,17 @@ struct PetsView: View {
             RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous)
                 .strokeBorder(.white.opacity(0.08), lineWidth: 1)
         )
+    }
+
+    private var pettingHint: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "hand.point.up.left.fill")
+                .font(.system(size: 11))
+            Text("Pet it: rub its face with the cursor, or click and drag across it.")
+        }
+        .font(.caption)
+        .foregroundStyle(.white.opacity(0.7))
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func activePetCard(_ pet: PetSpecies, sideBySide: Bool) -> some View {
@@ -224,6 +238,9 @@ struct PetsView: View {
                         Text("On your desktop, behind your icons.")
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.55))
+                    }
+                    if pet.canBePetted {
+                        pettingHint
                     }
                 }
 

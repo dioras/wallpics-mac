@@ -206,6 +206,7 @@ final class StoreKitService {
         #endif
         state = newState
         scheduleExpiryCheck(newState.expiresAt)
+        WallpaperRenderer.shared.refreshWatermark(isPro: newState.isPro)
     }
 
     private func scheduleExpiryCheck(_ expiresAt: Date?) {

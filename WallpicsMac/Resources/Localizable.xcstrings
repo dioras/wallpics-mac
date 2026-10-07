@@ -1821,6 +1821,7 @@
         }
       }
     },
+    "Calendar" : {},
     "Calm" : {},
     "Cancel" : {},
     "Changes apply right away. Restart the app for the menu bar to switch too." : {
@@ -2007,6 +2008,7 @@
         }
       }
     },
+    "Check your internet connection. We'll keep trying automatically." : {},
     "Checking…" : {
       "localizations" : {
         "de" : {
@@ -2100,7 +2102,9 @@
         }
       }
     },
+    "City" : {},
     "Classic" : {},
+    "Clear" : {},
     "Clear, well-lit shots of one pet — a front view plus a couple of angles." : {
       "localizations" : {
         "de" : {
@@ -2242,6 +2246,7 @@
         }
       }
     },
+    "Cloudy" : {},
     "Continue" : {
       "localizations" : {
         "de" : {
@@ -2520,6 +2525,7 @@
         }
       }
     },
+    "Couldn't apply the wallpaper. Check your connection and try again, or skip for now." : {},
     "Couldn't check with WallPics right now. We'll try again in a few minutes." : {
       "localizations" : {
         "de" : {
@@ -2659,6 +2665,7 @@
       }
     },
     "Couldn't load the home rails." : {},
+    "Couldn't load wallpapers" : {},
     "Couldn't load widgets" : {},
     "Couldn't prepare the lock screen clip." : {
       "localizations" : {
@@ -2799,6 +2806,7 @@
         }
       }
     },
+    "Couldn't search right now. Check your connection and try again." : {},
     "Couldn't verify the purchase. Try Restore." : {
       "localizations" : {
         "de" : {
@@ -2892,6 +2900,8 @@
         }
       }
     },
+    "Countdown" : {},
+    "Counts down to" : {},
     "Create a widget from your photos or videos" : {},
     "Customize and place live widgets on your desktop." : {},
     "Customize…" : {},
@@ -3041,6 +3051,7 @@
     "Dislikes" : {},
     "Dislikes:" : {},
     "Dismiss" : {},
+    "Done" : {},
     "Downloads" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3184,9 +3195,11 @@
     "Drag a photo here" : {},
     "Drag a video here" : {},
     "Drag the preview to reposition" : {},
+    "Drizzle" : {},
     "Edit" : {},
     "Edit Widget" : {},
     "Elevator" : {},
+    "Event name" : {},
     "Every desktop pet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3375,6 +3388,7 @@
       }
     },
     "Fill (crop to fit)" : {},
+    "Find" : {},
     "Finished pets also appear in Pets → DIY for everyone" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3422,6 +3436,7 @@
         }
       }
     },
+    "Fog" : {},
     "Follow system appearance" : {
       "localizations" : {
         "de" : {
@@ -3753,6 +3768,7 @@
     },
     "Guardian" : {},
     "Guardian:" : {},
+    "H %@" : {},
     "Home" : {},
     "How it works" : {
       "localizations" : {
@@ -4034,6 +4050,7 @@
     },
     "Keep your wallpaper running?" : {},
     "Keeps live & shader wallpapers running after a restart. WallPics launches in the background — close its window and it stays out of your way in the menu bar." : {},
+    "L %@" : {},
     "Language" : {
       "localizations" : {
         "de" : {
@@ -4318,6 +4335,7 @@
         }
       }
     },
+    "Loading wallpapers…" : {},
     "Loading widgets…" : {},
     "Lock Screen" : {
       "localizations" : {
@@ -4883,6 +4901,7 @@
         }
       }
     },
+    "No city found with that name." : {},
     "No display available for the backdrop" : {},
     "No favorites yet" : {
       "localizations" : {
@@ -5593,6 +5612,7 @@
         }
       }
     },
+    "Partly cloudy" : {},
     "Pause Pets" : {},
     "Pause Wallpaper" : {
       "localizations" : {
@@ -5692,6 +5712,7 @@
     "Paused while the display sleeps" : {},
     "Pet %lld" : {},
     "Pet Notes" : {},
+    "Pet it: rub its face with the cursor, or click and drag across it." : {},
     "Pets" : {},
     "Pets are downloaded once and kept on your Mac." : {
       "localizations" : {
@@ -6535,6 +6556,7 @@
         }
       }
     },
+    "Rain" : {},
     "Ready — find it in the Pets tab" : {
       "localizations" : {
         "de" : {
@@ -6966,6 +6988,7 @@
     "Save Widget" : {},
     "Scroll left" : {},
     "Scroll right" : {},
+    "Search city" : {},
     "Search pets" : {},
     "Search wallpapers" : {
       "localizations" : {
@@ -7437,6 +7460,7 @@
       }
     },
     "Set Wallpaper" : {},
+    "Set a city in the widget editor" : {},
     "Set as Wallpaper" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7718,8 +7742,12 @@
     "Show me how" : {},
     "Show on every display" : {},
     "Size" : {},
+    "Skip" : {},
+    "Skip for now" : {},
+    "Skip the intro and go straight to the app" : {},
     "Small" : {},
     "Snaps to the cursor straight away" : {},
+    "Snow" : {},
     "Sold separately" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8287,11 +8315,14 @@
         }
       }
     },
+    "This pet comes with WallPics Pro." : {},
     "This pet couldn't load — %@" : {},
     "This wallpaper isn't available right now." : {},
     "This widget's assets couldn't be downloaded. Check your connection and try again." : {},
     "This widget's image couldn't be found in the downloaded bundle." : {},
+    "Thunderstorm" : {},
     "Time" : {},
+    "Title" : {},
     "Try Again" : {
       "localizations" : {
         "de" : {
@@ -9180,6 +9211,9 @@
         }
       }
     },
+    "Weather" : {},
+    "Weather by Open-Meteo. Search a city to show its forecast." : {},
+    "Weather unavailable offline" : {},
     "Welcome to WallPics" : {
       "localizations" : {
         "de" : {
@@ -9791,6 +9825,8 @@
         }
       }
     },
+    "day left" : {},
+    "days left" : {},
     "macOS replaced the lock screen clip — set the wallpaper again." : {
       "localizations" : {
         "de" : {

@@ -46,6 +46,9 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case diyAnimated
     case template
     case dateTime
+    case calendar
+    case countdown
+    case weather
 
     var id: String { rawValue }
 
@@ -62,6 +65,9 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .diyAnimated: return String(localized: "DIY Animated")
         case .template:    return String(localized: "Template")
         case .dateTime:    return String(localized: "Clock")
+        case .calendar:    return String(localized: "Calendar")
+        case .countdown:   return String(localized: "Countdown")
+        case .weather:     return String(localized: "Weather")
         }
     }
 
@@ -78,6 +84,9 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case .diyAnimated: return "wand.and.stars"
         case .template:    return "square.grid.2x2"
         case .dateTime:    return "clock"
+        case .calendar:    return "calendar"
+        case .countdown:   return "hourglass"
+        case .weather:     return "cloud.sun"
         }
     }
 
@@ -98,10 +107,17 @@ enum WidgetKind: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    var usesClockPayload: Bool {
+        switch self {
+        case .dateTime, .calendar, .countdown, .weather: return true
+        default: return false
+        }
+    }
+
     var supportedFamilies: [WidgetFamily] {
         switch self {
         case .photo, .video, .staticImage, .template: return [.small, .medium, .large]
-        case .polaroid, .dateTime:                    return [.small, .medium]
+        case .polaroid, .dateTime, .calendar, .countdown, .weather: return [.small, .medium]
         default:                                      return [.small]
         }
     }
@@ -168,6 +184,11 @@ struct DateTimeWidgetState: Codable, Equatable, Hashable, Sendable {
     var tintHex: String = "#FFFFFF"
     var fontKey: String = "rounded"
     var use24Hour: Bool = false
+    var countdownTitle: String = ""
+    var countdownTarget: Date? = nil
+    var weatherCity: String = ""
+    var weatherLatitude: Double? = nil
+    var weatherLongitude: Double? = nil
 }
 
 enum WidgetPayload: Codable, Equatable, Sendable {
@@ -290,6 +311,117 @@ struct WidgetInstance: Codable, Equatable, Identifiable, Sendable {
         self.payload = payload
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+}
+
+private extension KeyedDecodingContainer {
+    func value<T: Decodable>(_ key: Key, _ fallback: T) -> T {
+        (try? decodeIfPresent(T.self, forKey: key)) ?? fallback
+    }
+}
+
+extension WidgetInstance {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        kind = try c.decode(WidgetKind.self, forKey: .kind)
+        family = try c.decode(WidgetFamily.self, forKey: .family)
+        payload = try c.decode(WidgetPayload.self, forKey: .payload)
+        name = c.value(.name, "")
+        createdAt = c.value(.createdAt, Date())
+        updatedAt = c.value(.updatedAt, createdAt)
+    }
+}
+
+extension PhotoWidgetState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = PhotoWidgetState()
+        relativePaths = c.value(.relativePaths, d.relativePaths)
+        fill = c.value(.fill, d.fill)
+        offsetX = c.value(.offsetX, d.offsetX)
+        offsetY = c.value(.offsetY, d.offsetY)
+    }
+}
+
+extension VideoWidgetState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = VideoWidgetState()
+        relativePath = c.value(.relativePath, d.relativePath)
+        fill = c.value(.fill, d.fill)
+        offsetX = c.value(.offsetX, d.offsetX)
+        offsetY = c.value(.offsetY, d.offsetY)
+    }
+}
+
+extension StaticImageState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = StaticImageState()
+        relativePath = c.value(.relativePath, d.relativePath)
+        sourceSlug = c.value(.sourceSlug, d.sourceSlug)
+    }
+}
+
+extension PolaroidWidgetState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = PolaroidWidgetState()
+        frameVariantID = c.value(.frameVariantID, d.frameVariantID)
+        relativePaths = c.value(.relativePaths, d.relativePaths)
+        background = c.value(.background, d.background)
+    }
+}
+
+extension ThemedToggleState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = ThemedToggleState()
+        photoRelativePath = c.value(.photoRelativePath, d.photoRelativePath)
+        isClosed = c.value(.isClosed, d.isClosed)
+    }
+}
+
+extension DIYAnimatedWidgetState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = DIYAnimatedWidgetState()
+        templateSlug = c.value(.templateSlug, d.templateSlug)
+        photoRelativePath = c.value(.photoRelativePath, d.photoRelativePath)
+        bakedFrameRelativePaths = c.value(.bakedFrameRelativePaths, d.bakedFrameRelativePaths)
+        coverRelativePath = c.value(.coverRelativePath, d.coverRelativePath)
+        isOpen = c.value(.isOpen, d.isOpen)
+    }
+}
+
+extension TemplateWidgetState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = TemplateWidgetState()
+        templateSlug = c.value(.templateSlug, d.templateSlug)
+        sizeFolder = c.value(.sizeFolder, d.sizeFolder)
+        photoRelativePath = c.value(.photoRelativePath, d.photoRelativePath)
+        replacements = c.value(.replacements, d.replacements)
+        previewRelativePath = c.value(.previewRelativePath, d.previewRelativePath)
+        thumbnailURLString = c.value(.thumbnailURLString, d.thumbnailURLString)
+    }
+}
+
+extension DateTimeWidgetState {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = DateTimeWidgetState()
+        style = c.value(.style, d.style)
+        backgroundHexes = c.value(.backgroundHexes, d.backgroundHexes)
+        tintHex = c.value(.tintHex, d.tintHex)
+        fontKey = c.value(.fontKey, d.fontKey)
+        use24Hour = c.value(.use24Hour, d.use24Hour)
+        countdownTitle = c.value(.countdownTitle, d.countdownTitle)
+        countdownTarget = c.value(.countdownTarget, d.countdownTarget)
+        weatherCity = c.value(.weatherCity, d.weatherCity)
+        weatherLatitude = c.value(.weatherLatitude, d.weatherLatitude)
+        weatherLongitude = c.value(.weatherLongitude, d.weatherLongitude)
     }
 }
 

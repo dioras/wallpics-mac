@@ -29,6 +29,9 @@ struct WidgetRenderView: View {
         case .diyAnimated: DIYAnimatedBody(instance: instance, isAnimating: isToggled, w: w, h: h)
         case .template:    TemplateBody(instance: instance, w: w, h: h)
         case .dateTime:    DateTimeBody(instance: instance, w: w, h: h)
+        case .calendar:    CalendarBody(instance: instance, w: w, h: h)
+        case .countdown:   CountdownBody(instance: instance, w: w, h: h)
+        case .weather:     WeatherBody(instance: instance, w: w, h: h)
         }
     }
 }
@@ -48,6 +51,349 @@ private struct DateTimeBody: View {
         }
         .frame(width: w, height: h)
         .clipped()
+    }
+}
+
+private struct CalendarBody: View {
+    let instance: WidgetInstance
+    let w: CGFloat
+    let h: CGFloat
+
+    var body: some View {
+        let state = instance.payload.dateTimeState ?? DateTimeWidgetState()
+        ZStack {
+            WidgetClockStyle.gradient(state.backgroundHexes)
+            TimelineView(.everyMinute) { context in
+                CalendarFace(state: state, date: context.date, wide: instance.family != .small)
+            }
+        }
+        .frame(width: w, height: h)
+        .clipped()
+    }
+}
+
+private struct CalendarFace: View {
+    let state: DateTimeWidgetState
+    let date: Date
+    let wide: Bool
+
+    var body: some View {
+        let tint = Color(hex: state.tintHex) ?? .white
+        GeometryReader { geo in
+            let unit = min(geo.size.width, geo.size.height)
+            HStack(alignment: .center, spacing: unit * 0.1) {
+                if wide {
+                    VStack(alignment: .leading, spacing: unit * 0.01) {
+                        Text(WidgetClockStyle.weekday(date))
+                            .font(WidgetClockStyle.font(for: state.fontKey, size: unit * 0.13))
+                            .minimumScaleFactor(0.5)
+                        Text("\(Calendar.current.component(.day, from: date))")
+                            .font(WidgetClockStyle.font(for: state.fontKey, size: unit * 0.42))
+                            .monospacedDigit()
+                            .minimumScaleFactor(0.5)
+                        Spacer(minLength: 0)
+                    }
+                    .lineLimit(1)
+                    .frame(maxHeight: .infinity, alignment: .topLeading)
+                }
+                monthGrid(unit: unit, tint: tint)
+            }
+            .foregroundStyle(tint)
+            .padding(unit * 0.1)
+            .frame(width: geo.size.width, height: geo.size.height)
+        }
+    }
+
+    private func monthGrid(unit: CGFloat, tint: Color) -> some View {
+        let cal = Calendar.current
+        let today = cal.component(.day, from: date)
+        let cells = Self.cells(for: date, calendar: cal)
+        let rows = stride(from: 0, to: cells.count, by: 7).map { Array(cells[$0..<min($0 + 7, cells.count)]) }
+        let symbols = Self.weekdaySymbols(calendar: cal)
+        let cellFont = unit * (rows.count > 5 ? 0.068 : 0.075)
+        return VStack(spacing: unit * 0.012) {
+            Text(date.formatted(.dateTime.month(.wide)).uppercased())
+                .font(.system(size: unit * 0.075, weight: .heavy))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .lineLimit(1)
+            HStack(spacing: 0) {
+                ForEach(Array(symbols.enumerated()), id: \.offset) { _, symbol in
+                    Text(symbol)
+                        .font(.system(size: cellFont, weight: .bold))
+                        .opacity(0.6)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                HStack(spacing: 0) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { _, day in
+                        ZStack {
+                            if day == today {
+                                Circle().fill(tint)
+                            }
+                            if let day {
+                                Text("\(day)")
+                                    .font(.system(size: cellFont, weight: day == today ? .heavy : .semibold))
+                                    .monospacedDigit()
+                                    .foregroundStyle(day == today ? Self.contrast(for: state.tintHex) : tint)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: cellFont * 1.6)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.5)
+    }
+
+    private static func cells(for date: Date, calendar cal: Calendar) -> [Int?] {
+        guard let start = cal.date(from: cal.dateComponents([.year, .month], from: date)),
+              let range = cal.range(of: .day, in: .month, for: date) else { return [] }
+        let leading = (cal.component(.weekday, from: start) - cal.firstWeekday + 7) % 7
+        var cells: [Int?] = Array(repeating: nil, count: leading) + range.map { Optional($0) }
+        while cells.count % 7 != 0 { cells.append(nil) }
+        return cells
+    }
+
+    private static func weekdaySymbols(calendar cal: Calendar) -> [String] {
+        let symbols = cal.veryShortStandaloneWeekdaySymbols
+        let shift = (cal.firstWeekday - 1) % max(1, symbols.count)
+        return Array(symbols[shift...] + symbols[..<shift])
+    }
+
+    private static func contrast(for hex: String) -> Color {
+        WidgetClockStyle.suggestedTint(for: [hex]) == "#111111" ? .black : .white
+    }
+}
+
+private struct CountdownBody: View {
+    let instance: WidgetInstance
+    let w: CGFloat
+    let h: CGFloat
+
+    var body: some View {
+        let state = instance.payload.dateTimeState ?? DateTimeWidgetState()
+        ZStack {
+            WidgetClockStyle.gradient(state.backgroundHexes)
+            TimelineView(.everyMinute) { context in
+                CountdownFace(state: state, now: context.date, wide: instance.family != .small)
+            }
+        }
+        .frame(width: w, height: h)
+        .clipped()
+    }
+}
+
+private struct CountdownFace: View {
+    let state: DateTimeWidgetState
+    let now: Date
+    let wide: Bool
+
+    var body: some View {
+        let tint = Color(hex: state.tintHex) ?? .white
+        let target = state.countdownTarget ?? now
+        let title = state.countdownTitle.isEmpty ? String(localized: "Countdown") : state.countdownTitle
+        GeometryReader { geo in
+            let unit = min(geo.size.width, geo.size.height)
+            VStack(alignment: .leading, spacing: unit * 0.02) {
+                Text(title)
+                    .font(.system(size: unit * 0.11, weight: .heavy))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                Spacer(minLength: 0)
+                remaining(target: target, unit: unit)
+                Text(target.formatted(date: wide ? .long : .abbreviated, time: .omitted))
+                    .font(.system(size: unit * 0.085, weight: .semibold))
+                    .opacity(0.75)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .foregroundStyle(tint)
+            .padding(unit * 0.12)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
+            .shadow(color: .black.opacity(0.16), radius: 1, y: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func remaining(target: Date, unit: CGFloat) -> some View {
+        let seconds = target.timeIntervalSince(now)
+        if seconds <= 0 {
+            Text("Done")
+                .font(WidgetClockStyle.font(for: state.fontKey, size: unit * 0.3))
+                .minimumScaleFactor(0.4)
+                .lineLimit(1)
+        } else if seconds < 86_400 {
+            Text(Self.hoursMinutes(seconds))
+                .font(WidgetClockStyle.font(for: state.fontKey, size: unit * 0.3))
+                .monospacedDigit()
+                .minimumScaleFactor(0.4)
+                .lineLimit(1)
+        } else {
+            let cal = Calendar.current
+            let days = cal.dateComponents([.day], from: cal.startOfDay(for: now), to: cal.startOfDay(for: target)).day ?? 0
+            HStack(alignment: .firstTextBaseline, spacing: unit * 0.03) {
+                Text("\(days)")
+                    .font(WidgetClockStyle.font(for: state.fontKey, size: unit * 0.4))
+                    .monospacedDigit()
+                Text(days == 1 ? String(localized: "day left") : String(localized: "days left"))
+                    .font(.system(size: unit * 0.09, weight: .heavy))
+                    .opacity(0.85)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.4)
+        }
+    }
+
+    private static func hoursMinutes(_ seconds: TimeInterval) -> String {
+        let f = DateComponentsFormatter()
+        f.allowedUnits = [.hour, .minute]
+        f.unitsStyle = .abbreviated
+        f.zeroFormattingBehavior = .dropLeading
+        return f.string(from: max(60, seconds)) ?? ""
+    }
+}
+
+private struct WeatherBody: View {
+    let instance: WidgetInstance
+    let w: CGFloat
+    let h: CGFloat
+
+    var body: some View {
+        let state = instance.payload.dateTimeState ?? DateTimeWidgetState()
+        ZStack {
+            WidgetClockStyle.gradient(state.backgroundHexes)
+            WeatherFace(state: state, wide: instance.family != .small)
+        }
+        .frame(width: w, height: h)
+        .clipped()
+    }
+}
+
+private struct WeatherFace: View {
+    let state: DateTimeWidgetState
+    let wide: Bool
+    private var weather: WidgetWeather { WidgetWeather.shared }
+
+    var body: some View {
+        let tint = Color(hex: state.tintHex) ?? .white
+        GeometryReader { geo in
+            let unit = min(geo.size.width, geo.size.height)
+            content(unit: unit)
+                .foregroundStyle(tint)
+                .padding(unit * 0.12)
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+                .shadow(color: .black.opacity(0.16), radius: 1, y: 1)
+        }
+        .task(id: coordinateKey) { await refreshLoop() }
+    }
+
+    private var coordinateKey: String? {
+        guard let lat = state.weatherLatitude, let lon = state.weatherLongitude else { return nil }
+        return WidgetWeather.key(latitude: lat, longitude: lon)
+    }
+
+    private func refreshLoop() async {
+        guard let lat = state.weatherLatitude, let lon = state.weatherLongitude else { return }
+        while !Task.isCancelled {
+            await weather.refreshIfNeeded(latitude: lat, longitude: lon)
+            let failing = weather.isFailing(latitude: lat, longitude: lon)
+            try? await Task.sleep(for: .seconds(failing ? 60 : 15 * 60))
+        }
+    }
+
+    @ViewBuilder
+    private func content(unit: CGFloat) -> some View {
+        if let lat = state.weatherLatitude, let lon = state.weatherLongitude {
+            let reading = weather.reading(latitude: lat, longitude: lon)
+            let offline = weather.isFailing(latitude: lat, longitude: lon)
+            if let reading {
+                readingView(reading, offline: offline, unit: unit)
+            } else if offline {
+                placeholder(symbol: "wifi.slash", text: String(localized: "Weather unavailable offline"), unit: unit)
+            } else {
+                VStack(alignment: .leading, spacing: unit * 0.04) {
+                    cityLabel(unit: unit)
+                    Spacer(minLength: 0)
+                    ProgressView().controlSize(.small)
+                    Spacer(minLength: 0)
+                }
+            }
+        } else {
+            placeholder(symbol: "location.slash", text: String(localized: "Set a city in the widget editor"), unit: unit)
+        }
+    }
+
+    private func cityLabel(unit: CGFloat) -> some View {
+        Text(state.weatherCity.components(separatedBy: ",").first ?? state.weatherCity)
+            .font(.system(size: unit * 0.1, weight: .heavy))
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+    }
+
+    private func readingView(_ reading: WidgetWeatherReading, offline: Bool, unit: CGFloat) -> some View {
+        let symbol = WidgetWeather.symbol(code: reading.code, isDay: reading.isDay)
+        let range = [reading.high.map { String(localized: "H \(WidgetWeather.temperature($0))") },
+                     reading.low.map { String(localized: "L \(WidgetWeather.temperature($0))") }]
+            .compactMap { $0 }.joined(separator: "  ")
+        return VStack(alignment: .leading, spacing: unit * 0.02) {
+            HStack(spacing: unit * 0.04) {
+                cityLabel(unit: unit)
+                if offline {
+                    Image(systemName: "wifi.slash")
+                        .font(.system(size: unit * 0.07, weight: .bold))
+                        .opacity(0.7)
+                }
+                Spacer(minLength: 0)
+                if wide {
+                    Image(systemName: symbol)
+                        .symbolRenderingMode(.multicolor)
+                        .font(.system(size: unit * 0.3))
+                }
+            }
+            Spacer(minLength: 0)
+            Text(WidgetWeather.temperature(reading.temperature))
+                .font(WidgetClockStyle.font(for: state.fontKey, size: unit * 0.34))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+            HStack(spacing: unit * 0.04) {
+                if !wide {
+                    Image(systemName: symbol)
+                        .symbolRenderingMode(.multicolor)
+                        .font(.system(size: unit * 0.1))
+                }
+                Text(WidgetWeather.label(code: reading.code))
+                    .font(.system(size: unit * 0.085, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            if !range.isEmpty {
+                Text(range)
+                    .font(.system(size: unit * 0.075, weight: .semibold))
+                    .opacity(0.75)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+        }
+    }
+
+    private func placeholder(symbol: String, text: String, unit: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: unit * 0.05) {
+            if !state.weatherCity.isEmpty { cityLabel(unit: unit) }
+            Spacer(minLength: 0)
+            Image(systemName: symbol)
+                .font(.system(size: unit * 0.18, weight: .semibold))
+            Text(text)
+                .font(.system(size: unit * 0.085, weight: .semibold))
+                .lineLimit(3)
+                .minimumScaleFactor(0.6)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
     }
 }
 

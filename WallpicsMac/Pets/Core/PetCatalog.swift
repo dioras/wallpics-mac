@@ -153,6 +153,13 @@ final class RemotePetService {
         let gaze: Gaze
         let sideVideoMov: URL?
         let pettingVideoMov: URL?
+        let pettingVideo: URL?
+
+        var pettingClip: URL? {
+            if let pettingVideoMov { return pettingVideoMov }
+            guard let pettingVideo, ["mov", "mp4", "m4v"].contains(pettingVideo.pathExtension.lowercased()) else { return nil }
+            return pettingVideo
+        }
 
         enum CodingKeys: String, CodingKey {
             case id, name, description, video, thumbnail, gaze
@@ -160,6 +167,7 @@ final class RemotePetService {
             case videoMov = "video_mov"
             case sideVideoMov = "side_video_mov"
             case pettingVideoMov = "petting_video_mov"
+            case pettingVideo = "petting_video"
         }
 
         init(from decoder: Decoder) throws {
@@ -185,6 +193,7 @@ final class RemotePetService {
                 Log.api.error("RemotePetService: pet \(petID) has an unreadable petting_video_mov — \(String(describing: error), privacy: .public)")
                 pettingVideoMov = nil
             }
+            pettingVideo = (try? c.decodeIfPresent(URL.self, forKey: .pettingVideo)) ?? nil
         }
     }
 
@@ -360,7 +369,7 @@ final class RemotePetService {
         if cached.sideVideoMov != pet.sideVideoMov {
             try? fm.removeItem(at: dir.appendingPathComponent(sideFileName))
         }
-        if cached.pettingVideoMov != pet.pettingVideoMov {
+        if cached.pettingClip != pet.pettingClip {
             try? fm.removeItem(at: dir.appendingPathComponent(pettingFileName))
         }
     }
@@ -421,7 +430,7 @@ final class RemotePetService {
             Log.api.error("RemotePetService: pet \(pet.id) has side clips but none are usable")
             return nil
         }
-        let petting = pet.gaze.pettingAppropriate == false ? nil : pet.pettingVideoMov
+        let petting = pet.gaze.pettingAppropriate == false ? nil : pet.pettingClip
         return PetTransitions(clips: clips, sideRemoteURL: remote, pettingRemoteURL: petting, cacheDirectory: dir)
     }
 
@@ -491,7 +500,7 @@ final class RemotePetService {
             pivotDown: clamp(gaze.pivotDown ?? gaze.neutralPose),
             wrapsAround: wraps,
             gazeLoop: gazeLoop,
-            isPremium: pet.isPremium ?? false,
+            isPremium: pet.isPremium ?? true,
             summary: (summary?.isEmpty ?? true) ? nil : summary,
             mediaURL: mediaURL,
             posterURL: posterURL,

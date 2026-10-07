@@ -36,6 +36,7 @@
 		7C5AE7A9F2BFD7D3EF4B50FA /* WidgetEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4318819C553015843F9648 /* WidgetEditorView.swift */; };
 		7D26C82A9C21A8E6DE12C06C /* WidgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C5C425870D8FF97C70E085 /* WidgetModels.swift */; };
 		802F5EE3015D9BFBC5DFB916 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CD0FB93DA94C15043B5DCF7 /* WidgetStore.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* WidgetWeather.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1C2D3E4F5A60718293A4B5D /* WidgetWeather.swift */; };
 		95F65D524E33AA80215E8107 /* WidgetRenderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FCA84474CBC35EE7E13D44 /* WidgetRenderView.swift */; };
 		97F07E6659D71C72CEB5C48C /* WidgetAssetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128817C116CCD7AB1F751D97 /* WidgetAssetResolver.swift */; };
 		987B7FA73C84D28929172375 /* WidgetTemplateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D663E18412E9535042E0235F /* WidgetTemplateView.swift */; };
@@ -160,6 +161,7 @@
 		59FBC4C719D7890F88B680F3 /* WidgetsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetsViewModel.swift; sourceTree = "<group>"; };
 		5F13445A4CEC2879E73FDD38 /* PetsViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetsViewModel.swift; sourceTree = "<group>"; };
 		6CD0FB93DA94C15043B5DCF7 /* WidgetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
+		B1C2D3E4F5A60718293A4B5D /* WidgetWeather.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetWeather.swift; sourceTree = "<group>"; };
 		7368A70FE50B58309EB60A2C /* PetBackdropRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PetBackdropRenderer.swift; sourceTree = "<group>"; };
 		7FC5E6B57B74DF56E4D4630E /* WidgetBundleStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetBundleStore.swift; sourceTree = "<group>"; };
 		8E7AB3753E268B72CB297CDC /* WidgetsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetsView.swift; sourceTree = "<group>"; };
@@ -353,6 +355,7 @@
 				23C5C425870D8FF97C70E085 /* WidgetModels.swift */,
 				AEE5F6D360845697647D3808 /* WidgetPaths.swift */,
 				6CD0FB93DA94C15043B5DCF7 /* WidgetStore.swift */,
+				B1C2D3E4F5A60718293A4B5D /* WidgetWeather.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -814,6 +817,7 @@
 				C706000A029426925A98EC2E /* WidgetModels.swift in Sources */,
 				0022758506CC60C48E683845 /* WidgetPaths.swift in Sources */,
 				802F5EE3015D9BFBC5DFB916 /* WidgetStore.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* WidgetWeather.swift in Sources */,
 				449E671B08600ECE8BBA8BA5 /* DesktopWidgetManager.swift in Sources */,
 				A1E34D204D0999859116C62E /* WidgetPlacement.swift in Sources */,
 				59DB8CEE49132CEBACECC953 /* WidgetEditorModel.swift in Sources */,

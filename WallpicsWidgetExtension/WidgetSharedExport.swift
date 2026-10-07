@@ -35,7 +35,7 @@ enum WidgetSharedExport {
             let data = try Data(contentsOf: sourceInstancesFile)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            let instances = try decoder.decode([WidgetInstance].self, from: data)
+            let instances = try decoder.decode([FailableInstance].self, from: data).compactMap(\.value)
 
             try? fileManager.removeItem(at: staging)
             try fileManager.createDirectory(at: staging, withIntermediateDirectories: true)
@@ -127,7 +127,7 @@ enum WidgetSharedExport {
     }
 
     private static func sharedAsset(for instance: WidgetInstance, fileManager: FileManager) -> (source: URL, name: String)? {
-        if instance.kind == .dateTime { return nil }
+        if instance.kind.usesClockPayload { return nil }
         let dir = WidgetPaths.assetsDirectory(for: instance.id)
         let render = dir.appendingPathComponent(WidgetSharedConfig.renderFileName)
         if fileManager.fileExists(atPath: render.path) {

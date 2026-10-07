@@ -95,7 +95,7 @@ struct WidgetSharedStore: Sendable {
         if instances.count != decoded.count {
             Self.log.error("Dropped \(decoded.count - instances.count) undecodable widget instance(s)")
         }
-        return instances.map { instance in
+        return instances.filter { !$0.kind.usesClockPayload || $0.kind == .dateTime }.map { instance in
             SharedWidget(id: instance.id.uuidString,
                          name: instance.name,
                          kindRawValue: instance.kind.rawValue,

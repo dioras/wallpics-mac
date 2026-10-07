@@ -3,8 +3,9 @@ import Foundation
 /// Remembers the currently-active **animated/shader** wallpaper so it can be restored on the next
 /// launch (after a restart/login). Without this, an animated wallpaper's desktop windows die with
 /// the process and the desktop falls back to the low-res first-frame poster — which reads as
-/// "the wallpaper quality dropped". Static images are intentionally NOT tracked here: macOS keeps
-/// the desktop image itself across launches, so they restore on their own.
+/// "the wallpaper quality dropped". Static images are never restored from here (macOS keeps the
+/// desktop image itself across launches); their record only remembers the unwatermarked source so
+/// the watermark can follow a subscription change.
 ///
 /// The record lives in the app-support root (never touched by the cache sweep). The referenced
 /// asset/poster files are pinned in the cache (Downloaded marker) so they survive eviction.
@@ -14,6 +15,7 @@ enum ActiveWallpaperStore {
         var assetPath: String     // absolute path to the playable asset on disk
         var posterPath: String?   // absolute path to the static first-frame, if any
         var watermarked: Bool     // whether the free-tier watermark was applied when it was set
+        var sourcePath: String? = nil
     }
 
     private static var fileURL: URL? {
