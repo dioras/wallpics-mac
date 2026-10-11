@@ -16,9 +16,17 @@ final class DesktopWidgetManager {
     private var placements: [UUID: DesktopWidgetPlacement] = [:]
     private var moveObservers: [UUID: NSObjectProtocol] = [:]
     private var snapWork: [UUID: DispatchWorkItem] = [:]
+    private var screenObserver: NSObjectProtocol?
+    private var isRelocatingForScreens = false
+    private var relocationEnd: DispatchWorkItem?
 
     private init() {
         for p in WidgetPlacementStore.load() { placements[p.id] = p }
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.screensChanged() }
+        }
     }
 
     func isPlaced(_ id: UUID) -> Bool { placedIDs.contains(id) }
@@ -112,7 +120,7 @@ final class DesktopWidgetManager {
             return
         }
         let pad = Self.shadowPad
-        let windowFrame = placement.frame.insetBy(dx: -pad, dy: -pad)
+        let windowFrame = Self.onScreen(placement.frame).insetBy(dx: -pad, dy: -pad)
         let window = DesktopWidgetWindow(contentRect: windowFrame)
         let root = DesktopWidgetContent(instanceID: id, padding: pad)
             .environment(WidgetStore.shared)
@@ -139,6 +147,7 @@ final class DesktopWidgetManager {
     }
 
     private func windowMoved(_ window: NSWindow, id: UUID, pad: CGFloat) {
+        guard !isRelocatingForScreens else { return }
         if var placement = placements[id] {
             placement.frame = window.frame.insetBy(dx: pad, dy: pad)
             placements[id] = placement
@@ -163,8 +172,44 @@ final class DesktopWidgetManager {
         updateFrame(snapped, for: id)
     }
 
+    private func screensChanged() {
+        isRelocatingForScreens = true
+        for work in snapWork.values { work.cancel() }
+        snapWork.removeAll()
+        returnWindowsToSavedFrames()
+        relocationEnd?.cancel()
+        let end = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.returnWindowsToSavedFrames()
+            self.isRelocatingForScreens = false
+        }
+        relocationEnd = end
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: end)
+    }
+
+    private func returnWindowsToSavedFrames() {
+        let pad = Self.shadowPad
+        for (id, window) in windows {
+            guard let saved = placements[id]?.frame else { continue }
+            let target = Self.onScreen(saved).insetBy(dx: -pad, dy: -pad)
+            if window.frame != target { window.setFrame(target, display: true) }
+        }
+    }
+
+    private static func screen(containing rect: CGRect) -> NSScreen? {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        return NSScreen.screens.first { $0.frame.contains(center) }
+    }
+
+    private static func onScreen(_ rect: CGRect) -> CGRect {
+        guard Self.screen(containing: rect) == nil, let area = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame else { return rect }
+        let x = min(max(rect.minX, area.minX), area.maxX - rect.width)
+        let y = min(max(rect.minY, area.minY), area.maxY - rect.height)
+        return CGRect(x: x, y: y, width: rect.width, height: rect.height)
+    }
+
     private static func snap(rect: CGRect) -> CGRect {
-        let screen = NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let screen = (Self.screen(containing: rect) ?? NSScreen.main)?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
         let g = gridStep
         let x = screen.minX + round((rect.minX - screen.minX) / g) * g
         let y = screen.minY + round((rect.minY - screen.minY) / g) * g

@@ -43,7 +43,7 @@ final class WallpaperRenderer {
         }
     }
 
-    private var activeWindows: [NSWindow] = []
+    private var activeWindows: [CGDirectDisplayID: NSWindow] = [:]
     private var currentKind: Kind?
     private var currentAssetURL: URL?
     private var currentPosterURL: URL?
@@ -262,12 +262,13 @@ final class WallpaperRenderer {
 
     /// Create one animated window for a screen, attach the live watermark overlay if needed.
     private func addAnimatedWindow(kind: Kind, url: URL, screen: NSScreen) {
+        guard let id = screen.displayID else { return }
         let window = makeWindow(kind: kind, url: url, screen: screen)
         if needsWatermark {
             WatermarkOverlay.attach(to: window, appIcon: watermarkIcon)
         }
         window.orderBack(nil)
-        activeWindows.append(window)
+        activeWindows[id] = window
     }
 
     func clear() {
@@ -291,7 +292,7 @@ final class WallpaperRenderer {
     }
 
     private func applyPauseStateToWindows() {
-        for window in activeWindows {
+        for window in activeWindows.values {
             guard let control = window as? WallpaperWindowControl else { continue }
             if isPaused { control.pause() } else { control.resume() }
         }
@@ -314,18 +315,23 @@ final class WallpaperRenderer {
     /// re-asserts z-order. Used after a display change, wake, OR screen unlock so the animation
     /// reliably comes back (macOS can tear down or re-order desktop windows across those events).
     private func reconcileAnimatedWindows(kind: Kind, url: URL) {
-        let activeScreens = Set(NSScreen.screens.map { $0.localizedName })
-        activeWindows.removeAll { window in
-            let stillActive = window.screen.map { activeScreens.contains($0.localizedName) } ?? false
-            if !stillActive { (window as? WallpaperWindowControl)?.stop() }
-            return !stillActive
+        let screens = NSScreen.screens
+        let activeIDs = Set(screens.compactMap(\.displayID))
+        for (id, window) in activeWindows where !activeIDs.contains(id) {
+            (window as? WallpaperWindowControl)?.stop()
+            window.orderOut(nil)
+            activeWindows[id] = nil
         }
-        let coveredScreens = Set(activeWindows.compactMap { $0.screen?.localizedName })
-        for screen in NSScreen.screens where !coveredScreens.contains(screen.localizedName) {
-            addAnimatedWindow(kind: kind, url: url, screen: screen)
+        for screen in screens {
+            guard let id = screen.displayID else { continue }
+            if let window = activeWindows[id] {
+                if window.frame != screen.frame { window.setFrame(screen.frame, display: true) }
+            } else {
+                addAnimatedWindow(kind: kind, url: url, screen: screen)
+            }
         }
         // Re-assert desktop-level z-order for windows that survived (unlock can shuffle them).
-        for window in activeWindows { window.orderBack(nil) }
+        for window in activeWindows.values { window.orderBack(nil) }
         applyPauseStateToWindows()
     }
 
@@ -433,7 +439,7 @@ final class WallpaperRenderer {
     }
 
     private func clearWindows() {
-        for window in activeWindows {
+        for window in activeWindows.values {
             (window as? WallpaperWindowControl)?.stop()
             window.orderOut(nil)
         }
