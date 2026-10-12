@@ -89,7 +89,8 @@ final class WidgetEditorModel: Identifiable {
         let candidates = ["photo", "frame1", "image", "static"]
         var found: URL?
         for name in candidates {
-            if let url = WidgetAssetResolver.url(forResource: name, withExtension: "png", slug: slug) {
+            if let url = WidgetAssetResolver.url(forResource: name, withExtension: "png", slug: slug,
+                                                  family: instance.family.rawValue) {
                 found = url; break
             }
         }
@@ -103,7 +104,8 @@ final class WidgetEditorModel: Identifiable {
     private func seedTemplatePreview(slug: String) {
         let candidates = [("preview", "webp"), ("preview", "png"), ("thumbnail", "png"), ("frame1", "png")]
         for (name, ext) in candidates {
-            if let url = WidgetAssetResolver.url(forResource: name, withExtension: ext, slug: slug),
+            if let url = WidgetAssetResolver.url(forResource: name, withExtension: ext, slug: slug,
+                                                  family: instance.family.rawValue),
                let rel = WidgetStore.shared.importImage(from: url, into: instance.id, maxPixelSize: 1200) {
                 if case .template(var s) = instance.payload {
                     s.previewRelativePath = rel

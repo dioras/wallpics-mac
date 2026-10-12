@@ -82,6 +82,11 @@ final class DesktopPetManager {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.catalogDidUpdate() }
         })
+        observers.append(center.addObserver(
+            forName: PetSubmissionStore.didChange, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.resumeIfUnlocked() }
+        })
         observers.append(DistributedNotificationCenter.default().addObserver(
             forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main
         ) { [weak self] _ in
@@ -98,6 +103,14 @@ final class DesktopPetManager {
         start()
     }
 
+    func resumeIfUnlocked() {
+        guard !isRunning, let placement = PetStore.shared.placement,
+              let species = PetCatalog.species(slug: placement.speciesSlug),
+              !PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state,
+                                         ownedIDs: PetSubmissionStore.shared.unlockedPetIDs) else { return }
+        start()
+    }
+
     func start() {
         guard let placement = PetStore.shared.placement,
               let species = PetCatalog.species(slug: placement.speciesSlug) else {
@@ -107,7 +120,7 @@ final class DesktopPetManager {
         guard !PetAccess.requiresPaywall(pet: species, state: StoreKitService.shared.state,
                                         ownedIDs: PetSubmissionStore.shared.unlockedPetIDs) else {
             stop()
-            loadFailure = String(localized: "WallPics Pro is required for this pet")
+            loadFailure = nil
             Log.app.notice("DesktopPetManager: \(species.slug, privacy: .public) not started, subscription lapsed")
             return
         }
@@ -136,7 +149,8 @@ final class DesktopPetManager {
     }
 
     private func catalogDidUpdate() {
-        guard isRunning, let placement = PetStore.shared.placement,
+        guard isRunning else { resumeIfUnlocked(); return }
+        guard let placement = PetStore.shared.placement,
               let species = PetCatalog.species(slug: placement.speciesSlug) else { return }
         if renderers.values.contains(where: { $0.species != species }) {
             start()

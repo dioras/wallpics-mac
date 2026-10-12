@@ -71,7 +71,7 @@ struct PetsView: View {
                     .foregroundStyle(.white.opacity(0.55))
             }
             Spacer()
-            if model.active != nil {
+            if model.active != nil, model.desktop.isRunning {
                 Button {
                     model.desktop.toggleUserPause()
                 } label: {
@@ -95,7 +95,8 @@ struct PetsView: View {
     @ViewBuilder
     private func focusCard(_ pet: PetSpecies, sideBySide: Bool) -> some View {
         Group {
-            if model.store.isActive(pet.slug) {
+            if model.store.isActive(pet.slug),
+               !PetAccess.requiresPaywall(pet: pet, state: store.state, ownedIDs: model.submissions.unlockedPetIDs) {
                 activePetCard(pet, sideBySide: sideBySide)
             } else {
                 previewCard(pet, sideBySide: sideBySide)
@@ -459,7 +460,7 @@ struct PetsView: View {
             LazyVGrid(columns: columns, spacing: Theme.Space.l) {
                 ForEach(model.filtered) { pet in
                     PetTile(pet: pet,
-                            isPlaced: model.store.isActive(pet.slug),
+                            isPlaced: model.store.isActive(pet.slug) && model.desktop.isRunning,
                             isLocked: PetAccess.requiresPaywall(pet: pet, state: store.state, ownedIDs: model.submissions.unlockedPetIDs),
                             isDIY: diyIDs.contains(pet.remoteID ?? -1),
                             isSelected: model.focused?.slug == pet.slug)

@@ -207,6 +207,7 @@ final class StoreKitService {
         state = newState
         scheduleExpiryCheck(newState.expiresAt)
         WallpaperRenderer.shared.refreshWatermark(isPro: newState.isPro)
+        DesktopPetManager.shared.resumeIfUnlocked()
     }
 
     private func scheduleExpiryCheck(_ expiresAt: Date?) {

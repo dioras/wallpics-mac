@@ -12,7 +12,9 @@ enum WidgetAssetResolver {
         let candidates = [
             base.appendingPathComponent(family).appendingPathComponent(fileName),
             base.appendingPathComponent(fileName),
-            base.appendingPathComponent("small").appendingPathComponent(fileName)
+            base.appendingPathComponent("small").appendingPathComponent(fileName),
+            base.appendingPathComponent("medium").appendingPathComponent(fileName),
+            base.appendingPathComponent("large").appendingPathComponent(fileName)
         ]
         for url in candidates where fm.fileExists(atPath: url.path) {
             return url
